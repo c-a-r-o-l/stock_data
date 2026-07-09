@@ -1,0 +1,681 @@
+================================================================================
+                    MARKET STATE FOUNDATION MODEL
+                COMPLETE PROJECT DESIGN DOCUMENT
+                          (VERSION 2.0)
+================================================================================
+
+DATA OVERVIEW
+================================================================================
+
+You have four distinct data sources with different update frequencies:
+
+1. Technical Data (Daily, Weekly, Monthly)
+   ────────────────────────────────────────
+   - Daily: Open, Close, High, Low, Volume, RS_90, RSI_14, ATR, etc.
+   - Weekly: MACD, OBV, ADX, Weekly RSI, Weekly Volume, etc.
+   - Monthly: Monthly MACD, Monthly OBV, Monthly ADX, etc.
+
+2. Economic Data (Daily, Weekly, Monthly)
+   ──────────────────────────────────────
+   - Daily: VIX, Treasury yields, Currency rates
+   - Weekly: Initial jobless claims, EIA inventory reports
+   - Monthly: CPI, PPI, Unemployment rate, GDP growth
+
+3. Company Financial Data (Quarterly)
+   ──────────────────────────────────
+   - EPS (Earnings Per Share)
+   - Revenue
+   - Book Value
+   - Net Income
+   - Cash Flow
+   - Debt-to-Equity Ratio
+   - Gross Margin
+   - Operating Margin
+
+
+CORE PRINCIPLE: EVERY DAY MUST HAVE THE SAME NUMBER OF FEATURES
+================================================================================
+
+Even though your data updates at different frequencies (daily, weekly, monthly,
+quarterly), every single day in your 252-day window must have exactly the same
+number of columns (e.g., 50 features).
+
+Solution: Forward-Fill (Carry Forward)
+
+- Daily data: Updates every day (changes daily)
+- Weekly data: Updates every Friday, carries forward through the week
+- Monthly data: Updates on release date, carries forward through the month
+- Quarterly data: Updates on release date, carries forward through the quarter
+- Static data: Never changes (same value for every day)
+
+
+DATA ALIGNMENT PROCESS
+================================================================================
+
+Step 1: Create a Complete Trading Day Calendar
+───────────────────────────────────────────────
+
+All data will be aligned to this calendar.
+
+Trading days = All weekdays (Monday-Friday), excluding holidays
+For 1990-2024: ~8,800 trading days
+
+
+Step 2: Align Each Data Source
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                        FREQUENCY ALIGNMENT TABLE                           │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Data Source      │ Frequency  │ Alignment Method         │ Output Shape     │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Daily Tech       │ Daily      │ Direct use               │ (trading_days, N)│
+│ (OHLC, RS_90)    │            │                          │                   │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Weekly Tech      │ Weekly     │ Forward-fill to daily    │ (trading_days, M)│
+│ (MACD, OBV)      │ (Friday)   │ (same value for 5 days)  │                   │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Monthly Tech     │ Monthly    │ Forward-fill to daily    │ (trading_days, P)│
+│ (Monthly MACD)   │ (Month-end)│ (same value for 21 days) │                   │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Daily Econ       │ Daily      │ Direct use               │ (trading_days, Q)│
+│ (VIX, Yields)    │            │                          │                   │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Weekly Econ      │ Weekly     │ Forward-fill to daily    │ (trading_days, R)│
+│ (Jobless Claims) │ (Thursday) │ (same value until next)  │                   │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Monthly Econ     │ Monthly    │ Forward-fill to daily    │ (trading_days, S)│
+│ (CPI, GDP)       │ (Release)  │ (same value until next)  │                   │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Quarterly Finance│ Quarterly  │ Forward-fill to daily    │ (trading_days, T)│
+│ (EPS, Revenue)   │ (Release)  │ (same value for ~63 days)│                   │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Static Data      │ Once       │ Replicate to every day   │ (trading_days, U)│
+│ (Sector, Exchange)│            │                          │                   │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+
+Step 3: Merge All Sources into a Single Wide-Format DataFrame
+
+Each row = ONE trading day
+Each column = ONE factor
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    EXAMPLE: MERGED DATA FRAME                             │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ date    │ daily_rs_90 │ daily_volume │ weekly_macd │ monthly_macd │ eps   │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ 2024-01-02 │ 95.4      │ 2.1         │ 0.65        │ 0.72         │ 4.50  │
+│ 2024-01-03 │ 94.8      │ 1.8         │ 0.65        │ 0.72         │ 4.50  │
+│ 2024-01-04 │ 96.2      │ 2.5         │ 0.65        │ 0.72         │ 4.50  │
+│ 2024-01-05 │ 95.1      │ 2.2         │ 0.65        │ 0.72         │ 4.50  │
+│ 2024-01-08 │ 93.5      │ 1.2         │ 0.62        │ 0.72         │ 4.50  │  ← Weekly MACD updated
+│ ...        │ ...       │ ...         │ ...         │ ...          │ ...   │
+│ 2024-02-01 │ 92.4      │ 1.5         │ 0.58        │ 0.72         │ 4.50  │
+│ 2024-03-01 │ 91.5      │ 1.2         │ 0.55        │ 0.68         │ 4.80  │  ← Monthly MACD & EPS updated
+└─────────────────────────────────────────────────────────────────────────────┘
+
+
+Step 4: Normalize All Columns (StandardScaler)
+
+Each column: mean=0, standard deviation=1
+
+This ensures:
+- Daily volatility (e.g., RS_90 changing 1-2 points/day) is on the same scale
+- Monthly changes (e.g., EPS changing 10% once/quarter) are also on the same scale
+- The model treats all factors fairly regardless of their raw magnitude
+
+
+WINDOW CREATION
+================================================================================
+
+Choose Window Size: 252 trading days (1 year)
+
+Why 252 days?
+- Quarterly data updates ~4 times in the window
+- Monthly data updates ~12 times in the window
+- Weekly data updates ~50 times in the window
+- Daily data updates 252 times in the window
+
+This gives the model enough context to learn:
+- Daily patterns (short-term momentum)
+- Weekly patterns (medium-term trends)
+- Monthly patterns (cycle shifts)
+- Quarterly patterns (earnings growth, macro regime)
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    SLIDING WINDOWS (252 days each)                        │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  Window 1: Days 1-252   →  Embedding_1   →  Label: Return Days 253-504   │
+│  Window 2: Days 2-253   →  Embedding_2   →  Label: Return Days 254-505   │
+│  Window 3: Days 3-254   →  Embedding_3   →  Label: Return Days 255-506   │
+│  ...                                                                       │
+│  Window N: Days N-N+251 →  Embedding_N   →  Label: Return N+252-N+503    │
+│                                                                             │
+│  Each window shape: (252, num_factors)                                    │
+│  Each label: 1 if Top 10% return over next 252 days, else 0              │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+
+ENCODER ARCHITECTURE
+================================================================================
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    CONTINUOUS TRANSFORMER ENCODER                          │
+│                                                                             │
+│  Input: (Batch, 252, num_factors)                                         │
+│         e.g., (32, 252, 50)                                               │
+│                                                                             │
+│  ┌───────────────────────────────────────────────────────────────────────┐ │
+│  │  Layer 1: Linear Projection                                         │ │
+│  │  (252, 50) → (252, 768)                                            │ │
+│  │  - Turns raw numbers into model space                              │ │
+│  │  - Preserves continuous values (no discretization)                 │ │
+│  └───────────────────────────────────────────────────────────────────────┘ │
+│                                    │                                       │
+│                                    ▼                                       │
+│  ┌───────────────────────────────────────────────────────────────────────┐ │
+│  │  Layer 2: Add Positional Encoding                                   │ │
+│  │  - Sine/cosine encoding for each of the 252 positions              │ │
+│  │  - Tells model: "Day 1" vs "Day 252"                              │ │
+│  │  - Preserves time order                                            │ │
+│  └───────────────────────────────────────────────────────────────────────┘ │
+│                                    │                                       │
+│                                    ▼                                       │
+│  ┌───────────────────────────────────────────────────────────────────────┐ │
+│  │  Layer 3: Transformer Encoder (4 layers, 8 heads)                  │ │
+│  │                                                                     │ │
+│  │  Each layer:                                                       │ │
+│  │  ┌─────────────────────────────────────────────────────────────┐   │ │
+│  │  │  Multi-Head Self-Attention: 8 heads                        │   │ │
+│  │  │  - Day 1 attends to Day 2, Day 50, Day 252                │   │ │
+│  │  │  - Day 50 attends to Day 1, Day 49, Day 51, Day 252      │   │ │
+│  │  │  - Day 252 attends to Day 1, Day 50, Day 251             │   │ │
+│  │  │  - Learns cross-day relationships                         │   │ │
+│  │  └─────────────────────────────────────────────────────────────┘   │ │
+│  │  ┌─────────────────────────────────────────────────────────────┐   │ │
+│  │  │  Feed-Forward Network: 768 → 3072 → 768                    │   │ │
+│  │  └─────────────────────────────────────────────────────────────┘   │ │
+│  │  ┌─────────────────────────────────────────────────────────────┐   │ │
+│  │  │  Residual Connections + Layer Normalization                │   │ │
+│  │  └─────────────────────────────────────────────────────────────┘   │ │
+│  └───────────────────────────────────────────────────────────────────────┘ │
+│                                    │                                       │
+│                                    ▼                                       │
+│  ┌───────────────────────────────────────────────────────────────────────┐ │
+│  │  Layer 4: Extract Embedding                                        │ │
+│  │  - Take output of the LAST day (Day 252)                          │ │
+│  │  - Shape: (Batch, 768)                                            │ │
+│  │  - This is the "Market State Embedding"                           │ │
+│  └───────────────────────────────────────────────────────────────────────┘ │
+│                                                                             │
+│  Output: 768-dim Continuous Embedding                                      │
+│  - Represents the entire 252-day market state                             │
+│  - Captures daily, weekly, monthly, quarterly patterns                   │
+│  - Preserves all time order relationships                               │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+
+TRAINING THE ENCODER
+================================================================================
+
+Training Objective: Contrastive Learning
+
+Goal: Make embeddings of "similar" market states close to each other in the
+      768-dimensional space.
+
+Positive Pairs:
+  - Two windows that both led to Top 10% returns
+  - Two windows that have similar market regimes (e.g., both bull markets)
+
+Negative Pairs:
+  - A Top 10% window and a Bottom 10% window
+  - A bull market window and a bear market window
+
+Loss Function: Triplet Loss or InfoNCE (Contrastive Loss)
+
+Training Data:
+  - 5,000-10,000 windows from 1990-2020
+  - Validation: 2020-2022
+  - Test: 2023-2024
+
+
+TWO PARALLEL PATHS
+================================================================================
+
+Path A: Vector DB (Faiss)
+─────────────────────────
+
+Purpose: Fast similarity retrieval for interpretability
+
+Process:
+  1. Encode ALL historical windows into 768-dim embeddings
+  2. Store embeddings in Faiss index
+  3. On query: Encode today's window → Search Top-50 nearest neighbors
+  4. Return: Dates and metadata of the 50 most similar historical states
+
+Output:
+  - "NVDA 2023" (same market state)
+  - "AVGO 2024" (similar conditions)
+  - "META 2013" (comparable environment)
+
+Use: Explainability for PMs ("Why should I trust this prediction?")
+
+Path B: XGBoost Prediction
+──────────────────────────
+
+Purpose: Accurate, calibrated probability forecast
+
+Process:
+  1. Use ALL historical embeddings (5,000-10,000) as features
+  2. Use labels (Top 10% vs not) as targets
+  3. Train XGBoost Classifier
+  4. On query: Encode today's window → XGBoost predicts probability
+
+Output:
+  - P(Top 10%) = 78%
+
+Use: Quantitative decision-making
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    WHY TWO PATHS ARE PARALLEL                             │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  Faiss (Retrieval)          |  XGBoost (Prediction)                       │
+│  ───────────────────────────┼───────────────────────────────────────────── │
+│  Goal: Interpretability     |  Goal: Accuracy                             │
+│  Method: Similarity search  |  Method: Supervised learning                │
+│  Uses: Top 50 similar cases |  Uses: ALL historical data                  │
+│  Output: Cases (NVDA 2023)  |  Output: Probability (78%)                  │
+│  Strength: Trust, Evidence  |  Strength: Calibration, Generalization      │
+│  Weakness: Lower accuracy   |  Weakness: Black box                        │
+│                                                                             │
+│  They are NOT a pipeline:                                                  │
+│  ❌ Do NOT train XGBoost on Faiss results (overfitting on 50 samples)     │
+│  ✅ Do train XGBoost on ALL embeddings                                    │
+│  ✅ Do use Faiss for interpretability only                                │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+
+WHY NO DISCRETIZATION? (CRITICAL DECISION)
+================================================================================
+
+Decision: Use Continuous Embeddings (NOT tokenization)
+
+Why:
+  1. Financial data is numeric, not categorical
+     - RS_90 = 95.4 vs 95.5 → Small difference matters
+     - Discretization would treat 89.9 and 90.1 as completely different (loses smoothness)
+
+  2. Preserves exact values
+     - EPS = 4.50 → Carried forward exactly
+     - GDP = 3.2% → Carried forward exactly
+
+  3. Handles smooth transitions
+     - RS_90 moving from 80 to 95 over 60 days → Model sees the slope
+     - Discretization would turn this into: MEDIUM → MEDIUM → ... → HIGH (loses the trend)
+
+  4. No arbitrary threshold choices
+     - Discretization requires deciding "What is HIGH vs MEDIUM?" (90? 85?)
+     - Continuous model learns the optimal threshold automatically
+
+Implementation:
+  Linear Projection Layer: (num_factors) → (768)
+  This is a learned transformation that preserves all numeric information.
+
+
+WHY TRANSFORMER ENCODER? (NOT LSTM OR RAW XGBOOST)
+================================================================================
+
+| Method           | Time Order? | Long-range? | Bidirectional? | Parallel? |
+|──────────────────┼─────────────┼─────────────┼────────────────┼───────────┤
+| Raw XGBoost      | ❌ Lost     | ❌ No       | ❌ No          | ✅ Yes    |
+| LSTM             | ✅ Yes      | ⚠️ Forgets  | ❌ No (L→R)    | ❌ No     |
+| Transformer      | ✅ Yes      | ✅ Perfect  | ✅ Yes (L↔R)   | ✅ Yes    |
+
+Why Transformer wins:
+  1. No forgetting: Day 1 and Day 252 can directly interact
+  2. Bidirectional: Day 50 sees both Day 1 and Day 252 (better context)
+  3. Parallel training: Much faster than LSTM
+  4. Attention weights: Interpretable (which days mattered most)
+
+Why NOT raw XGBoost:
+  - Loses time order → Treats Day 1 and Day 252 as independent features
+  - Cannot learn "trend" or "momentum" patterns
+
+Why NOT LSTM:
+  - Forgets Day 1 by the time it reaches Day 252
+  - Cannot compare Day 1 and Day 252 directly
+
+
+WHY 252 DAYS? (WINDOW SIZE SELECTION)
+================================================================================
+
+| Window Size | Data Frequency | Updates Seen | Recommendation |
+|─────────────┼────────────────┼──────────────┼─────────────────|
+| 60 days     | Quarterly       | 1            | ❌ Too short    |
+| 126 days    | Quarterly       | 2            | ⚠️ Borderline   |
+| 252 days    | Quarterly       | 4            | ✅ RECOMMENDED  |
+| 504 days    | Quarterly       | 8            | ✅ Also works   |
+
+Why 252 days?
+  - 4 quarterly updates (enough to see EPS growth/decline trends)
+  - 12 monthly updates (enough to see monthly patterns)
+  - 50 weekly updates (enough to see weekly patterns)
+  - 252 daily updates (complete year of daily data)
+  - Captures seasonal patterns (e.g., January effect, summer slowdown)
+  - Standard "1-year lookback" in quantitative finance
+
+Note: 252 trading days ≈ 1 calendar year (since there are ~252 trading days/year)
+
+
+TECHNICAL SPECIFICATIONS
+================================================================================
+
+1. Input Data
+   ───────────
+   Window Size: 252 trading days (1 year)
+   Factors per day: 40-60 (mix of daily, weekly, monthly, quarterly)
+   Total features per window: 252 × 40-60 = 10,000 - 15,000 raw numbers
+   Historical windows: ~5,000 - 10,000 (20 years of data)
+
+2. Encoder Architecture
+   ─────────────────────
+   Layers: 4 Transformer Encoder layers
+   Hidden Size: 768 dimensions
+   Attention Heads: 8
+   Feed-forward Size: 3072 (4 × hidden)
+   Output: 768-dim embedding
+   Total parameters: ~10-15 million
+
+3. Vector DB
+   ──────────
+   Library: Faiss (Facebook AI Similarity Search)
+   Index Type: IndexFlatIP (Inner Product = Cosine Similarity after normalization)
+   Search: Top-50 nearest neighbors
+   Latency: < 100 ms for 10,000 vectors (on CPU)
+
+4. Prediction Model
+   ─────────────────
+   Algorithm: XGBoost Classifier
+   Objective: Binary classification (Top 10% or not)
+   Output: Probability (0-1)
+   Features: 768-dim embedding
+   Training: All historical embeddings + labels
+
+5. Memory & Hardware
+   ──────────────────
+   RAM Required: < 2 GB (32 GB available)
+   Training Time: 2-6 hours on CPU (for 10,000 windows, 10 epochs)
+   Storage: ~100 MB for CSV data, < 100 MB for models
+   GPU: Not required (CPU sufficient at this scale)
+
+
+IMPLEMENTATION PLAN (4-Week Summer Project)
+================================================================================
+
+Week 1: Data Pipeline
+──────────────────────
+□ Build trading day calendar (1990-2024)
+□ Load all data sources:
+  - Daily tech (OHLC, RS_90, RSI, Volume)
+  - Weekly tech (MACD, OBV, ADX)
+  - Monthly tech (Monthly MACD, Monthly OBV)
+  - Daily econ (VIX, Treasury yields)
+  - Weekly econ (Jobless claims)
+  - Monthly econ (CPI, GDP, Unemployment)
+  - Quarterly finance (EPS, Revenue, Book Value)
+  - Static (Sector, Exchange)
+□ Forward-fill each source to daily alignment
+□ Merge all sources into wide-format DataFrame
+□ Normalize all columns (StandardScaler)
+□ Create 252-day sliding windows
+□ Generate labels (future 252-day returns, Top 10% threshold)
+
+Week 2: Encoder
+───────────────
+□ Implement Transformer Encoder with:
+  - Continuous projection layer (num_factors → 768)
+  - Positional encoding (252 positions)
+  - 4 Transformer Encoder layers (8 heads each)
+  - Output: Last day's embedding (768-dim)
+□ Train encoder using contrastive learning
+□ Generate 768-dim embeddings for all windows
+□ Save embeddings to disk (numpy array)
+
+Week 3: Vector DB + XGBoost
+───────────────────────────
+□ Normalize embeddings (L2 normalization for cosine similarity)
+□ Build Faiss index with all embeddings
+□ Implement query function:
+  - Encode today's window → 768-dim embedding
+  - Search Faiss for Top-50 nearest neighbors
+  - Return dates and metadata
+□ Train XGBoost on embeddings + labels
+□ Hyperparameter tuning (n_estimators, max_depth, learning_rate)
+□ Evaluate on validation set (AUC, Log Loss)
+
+Week 4: Integration & Testing
+─────────────────────────────
+□ Build end-to-end pipeline:
+  - Raw data → Encode → Search Faiss + Predict XGBoost
+□ Test on out-of-sample data (2023-2024)
+□ Implement backtesting:
+  - Generate signals when probability > threshold
+  - Calculate equity curve, Sharpe ratio, max drawdown
+□ Compare against baseline (Buy & Hold)
+□ Create sample outputs (PLTR example)
+□ Document and create demo notebook
+
+
+EVALUATION METRICS
+================================================================================
+
+1. Encoder Quality (Contrastive Learning)
+   ──────────────────────────────────────
+   - Top-1 retrieval accuracy: Target > 30%
+   - Top-10 retrieval accuracy: Target > 60%
+   - Embedding similarity: Visualize with t-SNE, check clustering
+
+2. XGBoost Prediction
+   ──────────────────
+   - AUC: Target > 0.70
+   - Log Loss: Target < 0.50
+   - Calibration: Reliability diagram (well-calibrated probabilities)
+   - Precision/Recall: Especially precision at high probability thresholds
+
+3. Portfolio Backtest
+   ──────────────────
+   - Annualized Return: Target > 20%
+   - Sharpe Ratio: Target > 1.0
+   - Maximum Drawdown: Target < 25%
+   - Hit Rate (Win Rate): Target > 60%
+   - Information Ratio: Target > 0.5
+
+4. System Performance
+   ──────────────────
+   - Faiss query latency: Target < 100 ms
+   - End-to-end pipeline time: Target < 1 second per stock
+   - Memory usage: Target < 2 GB
+   - Training time: Target < 6 hours
+
+
+DATA LEAKAGE PREVENTION (CRITICAL)
+================================================================================
+
+1. Macro Data Alignment (Most Important)
+   ─────────────────────────────────────
+   ❌ WRONG: GDP Q1 (Jan-Mar) aligned to Jan 1
+   ✅ CORRECT: GDP Q1 aligned to RELEASE DATE (end of April)
+
+   Why: The model would be using "future" information to predict the past.
+   This makes backtests look amazing but fails in live trading.
+
+2. Forward-Fill Only Uses Past Data
+   ─────────────────────────────────
+   - Forward-fill means carrying the LAST KNOWN value forward
+   - It NEVER uses future values to fill past gaps
+
+3. Train/Validation/Test Split
+   ────────────────────────────
+   - Train: 1990-2018
+   - Validation: 2019-2021
+   - Test: 2022-2024
+   - NO shuffling (time series must be chronological)
+
+4. No Future Data in Encoder
+   ─────────────────────────
+   - Encoder only processes Days 1-252 (the past)
+   - It NEVER sees Day 253 or future returns
+   - Labels are attached AFTER encoding, not used in encoding
+
+
+DATA SCHEMA (EXAMPLE)
+================================================================================
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    MERGED DATA FRAME (WIDE FORMAT)                         │
+│                                                                             │
+│  date    | daily_rs_90 | daily_vol | weekly_macd | monthly_macd | eps     │
+│──────────┼─────────────┼───────────┼─────────────┼──────────────┼─────────│
+│ 2024-01-02| 95.4        | 2.1       | 0.65        | 0.72         | 4.50    │
+│ 2024-01-03| 94.8        | 1.8       | 0.65        | 0.72         | 4.50    │
+│ 2024-01-04| 96.2        | 2.5       | 0.65        | 0.72         | 4.50    │
+│ 2024-01-05| 95.1        | 2.2       | 0.65        | 0.72         | 4.50    │
+│ 2024-01-08| 93.5        | 1.2       | 0.62        | 0.72         | 4.50    │
+│ 2024-01-09| 92.8        | 1.1       | 0.62        | 0.72         | 4.50    │
+│ ...        | ...         | ...       | ...         | ...          | ...     │
+│ 2024-02-01| 92.4        | 1.5       | 0.58        | 0.72         | 4.50    │
+│ ...        | ...         | ...       | ...         | ...          | ...     │
+│ 2024-03-01| 91.5        | 1.2       | 0.55        | 0.68         | 4.80    │
+│ 2024-03-04| 90.2        | 1.0       | 0.55        | 0.68         | 4.80    │
+│                                                                             │
+│  Notice:                                                                   │
+│  - daily_rs_90 changes every day                                           │
+│  - weekly_macd changes every Friday (e.g., 2024-01-05)                    │
+│  - monthly_macd changes monthly (e.g., 2024-03-01)                        │
+│  - eps changes quarterly (e.g., 2024-03-01)                               │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+
+FREQUENTLY ASKED QUESTIONS
+================================================================================
+
+Q: Why not just use XGBoost on raw data?
+A: XGBoost loses time order; treats 252 days as independent features.
+   Transformer preserves time relationships and learns cross-day patterns.
+
+Q: Why not use GPT instead of BERT/Encoder?
+A: GPT is generative (autoregressive), good for text generation.
+   BERT/Encoder is discriminative (bidirectional), good for representation.
+   We need representation (embedding for retrieval), not generation.
+
+Q: Why not discretize like in NLP?
+A: NLP uses discrete tokens because words have no numeric order.
+   Finance has continuous values (95.4, 0.03) where order matters.
+   Discretization loses precision and smoothness.
+
+Q: Why both Faiss AND XGBoost? Why not just one?
+A: Faiss = Interpretability (show similar cases, gain trust).
+   XGBoost = Accuracy (calibrated probability, uses all data).
+   Different tools for different goals. Both are parallel, not a pipeline.
+
+Q: Why 252 days instead of 60?
+A: Quarterly data needs at least 2-3 updates in the window.
+   252 days = 4 quarterly updates (enough to see trends).
+   60 days = only 1 quarterly update (too short).
+
+Q: Does the encoder look at the future?
+A: No. The encoder only processes the input window (Days 1-252).
+   It never sees Day 253 or future returns.
+   "Bidirectional" means left-to-right AND right-to-left WITHIN the window.
+
+Q: How do I handle the different frequencies (daily, weekly, monthly, quarterly)?
+A: Forward-fill all slower frequencies to daily.
+   - Weekly data: Same value for 5 days
+   - Monthly data: Same value for 21 days
+   - Quarterly data: Same value for ~63 days
+   This way, every day has the same number of columns.
+
+Q: Does forward-filling introduce bias?
+A: No, because it only uses PAST data to fill future days.
+   This is exactly how a real-time system works: you carry the last known value forward.
+
+Q: How do I know if my model is overfitting?
+A: 1. Compare train vs validation AUC (should be similar)
+   2. Walk-forward backtesting (model retrained periodically)
+   3. Out-of-sample testing on 2023-2024 data
+
+
+FINAL ARCHITECTURE DIAGRAM
+================================================================================
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  RAW DATA       │  ALIGNMENT        │  WINDOWS        │  ENCODER          │
+│                 │                   │                 │                   │
+│  Daily Tech     │  ┌─────────────┐  │  ┌───────────┐  │  ┌─────────────┐ │
+│  (OHLC, RS_90)  │──│ Direct      │──│──│ Window 1  │──│──│ Projection  │ │
+│                 │  └─────────────┘  │  │ Days 1-252│  │  │ (50 → 768)  │ │
+│  Weekly Tech    │  ┌─────────────┐  │  └───────────┘  │  └─────────────┘ │
+│  (MACD, OBV)    │──│ Forward-fill│  │  ┌───────────┐  │  ┌─────────────┐ │
+│                 │  │ to Daily    │  │  │ Window 2  │──│──│ Positional  │ │
+│  Monthly Tech   │  └─────────────┘  │  │ Days 2-253│  │  │ Encoding    │ │
+│  (Month MACD)   │──│               │  └───────────┘  │  └─────────────┘ │
+│                 │                   │  ┌───────────┐  │  ┌─────────────┐ │
+│  Daily Econ     │  ┌─────────────┐  │  │ Window N  │──│──│ Transformer│ │
+│  (VIX, Yields)  │──│ Direct      │  │  │ Days N-.. │  │  │ (4 layers)  │ │
+│                 │  └─────────────┘  │  └───────────┘  │  └─────────────┘ │
+│  Weekly Econ    │  ┌─────────────┐  │                 │  ┌─────────────┐ │
+│  (Jobless)      │──│ Forward-fill│  │                 │──│ Extract     │ │
+│                 │  │ to Daily    │  │                 │  │ Day 252     │ │
+│  Monthly Econ   │  └─────────────┘  │                 │  │ → (768)     │ │
+│  (CPI, GDP)     │──│               │                 │  └─────────────┘ │
+│                 │                   │                 │  ┌─────────────┐ │
+│  Quarterly Fin  │  ┌─────────────┐  │                 │  │ Embedding   │ │
+│  (EPS, Rev)     │──│ Forward-fill│  │                 │  │ (Batch,768) │ │
+│                 │  │ to Daily    │  │                 │  └─────────────┘ │
+│  Static         │  └─────────────┘  │                 │        │        │
+│  (Sector, Exch) │──│ Replicate    │  │                 │  ┌─────┴─────┐ │
+│                 │  │ to Daily    │  │                 │  │           │ │
+│                 │  └─────────────┘  │                 │  ▼           ▼ │
+│                 │                   │                 │  ┌──────────┐ │ │
+│                 │  ┌─────────────┐  │                 │  │ Faiss    │ │ │
+│                 │  │ Merge &     │──│─────────────────│  │ Index    │ │ │
+│                 │  │ Normalize   │  │                 │  └──────────┘ │ │
+│                 │  └─────────────┘  │                 │  ┌──────────┐ │ │
+│                 │                   │                 │  │ XGBoost  │ │ │
+│                 │                   │                 │  │ Predictor│ │ │
+│                 │                   │                 │  └──────────┘ │ │
+│                 │                   │                 │        │      │ │
+│                 │                   │                 │  ┌─────┴─────┐│ │
+│                 │                   │                 │  │ FINAL     ││ │
+│                 │                   │                 │  │ OUTPUT    ││ │
+│                 │                   │                 │  │ PLTR: 78% ││ │
+│                 │                   │                 │  │ NVDA 2023 ││ │
+│                 │                   │                 │  └────────────┘│ │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+
+SUMMARY
+================================================================================
+
+This project builds a Market State Foundation Model that:
+
+1. Takes multi-frequency data (daily, weekly, monthly, quarterly)
+2. Aligns everything to a daily calendar via forward-filling
+3. Creates 252-day sliding windows (1 year of trading data)
+4. Encodes each window into a 768-dim continuous embedding using Transformer
+5. Stores embeddings in Faiss for fast similarity search
+6. Trains XGBoost on embeddings to predict Top 10% probability
+7. Outputs: Probability + Similar historical cases
+
+The key innovation is using a Transformer Encoder with continuous embeddings
+to preserve both time order and numeric precision, unlike NLP-style
+discretization. This provides both high-accuracy predictions (XGBoost)
+and interpretable results (Faiss retrieval).
+
+===============================================================================
+END OF DESIGN DOCUMENT
+===============================================================================

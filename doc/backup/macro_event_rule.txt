@@ -1,0 +1,84 @@
+================================================================================
+Macro Event Token Format — StockGPT Market Language
+================================================================================
+版本: v1.0
+日期: 2026-06-18
+================================================================================
+
+Token Format:
+
+    EventName_Duration
+
+- EventName: PascalCase, severity baked into the name
+- Duration: always present, even for point events
+- Duration = age of the latest observation that confirms the condition
+
+================================================================================
+Duration Rule
+================================================================================
+
+Duration = round(Today − Observation_Period_End_Date) in data's native frequency.
+
+Units match the data source's frequency — token encodes both age and timeliness:
+
+    Daily (D):    yields, VIX, SP500, credit spreads, FX, commodities
+                  例: BullSteepener_1D, VIX_Panic_1D
+
+    Weekly (W):   ICSA, Fed H.4.1, NFCI
+                  例: Claims_Rising_2W
+
+    Monthly (M):  payrolls, CPI, PCE, UMCSENT, housing, M2
+                  例: Payrolls_Declining_1M, CorePCE_Elevated_2M
+
+    Quarterly (Q): GDP, SLOOS, profits
+                  例: GDP_Slowing_1Q
+
+================================================================================
+Severity
+================================================================================
+
+Severity IS part of the EventName.
+Same metric at different thresholds → different events:
+
+    VIX_Panic_1D          (VIX > 30)
+    VIX_Capitulation_1D   (VIX > 40)
+
+    CreditStress_HY_Wide_1D    (HY OAS 600-1000bp)
+    CreditStress_HY_Crisis_1D  (HY OAS > 1000bp)
+
+================================================================================
+Don't Split Unnecessarily
+================================================================================
+
+When other events already diagnose the context, keep one event:
+
+    Fed_Cut_1M  (not Fed_InsuranceCut vs Fed_RecessionCut)
+
+ISM PMI, credit spreads, and unemployment tell the system whether it's
+an insurance cut or a recession cut — no need to encode it in the Fed token.
+
+================================================================================
+Point Events
+================================================================================
+
+Even "point events" carry duration — it tells the system how recently:
+
+    Fed_EmergencyCut_1D   (just happened)
+    Fed_EmergencyCut_15D  (2 weeks ago, fading relevance)
+
+================================================================================
+Example Paragraph
+================================================================================
+
+[GLOBAL]
+BullSteepener_1D
+YieldCurve_2Y10Y_Inverted_3M
+Fed_Cut_6M
+CreditStress_HY_Wide_1D
+Claims_Rising_2W
+CorePCE_Elevated_2M
+GDP_Slowing_1Q
+
+================================================================================
+END OF DOCUMENT
+================================================================================

@@ -1,0 +1,140 @@
+fred_series_id,description,category,frequency,datasource,num_revisions,file_type,filename,release_delay
+RRPONTSYD,ON_RRP_Daily,A1,daily,ALFRED,1,latest,A1_RRPONTSYD_ON_RRP_Daily_latest.csv,T+1
+WALCL,Fed_Total_Assets,A1,weekly,ALFRED,1,latest,A1_WALCL_Fed_Total_Assets_latest.csv,"W+0 (Thu 4:30pm ET, H.4.1)"
+WDTGAL,TGA_Wed_Level,A1,weekly,ALFRED,1,latest,A1_WDTGAL_TGA_Wed_Level_latest.csv,"W+0 (Thu 4:30pm ET, H.4.1)"
+WORAL,Repo_Agreements,A1,weekly,ALFRED,1,latest,A1_WORAL_Repo_Agreements_latest.csv,"W+0 (Thu 4:30pm ET, H.4.1)"
+WRESBAL,Reserve_Balances,A1,weekly,ALFRED,1,latest,A1_WRESBAL_Reserve_Balances_latest.csv,"W+0 (Thu 4:30pm ET, H.4.1)"
+WSHOMCB,MBS_Held,A1,weekly,ALFRED,1,latest,A1_WSHOMCB_MBS_Held_latest.csv,"W+0 (Thu 4:30pm ET, H.4.1)"
+WSHOTSA,Treasury_Securities_Held,A1,weekly,ALFRED,1,latest,A1_WSHOTSA_Treasury_Securities_Held_latest.csv,"W+0 (Thu 4:30pm ET, H.4.1)"
+WTREGEN,TGA_Week_Avg,A1,weekly,ALFRED,1,latest,A1_WTREGEN_TGA_Week_Avg_latest.csv,"W+0 (Thu 4:30pm ET, H.4.1)"
+DSPIC96,Real_Disposable_Income,A2,monthly,ALFRED,3,revision_timeline,A2_DSPIC96_Real_Disposable_Income_revision_timeline.csv,N/A (actual release dates in data)
+MMMFFAQ027S,MMF_Total_Assets_Q,A2,quarterly,ALFRED,1,latest,A2_MMMFFAQ027S_MMF_Total_Assets_Q_latest.csv,Q+10w (Fed Z.1 Financial Accounts)
+MZMNS,Money_Zero_Maturity,A2,monthly,ALFRED,2,revision_timeline,A2_MZMNS_Money_Zero_Maturity_revision_timeline.csv,N/A (actual release dates in data)
+RMFSL,Retail_MMF_SA,A2,monthly,ALFRED,2,revision_timeline,A2_RMFSL_Retail_MMF_SA_revision_timeline.csv,N/A (actual release dates in data)
+SAVINGSL,Savings_Deposits,A2,monthly,ALFRED,2,revision_timeline,A2_SAVINGSL_Savings_Deposits_revision_timeline.csv,N/A (actual release dates in data)
+TCDSL,Checkable_Deposits,A2,monthly,ALFRED,2,revision_timeline,A2_TCDSL_Checkable_Deposits_revision_timeline.csv,N/A (actual release dates in data)
+TIC,TIC: Foreign Buy US Corp Bonds,A3,monthly,FRED,1,source_copy,A3_TIC_Foreign_Buy_US_Corp_Bonds.csv,M+6w (Treasury TIC monthly report)
+TIC,TIC: Foreign Buy US Stocks,A3,monthly,FRED,1,source_copy,A3_TIC_Foreign_Buy_US_Stocks.csv,M+6w (Treasury TIC monthly report)
+TIC,TIC: Foreign Buy US Treasuries,A3,monthly,FRED,1,source_copy,A3_TIC_Foreign_Buy_US_Treasuries.csv,M+6w (Treasury TIC monthly report)
+TIC,TIC: Total US Securities,A3,monthly,FRED,1,source_copy,A3_TIC_Total_US_Securities.csv,M+6w (Treasury TIC monthly report)
+TIC,TIC: US Buy Foreign Stocks,A3,monthly,FRED,1,source_copy,A3_TIC_US_Buy_Foreign_Stocks.csv,M+6w (Treasury TIC monthly report)
+BUSLOANS,CI_Loans_NSA,A4,monthly,ALFRED,1,latest,A4_BUSLOANS_CI_Loans_NSA_latest.csv,"M+5w (Fed G.19, discontinued)"
+CCLACBW027SBOG,Credit_Card_Loans,A4,weekly,ALFRED,1,latest,A4_CCLACBW027SBOG_Credit_Card_Loans_latest.csv,"W+0 (Fri 4:15pm ET, H.8)"
+TOTALSL,Consumer_Credit_Total,A4,monthly,ALFRED,1,latest,A4_TOTALSL_Consumer_Credit_Total_latest.csv,"M+5w (Fed G.19, discontinued)"
+TOTBKCR,Bank_Credit_Total,A4,weekly,ALFRED,1,latest,A4_TOTBKCR_Bank_Credit_Total_latest.csv,"W+0 (Fri 4:15pm ET, H.8)"
+TOTCI,CI_Loans,A4,weekly,ALFRED,1,latest,A4_TOTCI_CI_Loans_latest.csv,"W+0 (Fri 4:15pm ET, H.8)"
+AWHMAN,Avg_Weekly_Hours_Mfg,B,monthly,ALFRED,3,revision_timeline,B_AWHMAN_Avg_Weekly_Hours_Mfg_revision_timeline.csv,N/A (actual release dates in data)
+CCSA,Continued_Claims,B,weekly,ALFRED,1,latest,B_CCSA_Continued_Claims_latest.csv,W+0 (Thu 8:30am ET)
+CE16OV,Civilian_Labor_Force,B,monthly,ALFRED,3,revision_timeline,B_CE16OV_Civilian_Labor_Force_revision_timeline.csv,N/A (actual release dates in data)
+CES0500000003,Avg_Hourly_Earnings,B,monthly,ALFRED,3,revision_timeline,B_CES0500000003_Avg_Hourly_Earnings_revision_timeline.csv,N/A (actual release dates in data)
+CIVPART,Labor_Force_Participation,B,monthly,ALFRED,3,revision_timeline,B_CIVPART_Labor_Force_Participation_revision_timeline.csv,N/A (actual release dates in data)
+EMRATIO,Employment_Population_Ratio,B,monthly,ALFRED,3,revision_timeline,B_EMRATIO_Employment_Population_Ratio_revision_timeline.csv,N/A (actual release dates in data)
+ICSA,Initial_Jobless_Claims,B,weekly,ALFRED,2,revision_timeline,B_ICSA_Initial_Jobless_Claims_revision_timeline.csv,N/A (actual release dates in data)
+JTSJOL,JOLTS_Job_Openings,B,monthly,ALFRED,2,revision_timeline,B_JTSJOL_JOLTS_Job_Openings_revision_timeline.csv,N/A (actual release dates in data)
+JTSQUR,JOLTS_Quits_Rate,B,monthly,ALFRED,2,revision_timeline,B_JTSQUR_JOLTS_Quits_Rate_revision_timeline.csv,N/A (actual release dates in data)
+PAYEMS,Nonfarm_Payrolls,B,monthly,ALFRED,3,revision_timeline,B_PAYEMS_Nonfarm_Payrolls_revision_timeline.csv,N/A (actual release dates in data)
+PRS85006173,Labor_Share_Nonfarm,B,quarterly,ALFRED,2,revision_timeline,B_PRS85006173_Labor_Share_Nonfarm_revision_timeline.csv,N/A (actual release dates in data)
+U6RATE,U6_Broad_Unemployment,B,monthly,ALFRED,3,revision_timeline,B_U6RATE_U6_Broad_Unemployment_revision_timeline.csv,N/A (actual release dates in data)
+UEMPMEAN,Unemployment_Duration,B,monthly,ALFRED,3,revision_timeline,B_UEMPMEAN_Unemployment_Duration_revision_timeline.csv,N/A (actual release dates in data)
+UNRATE,Unemployment_Rate,B,monthly,ALFRED,3,revision_timeline,B_UNRATE_Unemployment_Rate_revision_timeline.csv,N/A (actual release dates in data)
+USGOOD,Employment_Goods,B,monthly,ALFRED,3,revision_timeline,B_USGOOD_Employment_Goods_revision_timeline.csv,N/A (actual release dates in data)
+USPRIV,Employment_Services,B,monthly,ALFRED,3,revision_timeline,B_USPRIV_Employment_Services_revision_timeline.csv,N/A (actual release dates in data)
+CPATAX,Corp_Profits_After_Tax,C,quarterly,ALFRED,2,revision_timeline,C_CPATAX_Corp_Profits_After_Tax_revision_timeline.csv,N/A (actual release dates in data)
+CPIAUCSL,CPI_All_Urban,C,monthly,ALFRED,2,revision_timeline,C_CPIAUCSL_CPI_All_Urban_revision_timeline.csv,N/A (actual release dates in data)
+CPIHOSSL,CPI_Housing,C,monthly,ALFRED,2,revision_timeline,C_CPIHOSSL_CPI_Housing_revision_timeline.csv,N/A (actual release dates in data)
+CPILFESL,Core_CPI,C,monthly,ALFRED,2,revision_timeline,C_CPILFESL_Core_CPI_revision_timeline.csv,N/A (actual release dates in data)
+CP,Corporate_Profits,C,quarterly,ALFRED,2,revision_timeline,C_CP_Corporate_Profits_revision_timeline.csv,N/A (actual release dates in data)
+GDP,Gross_Domestic_Product,C,quarterly,ALFRED,3,revision_timeline,C_GDP_Gross_Domestic_Product_revision_timeline.csv,N/A (actual release dates in data)
+MEDCPIM158SFRBCLE,Median_CPI,C,monthly,ALFRED,1,latest,C_MEDCPIM158SFRBCLE_Median_CPI_latest.csv,"M+2w (Cleveland Fed, with CPI)"
+MICH,Michigan_Inflation_Expect,C,monthly,ALFRED,2,revision_timeline,C_MICH_Michigan_Inflation_Expect_revision_timeline.csv,N/A (actual release dates in data)
+PCEPILFE,Core_PCE,C,monthly,ALFRED,3,revision_timeline,C_PCEPILFE_Core_PCE_revision_timeline.csv,N/A (actual release dates in data)
+PCEPI,PCE_Price_Index,C,monthly,ALFRED,3,revision_timeline,C_PCEPI_PCE_Price_Index_revision_timeline.csv,N/A (actual release dates in data)
+PCE,Consumption_Expenditures,C,monthly,ALFRED,3,revision_timeline,C_PCE_Consumption_Expenditures_revision_timeline.csv,N/A (actual release dates in data)
+PPIACO,PPI_All_Commodities,C,monthly,ALFRED,2,revision_timeline,C_PPIACO_PPI_All_Commodities_revision_timeline.csv,N/A (actual release dates in data)
+PPIFGS,PPI_Finished_Goods,C,monthly,ALFRED,2,revision_timeline,C_PPIFGS_PPI_Finished_Goods_revision_timeline.csv,N/A (actual release dates in data)
+T10YIE,10Y_Breakeven_Inflation,C,daily,ALFRED,1,latest,C_T10YIE_10Y_Breakeven_Inflation_latest.csv,T+1
+T5YIE,5Y_Breakeven_Inflation,C,daily,ALFRED,1,latest,C_T5YIE_5Y_Breakeven_Inflation_latest.csv,T+1
+WPSFD41312,PPI_Capital_Equipment,C,monthly,ALFRED,2,revision_timeline,C_WPSFD41312_PPI_Capital_Equipment_revision_timeline.csv,N/A (actual release dates in data)
+AMTMNO,Mfg_New_Orders_Total,D,monthly,ALFRED,2,revision_timeline,D_AMTMNO_Mfg_New_Orders_Total_revision_timeline.csv,N/A (actual release dates in data)
+BUSINV,Business_Inventories,D,monthly,ALFRED,2,revision_timeline,D_BUSINV_Business_Inventories_revision_timeline.csv,N/A (actual release dates in data)
+DGORDER,Durable_Goods_Orders,D,monthly,ALFRED,2,revision_timeline,D_DGORDER_Durable_Goods_Orders_revision_timeline.csv,N/A (actual release dates in data)
+INDPRO,Industrial_Production,D,monthly,ALFRED,4,revision_timeline,D_INDPRO_Industrial_Production_revision_timeline.csv,N/A (actual release dates in data)
+ISRATIO,Inventory_Sales_Ratio,D,monthly,ALFRED,2,revision_timeline,D_ISRATIO_Inventory_Sales_Ratio_revision_timeline.csv,N/A (actual release dates in data)
+RSAFS,Retail_Sales,D,monthly,ALFRED,2,revision_timeline,D_RSAFS_Retail_Sales_revision_timeline.csv,N/A (actual release dates in data)
+TCU,Capacity_Utilization,D,monthly,ALFRED,4,revision_timeline,D_TCU_Capacity_Utilization_revision_timeline.csv,N/A (actual release dates in data)
+NFCI,Financial_Conditions,E,weekly,ALFRED,1,latest,E_NFCI_Financial_Conditions_latest.csv,"W+0 (Wed 8:30am ET, Chicago Fed)"
+NFCILEVERAGE,Chicago Fed NFCI Leverage Subindex,E,weekly,ALFRED,2,revision_timeline,E_NFCI_Leverage_NFCILEVERAGE_revision_timeline.csv,N/A (actual release dates in data)
+NFCIRISK,Chicago Fed NFCI Risk Subindex,E,weekly,ALFRED,2,revision_timeline,E_NFCI_Risk_NFCIRISK_revision_timeline.csv,N/A (actual release dates in data)
+STLFSI4,StL_Financial_Stress,E,weekly,ALFRED,1,latest,E_STLFSI4_StL_Financial_Stress_latest.csv,"W+0 (Wed 9:00am CT, St. Louis Fed)"
+USEPUINDXD,Econ_Policy_Uncertainty_D,E,daily,ALFRED,1,latest,E_USEPUINDXD_Econ_Policy_Uncertainty_D_latest.csv,T+1
+USEPUINDXM,Econ_Policy_Uncertainty_M,E,monthly,ALFRED,1,latest,E_USEPUINDXM_Econ_Policy_Uncertainty_M_latest.csv,M+1d (policyuncertainty.com)
+VXVCLS,3M_VIX,E,daily,ALFRED,1,latest,E_VXVCLS_3M_VIX_latest.csv,T+1
+AAA10Y,Aaa_10Y_Spread,F,daily,ALFRED,1,latest,F_AAA10Y_Aaa_10Y_Spread_latest.csv,T+1
+AAA,Moodys_Aaa_Yield,F,monthly,ALFRED,1,latest,F_AAA_Moodys_Aaa_Yield_latest.csv,M+1d (Moody's monthly avg)
+BAA10Y,Baa_10Y_Spread,F,daily,ALFRED,1,latest,F_BAA10Y_Baa_10Y_Spread_latest.csv,T+1
+BAA,Moodys_Baa_Yield,F,monthly,ALFRED,1,latest,F_BAA_Moodys_Baa_Yield_latest.csv,M+1d (Moody's monthly avg)
+BAMLC0A0CM,Corporate_Master_OAS,F,daily,ALFRED,1,latest,F_BAMLC0A0CM_Corporate_Master_OAS_latest.csv,T+1
+BAMLC0A4CBBBEY,BBB_Effective_Yield,F,daily,ALFRED,1,latest,F_BAMLC0A4CBBBEY_BBB_Effective_Yield_latest.csv,T+1
+BAMLH0A0HYM2,High_Yield_OAS,F,daily,ALFRED,1,latest,F_BAMLH0A0HYM2_High_Yield_OAS_latest.csv,T+1
+DFII10,10Y_TIPS_Real_Yield,F,daily,ALFRED,1,latest,F_DFII10_10Y_TIPS_Real_Yield_latest.csv,T+1
+DFII5,5Y_TIPS_Real_Yield,F,daily,ALFRED,1,latest,F_DFII5_5Y_TIPS_Real_Yield_latest.csv,T+1
+MORTGAGE30US,30Y_Mortgage_Rate,F,weekly,ALFRED,1,latest,F_MORTGAGE30US_30Y_Mortgage_Rate_latest.csv,"W+0 (Thu 12pm ET, Freddie Mac)"
+T5YIFR,5Y5Y_Forward_Inflation,F,daily,ALFRED,1,latest,F_T5YIFR_5Y5Y_Forward_Inflation_latest.csv,T+1
+TEDRATE,TED_Spread,F,daily,ALFRED,1,latest,F_TEDRATE_TED_Spread_latest.csv,T+1
+DEXCHUS,FX_Yuan_USD,G,daily,ALFRED,1,latest,G_DEXCHUS_FX_Yuan_USD_latest.csv,T+1
+DEXJPUS,FX_Yen_USD,G,daily,ALFRED,1,latest,G_DEXJPUS_FX_Yen_USD_latest.csv,T+1
+DEXKOUS,FX_Won_USD,G,daily,ALFRED,1,latest,G_DEXKOUS_FX_Won_USD_latest.csv,T+1
+DEXMXUS,FX_Peso_USD,G,daily,ALFRED,1,latest,G_DEXMXUS_FX_Peso_USD_latest.csv,T+1
+DEXUSEU,FX_USD_Euro,G,daily,ALFRED,1,latest,G_DEXUSEU_FX_USD_Euro_latest.csv,T+1
+DEXUSUK,FX_USD_GBP,G,daily,ALFRED,1,latest,G_DEXUSUK_FX_USD_GBP_latest.csv,T+1
+DTWEXAFEGS,Dollar_Advanced_Econ,G,daily,ALFRED,1,latest,G_DTWEXAFEGS_Dollar_Advanced_Econ_latest.csv,T+1
+DTWEXBGS,Dollar_Broad_TradeW,G,daily,ALFRED,1,latest,G_DTWEXBGS_Dollar_Broad_TradeW_latest.csv,T+1
+DTWEXEMEGS,Dollar_EM,G,daily,ALFRED,1,latest,G_DTWEXEMEGS_Dollar_EM_latest.csv,T+1
+IR3TIB01JPM156N,Japan_3M_Interbank,G,monthly,ALFRED,1,latest,G_IR3TIB01JPM156N_Japan_3M_Interbank_latest.csv,"M+8w (OECD MEI, Japan interbank)"
+IRLTLT01DEM156N,Germany_10Y_Bund,G,monthly,ALFRED,1,latest,G_IRLTLT01DEM156N_Germany_10Y_Bund_latest.csv,"M+8w (OECD MEI, German Bund)"
+IRLTLT01GBM156N,UK_10Y_Gilt,G,monthly,ALFRED,1,latest,G_IRLTLT01GBM156N_UK_10Y_Gilt_latest.csv,"M+8w (OECD MEI, UK Gilt)"
+IRLTLT01JPM156N,Japan_10Y_JGB,G,monthly,ALFRED,1,latest,G_IRLTLT01JPM156N_Japan_10Y_JGB_latest.csv,"M+8w (OECD MEI, Japan JGB)"
+IRSTCB01JPM156N,BOJ_Policy_Rate,G,monthly,ALFRED,1,latest,G_IRSTCB01JPM156N_BOJ_Policy_Rate_latest.csv,"M+8w (OECD MEI, BOJ rate)"
+RBUSBIS,BIS_Real_Broad_USD,G,monthly,ALFRED,1,latest,G_RBUSBIS_BIS_Real_Broad_USD_latest.csv,M+6w (BIS effective exchange rate)
+DCOILBRENTEU,Brent_Crude_Oil,H,daily,ALFRED,1,latest,H_DCOILBRENTEU_Brent_Crude_Oil_latest.csv,T+1
+DCOILWTICO,WTI_Crude_Oil,H,daily,ALFRED,1,latest,H_DCOILWTICO_WTI_Crude_Oil_latest.csv,T+1
+PALUMUSDM,Aluminum_Global,H,monthly,ALFRED,1,latest,H_PALUMUSDM_Aluminum_Global_latest.csv,M+4w (IMF commodity prices)
+PCOPPUSDM,Copper_Global,H,monthly,ALFRED,1,latest,H_PCOPPUSDM_Copper_Global_latest.csv,M+4w (IMF commodity prices)
+PNGASUSUSDM,NatGas_US,H,monthly,ALFRED,1,latest,H_PNGASUSUSDM_NatGas_US_latest.csv,M+4w (IMF commodity prices)
+PWHEAMTUSDM,Wheat_Global,H,monthly,ALFRED,1,latest,H_PWHEAMTUSDM_Wheat_Global_latest.csv,M+4w (IMF commodity prices)
+PZINCUSDM,Zinc_Global,H,monthly,ALFRED,1,latest,H_PZINCUSDM_Zinc_Global_latest.csv,M+4w (IMF commodity prices)
+CSCICP03USM665S,OECD_Consumer_Confidence,I,monthly,ALFRED,1,latest,I_CSCICP03USM665S_OECD_Consumer_Confidence_latest.csv,M+6w (OECD Consumer Opinion)
+PSAVERT,Personal_Saving_Rate,I,monthly,ALFRED,3,revision_timeline,I_PSAVERT_Personal_Saving_Rate_revision_timeline.csv,N/A (actual release dates in data)
+RETAILSMNSA,Retail_Sales_NSA,I,monthly,ALFRED,1,latest,I_RETAILSMNSA_Retail_Sales_NSA_latest.csv,M+2w (Census retail sales)
+UMCSENT,Michigan_Consumer_Sentiment,I,monthly,ALFRED,2,revision_timeline,I_UMCSENT_Michigan_Consumer_Sentiment_revision_timeline.csv,N/A (actual release dates in data)
+ASPUS,Avg_Home_Sale_Price,J,quarterly,ALFRED,1,latest,J_ASPUS_Avg_Home_Sale_Price_latest.csv,Q+6w (Census new home sales price)
+COMPUTSA,Housing_Completions,J,monthly,ALFRED,3,revision_timeline,J_COMPUTSA_Housing_Completions_revision_timeline.csv,N/A (actual release dates in data)
+CSUSHPISA,Case_Shiller_National,J,monthly,ALFRED,1,latest,J_CSUSHPISA_Case_Shiller_National_latest.csv,"M+8w (S&P Cotality Case-Shiller, 2mo lag)"
+HSN1F,New_Home_Sales,J,monthly,ALFRED,2,revision_timeline,J_HSN1F_New_Home_Sales_revision_timeline.csv,N/A (actual release dates in data)
+MSACSR,Monthly_New_House_Supply,J,monthly,ALFRED,2,revision_timeline,J_MSACSR_Monthly_New_House_Supply_revision_timeline.csv,N/A (actual release dates in data)
+MSPUS,Median_Home_Sale_Price,J,quarterly,ALFRED,1,latest,J_MSPUS_Median_Home_Sale_Price_latest.csv,Q+6w (Census new home median price)
+UNDCONTSA,Housing_Under_Construction,J,monthly,ALFRED,3,revision_timeline,J_UNDCONTSA_Housing_Under_Construction_revision_timeline.csv,N/A (actual release dates in data)
+USSTHPI,House_Price_Index,J,quarterly,ALFRED,1,latest,J_USSTHPI_House_Price_Index_latest.csv,"Q+8w (FHFA HPI, quarterly)"
+FYFSD,Federal_Deficit,K,annual,ALFRED,2,revision_timeline,K_FYFSD_Federal_Deficit_revision_timeline.csv,N/A (actual release dates in data)
+FYONET,Federal_Outlays,K,annual,ALFRED,2,revision_timeline,K_FYONET_Federal_Outlays_revision_timeline.csv,N/A (actual release dates in data)
+GFDEBTN,Federal_Debt,K,quarterly,ALFRED,1,latest,K_GFDEBTN_Federal_Debt_latest.csv,"Q+1d (Treasury, available immediately)"
+SP500,SP500,L,daily,ALFRED,1,latest,L_SP500_SP500_latest.csv,T+1
+VIXCLS,VIX,L,daily,ALFRED,1,latest,L_VIXCLS_VIX_latest.csv,T+1
+DFF,Daily_Fed_Funds,M,daily,ALFRED,1,latest,M_DFF_Daily_Fed_Funds_latest.csv,T+1
+DGS10,10Y_Treasury,M,daily,ALFRED,1,latest,M_DGS10_10Y_Treasury_latest.csv,T+1
+DGS2,2Y_Treasury,M,daily,ALFRED,1,latest,M_DGS2_2Y_Treasury_latest.csv,T+1
+DGS3MO,3M_TBill,M,daily,ALFRED,1,latest,M_DGS3MO_3M_TBill_latest.csv,T+1
+DTB1YR,1Y_TBill_Mkt,M,daily,ALFRED,1,latest,M_DTB1YR_1Y_TBill_Mkt_latest.csv,T+1
+DTB3,3M_TBill_Mkt,M,daily,ALFRED,1,latest,M_DTB3_3M_TBill_Mkt_latest.csv,T+1
+DTB6,6M_TBill_Mkt,M,daily,ALFRED,1,latest,M_DTB6_6M_TBill_Mkt_latest.csv,T+1
+FEDFUNDS,Fed_Funds_Rate,M,monthly,ALFRED,1,latest,M_FEDFUNDS_Fed_Funds_Rate_latest.csv,M+1d (monthly avg of daily)
+T10Y2Y,10Y_2Y_Spread,M,daily,ALFRED,1,latest,M_T10Y2Y_10Y_2Y_Spread_latest.csv,T+1
+T10Y3M,10Y_3M_Spread,M,daily,ALFRED,1,latest,M_T10Y3M_10Y_3M_Spread_latest.csv,T+1
+HOUST,Housing_Starts,N,monthly,ALFRED,3,revision_timeline,N_HOUST_Housing_Starts_revision_timeline.csv,N/A (actual release dates in data)
+PERMIT,Building_Permits,N,monthly,ALFRED,3,revision_timeline,N_PERMIT_Building_Permits_revision_timeline.csv,N/A (actual release dates in data)
+M2SL,M2_Money_Stock,O,monthly,ALFRED,2,revision_timeline,O_M2SL_M2_Money_Stock_revision_timeline.csv,N/A (actual release dates in data)
+M2V,M2_Velocity,O,quarterly,ALFRED,2,revision_timeline,O_M2V_M2_Velocity_revision_timeline.csv,N/A (actual release dates in data)
+USALOLITONOSTSAM,OECD_CLI_US,R,monthly,ALFRED,1,latest,R_USALOLITONOSTSAM_OECD_CLI_US_latest.csv,M+6w (OECD Composite Leading Indicator)
+A455RC1Q027SBEA,GVA_NFC,T,quarterly,ALFRED,1,latest,T_A455RC1Q027SBEA_GVA_NFC_latest.csv,"Q+10w (BEA NIPA, integrated accounts)"
+A460RC1Q027SBEA,Compensation_NFC,T,quarterly,ALFRED,1,latest,T_A460RC1Q027SBEA_Compensation_NFC_latest.csv,"Q+10w (BEA NIPA, integrated accounts)"
+BOGZ1FA106300011Q,Capital_Consumption_NFC,T,quarterly,ALFRED,1,latest,T_BOGZ1FA106300011Q_Capital_Consumption_NFC_latest.csv,Q+10w (Fed Z.1 Financial Accounts)

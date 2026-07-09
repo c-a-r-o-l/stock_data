@@ -1,0 +1,1059 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StockGPT — Market State Foundation Model · Project Breakdown</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F3F5F7;
+  --panel:#FFFFFF;
+  --ink:#0D1B2A;
+  --ink-2:#44566C;
+  --line:#D5DDE5;
+  --line-soft:#E7ECF1;
+  --wire:#2456C4;
+  --wire-tint:#E9EFFB;
+  --up:#0B7A53;
+  --up-tint:#E1F1EA;
+  --down:#C0452C;
+  --down-tint:#F8E9E4;
+  --radius:10px;
+  --mono:'IBM Plex Mono',ui-monospace,monospace;
+  --sans:'IBM Plex Sans',system-ui,sans-serif;
+  --disp:'Spectral',Georgia,serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion: reduce){
+  html{scroll-behavior:auto}
+  *,*::before,*::after{animation:none!important;transition:none!important}
+}
+body{
+  font-family:var(--sans);
+  background:var(--paper);
+  color:var(--ink);
+  line-height:1.6;
+  font-size:16px;
+}
+.wrap{max-width:1100px;margin:0 auto;padding:0 24px}
+a{color:var(--wire)}
+a:focus-visible,button:focus-visible,summary:focus-visible{
+  outline:2px solid var(--wire);outline-offset:2px;border-radius:4px;
+}
+
+/* ---------- top bar ---------- */
+.topbar{
+  position:sticky;top:0;z-index:50;
+  background:rgba(243,245,247,.92);
+  backdrop-filter:blur(6px);
+  border-bottom:1px solid var(--line);
+}
+.topbar-inner{
+  display:flex;align-items:center;justify-content:space-between;
+  gap:16px;padding:14px 24px;max-width:1100px;margin:0 auto;
+}
+.brand{
+  font-family:var(--mono);font-weight:600;font-size:13px;
+  letter-spacing:.08em;text-transform:uppercase;color:var(--ink);
+  text-decoration:none;white-space:nowrap;
+}
+.brand .tick{color:var(--up)}
+.nav{display:flex;gap:4px;flex-wrap:wrap}
+.nav a{
+  font-family:var(--mono);font-size:11.5px;letter-spacing:.05em;
+  text-transform:uppercase;text-decoration:none;color:var(--ink-2);
+  padding:5px 9px;border-radius:6px;
+}
+.nav a:hover{color:var(--ink);background:var(--line-soft)}
+.nav a.active{color:var(--wire);background:var(--wire-tint)}
+@media(max-width:840px){.nav{display:none}}
+
+/* ---------- ticker tape ---------- */
+.tape{
+  border-bottom:1px solid var(--line);
+  background:var(--ink);color:#C8D4E2;
+  font-family:var(--mono);font-size:11.5px;letter-spacing:.06em;
+  padding:7px 24px;overflow-x:auto;white-space:nowrap;
+}
+.tape b{color:#FFFFFF;font-weight:600}
+.tape .sep{color:#5A7290;margin:0 12px}
+.tape .u{color:#5FD3A5}
+
+/* ---------- hero ---------- */
+.hero{
+  border-bottom:1px solid var(--line);
+  background-image:
+    linear-gradient(var(--line-soft) 1px, transparent 1px),
+    linear-gradient(90deg, var(--line-soft) 1px, transparent 1px);
+  background-size:28px 28px;
+  padding:84px 0 72px;
+}
+.eyebrow{
+  font-family:var(--mono);font-size:12px;font-weight:500;
+  letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2);
+  margin-bottom:18px;
+}
+.eyebrow .dot{color:var(--up)}
+.hero h1{
+  font-family:var(--disp);font-weight:700;
+  font-size:clamp(44px,7vw,76px);line-height:1.02;
+  letter-spacing:-.01em;margin-bottom:10px;
+}
+.hero .sub{
+  font-family:var(--disp);font-weight:500;font-style:italic;
+  font-size:clamp(19px,2.6vw,25px);color:var(--ink-2);margin-bottom:26px;
+}
+.thesis{
+  max-width:720px;font-size:17px;color:var(--ink);
+  border-left:3px solid var(--wire);padding-left:18px;margin-bottom:34px;
+  background:rgba(255,255,255,.6);padding-top:10px;padding-bottom:10px;padding-right:14px;
+}
+.specs{display:flex;flex-wrap:wrap;gap:10px}
+.spec{
+  font-family:var(--mono);font-size:12px;font-weight:500;
+  background:var(--panel);border:1px solid var(--line);
+  border-radius:999px;padding:7px 14px;color:var(--ink);
+  box-shadow:0 1px 0 rgba(13,27,42,.05);
+}
+.spec b{color:var(--wire);font-weight:600}
+
+/* ---------- sections ---------- */
+.section{padding:76px 0;border-bottom:1px solid var(--line)}
+.section:last-of-type{border-bottom:none}
+.sec-head{margin-bottom:36px;max-width:760px}
+.sec-kicker{
+  font-family:var(--mono);font-size:12px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--wire);font-weight:600;margin-bottom:10px;
+}
+.sec-head h2{
+  font-family:var(--disp);font-weight:600;
+  font-size:clamp(28px,4vw,40px);line-height:1.12;margin-bottom:12px;
+}
+.sec-head p{color:var(--ink-2);font-size:16.5px}
+
+/* ---------- diagram frames ---------- */
+.diagram{
+  background:var(--panel);
+  background-image:
+    linear-gradient(var(--line-soft) 1px, transparent 1px),
+    linear-gradient(90deg, var(--line-soft) 1px, transparent 1px);
+  background-size:24px 24px;
+  border:1px solid var(--line);border-radius:var(--radius);
+  padding:22px;overflow-x:auto;
+}
+.diagram svg{display:block;min-width:720px;width:100%;height:auto}
+.diagram-caption{
+  font-family:var(--mono);font-size:12px;color:var(--ink-2);
+  margin-top:12px;letter-spacing:.03em;
+}
+.legend{display:flex;flex-wrap:wrap;gap:18px;margin-top:14px}
+.legend span{font-family:var(--mono);font-size:12px;color:var(--ink-2);display:inline-flex;align-items:center;gap:7px}
+.swatch{width:14px;height:14px;border-radius:4px;display:inline-block;border:1px solid var(--line)}
+
+/* SVG text classes */
+.svg-label{font-family:var(--mono);font-size:11px;fill:var(--ink-2);letter-spacing:.08em}
+.svg-title{font-family:var(--sans);font-size:14px;font-weight:600;fill:var(--ink)}
+.svg-body{font-family:var(--sans);font-size:12px;fill:var(--ink-2)}
+.svg-mono{font-family:var(--mono);font-size:11px;fill:var(--ink)}
+.svg-mono-lite{font-family:var(--mono);font-size:10.5px;fill:var(--ink-2)}
+.svg-phase{font-family:var(--mono);font-size:12px;font-weight:600;fill:var(--wire);letter-spacing:.16em}
+
+/* ---------- decision ledger (signature element) ---------- */
+.ledger{border:1px solid var(--line);border-radius:var(--radius);background:var(--panel);overflow:hidden}
+.ledger-head{
+  display:grid;grid-template-columns:minmax(280px,44%) 1fr;
+  gap:20px;padding:12px 22px;border-bottom:1px solid var(--line);
+  background:var(--paper);
+  font-family:var(--mono);font-size:11px;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--ink-2);
+}
+.ledger-row{
+  display:grid;grid-template-columns:minmax(280px,44%) 1fr;
+  gap:20px;padding:20px 22px;border-bottom:1px solid var(--line-soft);
+  align-items:start;
+}
+.ledger-row:last-child{border-bottom:none}
+.ledger-call{display:flex;flex-direction:column;gap:7px;align-items:flex-start}
+.pill{
+  font-family:var(--mono);font-size:12.5px;font-weight:600;
+  padding:6px 12px;border-radius:6px;display:inline-block;line-height:1.4;
+}
+.pill.up{background:var(--up-tint);color:var(--up);border:1px solid rgba(11,122,83,.25)}
+.pill.down{background:var(--down-tint);color:var(--down);border:1px solid rgba(192,69,44,.22)}
+.vs{font-family:var(--mono);font-size:10.5px;color:var(--ink-2);letter-spacing:.14em;text-transform:uppercase;padding-left:2px}
+.ledger-why{font-size:14.5px;color:var(--ink-2)}
+.ledger-why b{color:var(--ink);font-weight:600}
+@media(max-width:720px){
+  .ledger-head{display:none}
+  .ledger-row{grid-template-columns:1fr;gap:12px}
+}
+
+/* ---------- feature cards ---------- */
+.feat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+.feat-card{
+  background:var(--panel);border:1px solid var(--line);
+  border-radius:var(--radius);padding:18px 18px 16px;
+}
+.feat-card header{
+  display:flex;align-items:baseline;justify-content:space-between;
+  gap:10px;margin-bottom:10px;
+}
+.feat-card h3{font-family:var(--sans);font-size:14.5px;font-weight:600}
+.count{
+  font-family:var(--mono);font-size:11px;font-weight:600;color:var(--wire);
+  background:var(--wire-tint);border-radius:999px;padding:2px 9px;white-space:nowrap;
+}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{
+  font-family:var(--mono);font-size:11.5px;
+  background:var(--paper);border:1px solid var(--line);
+  border-radius:5px;padding:3px 8px;color:var(--ink);
+}
+.feat-note{font-size:12.5px;color:var(--ink-2);margin-top:10px}
+.dropped-strip{
+  margin-top:26px;background:var(--panel);border:1px solid var(--line);
+  border-radius:var(--radius);padding:18px 20px;
+}
+.dropped-strip h3{font-family:var(--mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--down);margin-bottom:12px}
+.chip.dn{background:var(--down-tint);border-color:rgba(192,69,44,.22);color:var(--down)}
+.dropped-strip p{font-size:13.5px;color:var(--ink-2);margin-top:12px}
+.queue-strip{margin-top:14px;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px}
+.queue-strip h3{font-family:var(--mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--wire);margin-bottom:12px}
+.queue-strip p{font-size:13.5px;color:var(--ink-2);margin-top:12px}
+
+/* ---------- tables ---------- */
+.table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--radius);background:var(--panel);margin-top:26px}
+table{width:100%;border-collapse:collapse;min-width:560px}
+th{
+  font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--ink-2);text-align:left;padding:12px 18px;background:var(--paper);
+  border-bottom:1px solid var(--line);font-weight:600;
+}
+td{padding:12px 18px;border-bottom:1px solid var(--line-soft);font-size:14px;vertical-align:top}
+tr:last-child td{border-bottom:none}
+td.mono{font-family:var(--mono);font-size:12.5px}
+.table-title{font-family:var(--sans);font-weight:600;font-size:15px;margin-top:34px;margin-bottom:0}
+
+/* ---------- rule cards / data discipline ---------- */
+.rules{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-bottom:30px}
+.rule{
+  background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+  padding:18px;border-top:3px solid var(--wire);
+}
+.rule h3{font-size:14.5px;font-weight:600;margin-bottom:6px}
+.rule p{font-size:13.5px;color:var(--ink-2)}
+.rule .mono-line{font-family:var(--mono);font-size:12px;color:var(--ink);margin-top:8px;display:block}
+
+/* ---------- pipeline chain ---------- */
+.chain{
+  display:flex;align-items:stretch;gap:0;flex-wrap:wrap;
+  margin-top:26px;
+}
+.chain-box{
+  background:var(--panel);border:1px solid var(--line);border-radius:8px;
+  padding:12px 14px;font-family:var(--mono);font-size:12px;line-height:1.5;
+  color:var(--ink);flex:1 1 150px;min-width:150px;
+}
+.chain-box b{display:block;font-size:12.5px;color:var(--wire)}
+.chain-arrow{
+  display:flex;align-items:center;justify-content:center;
+  color:var(--ink-2);font-family:var(--mono);padding:0 8px;font-size:15px;
+}
+@media(max-width:900px){
+  .chain{flex-direction:column}
+  .chain-arrow{transform:rotate(90deg);padding:4px 0}
+}
+
+/* ---------- alpha ---------- */
+.alpha-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.alpha-card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:20px}
+.alpha-card .num{
+  font-family:var(--mono);font-size:11px;font-weight:600;color:var(--up);
+  letter-spacing:.14em;text-transform:uppercase;margin-bottom:8px;display:block;
+}
+.alpha-card h3{font-family:var(--disp);font-weight:600;font-size:19px;margin-bottom:8px}
+.alpha-card p{font-size:13.5px;color:var(--ink-2)}
+.alpha-card .mech{font-family:var(--mono);font-size:11.5px;color:var(--ink);margin-top:10px;display:block}
+.equation{
+  margin-top:26px;background:var(--ink);color:#E7EEF6;border-radius:var(--radius);
+  padding:24px 26px;font-family:var(--mono);font-size:13.5px;line-height:1.9;
+  overflow-x:auto;white-space:nowrap;
+}
+.equation .op{color:#7E93AC}
+.equation .pos{color:#5FD3A5}
+.equation .neg{color:#F1917C}
+.equation-label{font-size:10.5px;letter-spacing:.16em;color:#7E93AC;display:block;margin-bottom:8px}
+
+/* ---------- evolution ---------- */
+.evo{display:flex;flex-direction:column;gap:14px}
+.evo-row{
+  display:grid;grid-template-columns:1fr 44px 1fr;gap:0;align-items:stretch;
+  background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;
+}
+.evo-cell{padding:18px 20px}
+.evo-cell .tag{
+  font-family:var(--mono);font-size:10.5px;font-weight:600;letter-spacing:.14em;
+  text-transform:uppercase;display:inline-block;margin-bottom:8px;padding:2px 8px;border-radius:4px;
+}
+.evo-cell.before{background:var(--down-tint)}
+.evo-cell.before .tag{color:var(--down);background:rgba(255,255,255,.65)}
+.evo-cell.after .tag{color:var(--up);background:var(--up-tint)}
+.evo-cell h3{font-size:14.5px;font-weight:600;margin-bottom:4px}
+.evo-cell p{font-size:13px;color:var(--ink-2)}
+.evo-mid{
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);color:var(--ink-2);font-size:16px;
+  border-left:1px solid var(--line-soft);border-right:1px solid var(--line-soft);
+}
+@media(max-width:720px){
+  .evo-row{grid-template-columns:1fr}
+  .evo-mid{border:none;border-top:1px solid var(--line-soft);border-bottom:1px solid var(--line-soft);padding:4px 0;transform:rotate(90deg);max-height:36px}
+}
+
+/* ---------- FAQ ---------- */
+.faq{display:flex;flex-direction:column;gap:10px}
+details{
+  background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+  padding:0 20px;
+}
+summary{
+  cursor:pointer;list-style:none;padding:16px 0;
+  font-weight:600;font-size:15px;display:flex;align-items:center;gap:12px;
+}
+summary::-webkit-details-marker{display:none}
+summary::before{
+  content:"+";font-family:var(--mono);color:var(--wire);font-weight:600;
+  width:20px;height:20px;border:1px solid var(--line);border-radius:5px;
+  display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;font-size:13px;
+  background:var(--paper);
+}
+details[open] summary::before{content:"–"}
+details .body{padding:0 0 18px 32px;font-size:14px;color:var(--ink-2)}
+details .body b{color:var(--ink)}
+
+/* ---------- open items ---------- */
+.todo{display:flex;flex-direction:column;gap:10px}
+.todo-item{
+  display:flex;gap:14px;align-items:flex-start;
+  background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px;
+}
+.todo-item .box{
+  font-family:var(--mono);width:20px;height:20px;border:1.5px solid var(--ink-2);
+  border-radius:5px;flex-shrink:0;margin-top:2px;
+}
+.todo-item h3{font-size:14.5px;font-weight:600;margin-bottom:3px}
+.todo-item p{font-size:13.5px;color:var(--ink-2)}
+.todo-item .prio{
+  margin-left:auto;font-family:var(--mono);font-size:10.5px;font-weight:600;
+  letter-spacing:.12em;color:var(--down);background:var(--down-tint);
+  border-radius:4px;padding:3px 8px;white-space:nowrap;
+}
+.todo-item .prio.mid{color:var(--wire);background:var(--wire-tint)}
+
+/* ---------- footer ---------- */
+footer{
+  border-top:1px solid var(--line);padding:34px 0 48px;
+  font-family:var(--mono);font-size:12px;color:var(--ink-2);
+}
+footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="#top"><span class="tick">▲</span> StockGPT / MSFM</a>
+    <nav class="nav" aria-label="Sections">
+      <a href="#system">System</a>
+      <a href="#decisions">Decisions</a>
+      <a href="#features">Features</a>
+      <a href="#data">Data</a>
+      <a href="#alpha">Alpha</a>
+      <a href="#evolution">Evolution</a>
+      <a href="#faq">FAQ</a>
+      <a href="#plan">Open items</a>
+    </nav>
+  </div>
+</header>
+
+<div class="tape" role="note" aria-label="Project specs">
+  <b>SUMMER PROJECT · PLAN 3</b><span class="sep">|</span>
+  WINDOW <b class="u">252d</b><span class="sep">|</span>
+  EMBEDDING <b class="u">768-dim</b><span class="sep">|</span>
+  DAILY FACTORS <b class="u">28</b><span class="sep">|</span>
+  ARCH <b class="u">TRANSFORMER ENCODER</b> (NOT GPT)<span class="sep">|</span>
+  INPUT <b class="u">CONTINUOUS</b> (NO TOKENS)<span class="sep">|</span>
+  RETRIEVAL <b class="u">FAISS</b> ∥ PREDICTION <b class="u">XGBOOST</b><span class="sep">|</span>
+  HW <b class="u">CPU · &lt;2GB RAM · 2–6h TRAIN</b>
+</div>
+
+<main id="top">
+
+<!-- ================= HERO ================= -->
+<section class="hero">
+  <div class="wrap">
+    <p class="eyebrow"><span class="dot">●</span>&nbsp; Market State Foundation Model &nbsp;·&nbsp; quant research system &nbsp;·&nbsp; project breakdown</p>
+    <h1>StockGPT</h1>
+    <p class="sub">A market-state retrieval &amp; prediction engine — MarketBERT, not MarketGPT.</p>
+    <div class="thesis">
+      Encode the last <b>252 trading days</b> of factor data into a dense <b>768-dim embedding</b> of the current market state.
+      Retrieve the <b>50 most similar historical regimes</b> with Faiss to explain the call, and — on a separate, parallel path —
+      calibrate <b>P(top-decile 6-month return)</b> with XGBoost trained on <b>all</b> historical embeddings.
+    </div>
+    <div class="specs">
+      <span class="spec">window <b>252 trading days</b></span>
+      <span class="spec">output <b>768-dim market state</b></span>
+      <span class="spec"><b>28</b> daily features (incl. SYMBOL)</span>
+      <span class="spec">encoder <b>bidirectional, within-window</b></span>
+      <span class="spec">projection <b>num_factors → 768</b></span>
+      <span class="spec">runs on <b>32 GB CPU box</b></span>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 01 SYSTEM ================= -->
+<section class="section" id="system">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="sec-kicker">01 · System at a glance</p>
+      <h2>One encoder, two parallel consumers</h2>
+      <p>Everything downstream feeds off the same 768-dim embedding. Faiss and XGBoost are <b>parallel paths</b>, not a pipeline — XGBoost never trains on retrieval results, only on the full history.</p>
+    </div>
+
+    <figure class="diagram">
+      <svg viewBox="0 0 960 780" role="img" aria-label="System architecture: training builds the encoder, Faiss index and XGBoost model from all history; daily inference produces a query embedding consumed in parallel by Faiss retrieval and XGBoost prediction.">
+        <defs>
+          <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="#44566C"/>
+          </marker>
+          <marker id="arrb" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="#2456C4"/>
+          </marker>
+        </defs>
+
+        <!-- PHASE: TRAINING -->
+        <text x="24" y="30" class="svg-phase">TRAINING — OFFLINE, ALL HISTORY 1990–2024</text>
+
+        <!-- Row 1 -->
+        <rect x="24" y="48" width="272" height="86" rx="10" fill="#FFFFFF" stroke="#D5DDE5"/>
+        <text x="40" y="74" class="svg-title">Raw factor windows</text>
+        <text x="40" y="94" class="svg-body">252 days × 28 factors per window</text>
+        <text x="40" y="112" class="svg-mono-lite">continuous values — no tokens</text>
+
+        <path d="M296 91 H332" stroke="#44566C" stroke-width="1.5" marker-end="url(#arr)"/>
+
+        <rect x="336" y="48" width="272" height="86" rx="10" fill="#FFFFFF" stroke="#D5DDE5"/>
+        <text x="352" y="74" class="svg-title">Linear projection + PE</text>
+        <text x="352" y="94" class="svg-body">per-day: 28 → 768, add positional</text>
+        <text x="352" y="112" class="svg-mono-lite">encoding (day / week / month)</text>
+
+        <path d="M608 91 H644" stroke="#44566C" stroke-width="1.5" marker-end="url(#arr)"/>
+
+        <rect x="648" y="48" width="288" height="86" rx="10" fill="#E9EFFB" stroke="#2456C4" stroke-width="1.5"/>
+        <text x="664" y="74" class="svg-title">Transformer encoder</text>
+        <text x="664" y="94" class="svg-body">self-attention across all 252 days</text>
+        <text x="664" y="112" class="svg-mono-lite">bidirectional WITHIN window only</text>
+
+        <!-- down to embedding -->
+        <path d="M792 134 V160" stroke="#2456C4" stroke-width="1.5" marker-end="url(#arrb)"/>
+
+        <rect x="330" y="164" width="462" height="56" rx="10" fill="#0D1B2A"/>
+        <text x="352" y="188" font-family="IBM Plex Mono,monospace" font-size="13" font-weight="600" fill="#FFFFFF">768-dim market-state embedding</text>
+        <text x="352" y="207" font-family="IBM Plex Mono,monospace" font-size="10.5" fill="#8FA5BC">one vector per historical window · lossy on noise, dense on signal</text>
+
+        <!-- fork -->
+        <path d="M470 220 V252 H220 V282" stroke="#44566C" stroke-width="1.5" fill="none" marker-end="url(#arr)"/>
+        <path d="M660 220 V252 H744 V282" stroke="#44566C" stroke-width="1.5" fill="none" marker-end="url(#arr)"/>
+
+        <rect x="60" y="286" width="330" height="96" rx="10" fill="#E1F1EA" stroke="#0B7A53"/>
+        <text x="78" y="312" class="svg-title">Faiss vector index</text>
+        <text x="78" y="332" class="svg-body">store ALL embeddings + metadata:</text>
+        <text x="78" y="350" class="svg-body">date, realized return, econ events</text>
+        <text x="78" y="370" class="svg-mono-lite" fill="#0B7A53">ROLE: INTERPRETABILITY</text>
+
+        <rect x="576" y="286" width="330" height="96" rx="10" fill="#FFFFFF" stroke="#D5DDE5"/>
+        <text x="594" y="312" class="svg-title">XGBoost classifier</text>
+        <text x="594" y="332" class="svg-body">fit on ALL embeddings; label =</text>
+        <text x="594" y="350" class="svg-body">top-decile future return (binary)</text>
+        <text x="594" y="370" class="svg-mono-lite" fill="#2456C4">ROLE: CALIBRATED PROBABILITY</text>
+
+        <!-- divider -->
+        <line x1="24" y1="424" x2="936" y2="424" stroke="#44566C" stroke-dasharray="6 6" stroke-width="1"/>
+        <text x="24" y="456" class="svg-phase">INFERENCE — DAILY, AFTER THE CLOSE</text>
+
+        <!-- Row: today -->
+        <rect x="24" y="474" width="272" height="76" rx="10" fill="#FFFFFF" stroke="#D5DDE5"/>
+        <text x="40" y="500" class="svg-title">Today’s window</text>
+        <text x="40" y="520" class="svg-body">last 252 days, same 28 factors</text>
+
+        <path d="M296 512 H332" stroke="#44566C" stroke-width="1.5" marker-end="url(#arr)"/>
+
+        <rect x="336" y="474" width="272" height="76" rx="10" fill="#E9EFFB" stroke="#2456C4" stroke-width="1.5"/>
+        <text x="352" y="500" class="svg-title">Frozen encoder</text>
+        <text x="352" y="520" class="svg-body">same weights as training</text>
+
+        <path d="M608 512 H644" stroke="#2456C4" stroke-width="1.5" marker-end="url(#arrb)"/>
+
+        <rect x="648" y="474" width="288" height="76" rx="10" fill="#0D1B2A"/>
+        <text x="666" y="503" font-family="IBM Plex Mono,monospace" font-size="12.5" font-weight="600" fill="#FFFFFF">query embedding (768)</text>
+        <text x="666" y="524" font-family="IBM Plex Mono,monospace" font-size="10.5" fill="#8FA5BC">today’s market state as a vector</text>
+
+        <!-- fork to two consumers -->
+        <path d="M700 550 V584 H220 V612" stroke="#0B7A53" stroke-width="1.5" fill="none" marker-end="url(#arr)"/>
+        <path d="M800 550 V612" stroke="#2456C4" stroke-width="1.5" fill="none" marker-end="url(#arrb)"/>
+
+        <rect x="60" y="616" width="330" height="84" rx="10" fill="#E1F1EA" stroke="#0B7A53"/>
+        <text x="78" y="642" class="svg-title">Search: top-50 nearest regimes</text>
+        <text x="78" y="662" class="svg-body">“this looks like NVDA ’23, AVGO ’24,</text>
+        <text x="78" y="680" class="svg-body">META ’13” — evidence a PM can audit</text>
+
+        <rect x="576" y="616" width="330" height="84" rx="10" fill="#FFFFFF" stroke="#D5DDE5"/>
+        <text x="594" y="642" class="svg-title">Predict: P(top decile)</text>
+        <text x="594" y="662" class="svg-body">e.g. 78% — learned from the entire</text>
+        <text x="594" y="680" class="svg-body">history, not from the 50 neighbours</text>
+
+        <!-- merge to output -->
+        <path d="M225 700 V724 H455 V744" stroke="#44566C" stroke-width="1.5" fill="none" marker-end="url(#arr)"/>
+        <path d="M741 700 V724 H505 V744" stroke="#44566C" stroke-width="1.5" fill="none" marker-end="url(#arr)"/>
+        <text x="480" y="770" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="12" font-weight="600" fill="#0D1B2A">OUTPUT · probability + precedents + historical avg return</text>
+      </svg>
+      <div class="legend">
+        <span><span class="swatch" style="background:#E1F1EA;border-color:#0B7A53"></span> Faiss path — why (retrieval, trust)</span>
+        <span><span class="swatch" style="background:#E9EFFB;border-color:#2456C4"></span> shared encoder</span>
+        <span><span class="swatch" style="background:#0D1B2A"></span> the embedding — single source for both paths</span>
+      </div>
+      <figcaption class="diagram-caption">Fig. 1 — Never train XGBoost on Faiss results: 50 samples ⇒ severe overfit. Both consumers read the same embedding independently.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<!-- ================= 02 DECISIONS ================= -->
+<section class="section" id="decisions">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="sec-kicker">02 · Decision ledger</p>
+      <h2>Every call, and what it beat</h2>
+      <p>Each architectural decision recorded blotter-style: the position taken (▲), the alternative closed out (▼), and the reasoning that survived the debate.</p>
+    </div>
+
+    <div class="ledger">
+      <div class="ledger-head"><span>Position</span><span>Rationale</span></div>
+
+      <div class="ledger-row">
+        <div class="ledger-call">
+          <span class="pill up">▲ Transformer encoder</span>
+          <span class="vs">over</span>
+          <span class="pill down">▼ GPT decoder</span>
+        </div>
+        <p class="ledger-why">The job is <b>representation for retrieval</b>, not text generation. An encoder reads the whole window with bidirectional attention and emits one fixed vector; a decoder would try to hallucinate tomorrow’s candles.</p>
+      </div>
+
+      <div class="ledger-row">
+        <div class="ledger-call">
+          <span class="pill up">▲ Continuous embeddings</span>
+          <span class="vs">over</span>
+          <span class="pill down">▼ Discretized tokens</span>
+        </div>
+        <p class="ledger-why">A linear projection (num_factors → 768) keeps exact values — <b>95.4 stays 95.4</b>, not “RS_90_HIGH”. No arbitrary bin edges, smooth transitions preserved. Financial data is numbers, not words.</p>
+      </div>
+
+      <div class="ledger-row">
+        <div class="ledger-call">
+          <span class="pill up">▲ 252-day window</span>
+          <span class="vs">over</span>
+          <span class="pill down">▼ 60-day window</span>
+        </div>
+        <p class="ledger-why">One year captures <b>~4 quarterly updates</b>, seasonal patterns and annual cycles. Sixty days sees a single quarterly print — not enough to read a fundamental trend.</p>
+      </div>
+
+      <div class="ledger-row">
+        <div class="ledger-call">
+          <span class="pill up">▲ Faiss ∥ XGBoost (parallel)</span>
+          <span class="vs">over</span>
+          <span class="pill down">▼ Retrieval → train pipeline</span>
+        </div>
+        <p class="ledger-why">Training on 50 retrieved neighbours is <b>overfitting by construction</b>. XGBoost learns from every historical embedding; Faiss exists so a human can see the precedent behind the number.</p>
+      </div>
+
+      <div class="ledger-row">
+        <div class="ledger-call">
+          <span class="pill up">▲ Transformer</span>
+          <span class="vs">over</span>
+          <span class="pill down">▼ LSTM</span>
+        </div>
+        <p class="ledger-why">No forgetting over long windows — attention can directly compare <b>day 1 with day 252</b>. Trains in parallel; positional encoding keeps time order.</p>
+      </div>
+
+      <div class="ledger-row">
+        <div class="ledger-call">
+          <span class="pill up">▲ Raw ingredients</span>
+          <span class="vs">over</span>
+          <span class="pill down">▼ Pre-digested signals</span>
+        </div>
+        <p class="ledger-why">Give SMA_20 and SMA_200; let the model learn the gap, slope and acceleration. Binary crossovers and fixed formulas like <b>TTM = 2·STD − 1.5·ATR</b> impose thresholds the model would learn better itself.</p>
+      </div>
+
+      <div class="ledger-row">
+        <div class="ledger-call">
+          <span class="pill up">▲ Keep correlated features</span>
+          <span class="vs">over</span>
+          <span class="pill down">▼ Pre-solving multicollinearity</span>
+        </div>
+        <p class="ledger-why">For trees, correlation is a problem; for attention, it’s <b>context</b>. The degree of divergence between correlated features is itself a signal. Only drop what is mathematically identical.</p>
+      </div>
+
+      <div class="ledger-row">
+        <div class="ledger-call">
+          <span class="pill up">▲ Release-date alignment</span>
+          <span class="vs">over</span>
+          <span class="pill down">▼ Period-end alignment</span>
+        </div>
+        <p class="ledger-why">Q1 GDP lands on the model’s tape at end of April, not January 1. Each economic release is its own dataset, merged by <b>publication date</b> — exactly what a live system would have known.</p>
+      </div>
+
+      <div class="ledger-row">
+        <div class="ledger-call">
+          <span class="pill up">▲ Econ events as metadata</span>
+          <span class="vs">over</span>
+          <span class="pill down">▼ Econ events as features</span>
+        </div>
+        <p class="ledger-why">Earnings, GDP, CPI and Fed decisions ride alongside embeddings to <b>explain retrieved cases</b> (“this precedent occurred during a hiking cycle”) — they are never fed to the encoder.</p>
+      </div>
+
+      <div class="ledger-row">
+        <div class="ledger-call">
+          <span class="pill up">▲ Train from scratch</span>
+          <span class="vs">over</span>
+          <span class="pill down">▼ Pre-trained BERT weights</span>
+        </div>
+        <p class="ledger-why">Hugging Face BERT read Wikipedia, not factor vectors. A small <b>6-layer encoder trained from scratch</b> on decades of daily market states is the right-sized model — and it fits on a laptop.</p>
+      </div>
+    </div>
+  </div>
+</section>
+<!-- ================= 03 FEATURES ================= -->
+<section class="section" id="features">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="sec-kicker">03 · The input layer</p>
+      <h2>28 daily features, curated hard</h2>
+      <p>Kept features from <span style="font-family:var(--mono);font-size:14px">HISTORY_KPI_1_D</span>, grouped by what they measure. Everything redundant or rule-based was cut — the survivors are raw ingredients and structural insight.</p>
+    </div>
+
+    <div class="feat-grid">
+      <div class="feat-card">
+        <header><h3>Raw price / volume</h3><span class="count">5</span></header>
+        <div class="chips"><span class="chip">OPEN</span><span class="chip">HIGH</span><span class="chip">LOW</span><span class="chip">CLOSE</span><span class="chip">VOLUME</span></div>
+      </div>
+      <div class="feat-card">
+        <header><h3>Market-relative</h3><span class="count">1</span></header>
+        <div class="chips"><span class="chip">SPY_C</span></div>
+        <p class="feat-note">Stock close / SPY close. SPY_O, SPY_H, SPY_L removed — close alone carries the market relationship.</p>
+      </div>
+      <div class="feat-card">
+        <header><h3>Trend context</h3><span class="count">1</span></header>
+        <div class="chips"><span class="chip">SMA_020</span></div>
+      </div>
+      <div class="feat-card">
+        <header><h3>Efficiency</h3><span class="count">2</span></header>
+        <div class="chips"><span class="chip">PFE_010</span><span class="chip">PFE_020</span></div>
+        <p class="feat-note">Polarized Fractal Efficiency — trend quality, not just direction.</p>
+      </div>
+      <div class="feat-card">
+        <header><h3>Volatility</h3><span class="count">1</span></header>
+        <div class="chips"><span class="chip">ATR</span></div>
+      </div>
+      <div class="feat-card">
+        <header><h3>Trend slope &amp; acceleration</h3><span class="count">3</span></header>
+        <div class="chips"><span class="chip">Fit</span><span class="chip">Trigger</span><span class="chip">Itrend</span></div>
+        <p class="feat-note">Fit ≈ SMA_020 signals big moves; Trigger is the ITrend 2nd derivative — trend acceleration.</p>
+      </div>
+      <div class="feat-card">
+        <header><h3>Market context</h3><span class="count">3</span></header>
+        <div class="chips"><span class="chip">Fit_SPY</span><span class="chip">Trigger_SPY</span><span class="chip">Itrend_SPY</span></div>
+        <p class="feat-note">The same slope trio computed on SPY, so the model reads the stock against the tape.</p>
+      </div>
+      <div class="feat-card">
+        <header><h3>Structural — main force</h3><span class="count">6</span></header>
+        <div class="chips"><span class="chip">Trend_PV</span><span class="chip">PV_BULL_STEP</span><span class="chip">PV_BULL_START</span><span class="chip">PV_BULL_STOP</span><span class="chip">PV_BULL_CNT</span><span class="chip">PV_BULL_H</span></div>
+        <p class="feat-note">Step logic of institutional pushing: attack → consolidate → attack again. START / STOP / H normalized relative to CLOSE.</p>
+      </div>
+      <div class="feat-card">
+        <header><h3>Momentum</h3><span class="count">4</span></header>
+        <div class="chips"><span class="chip">MACD_C</span><span class="chip">MACD_H</span><span class="chip">MACD_DIFF</span><span class="chip">RSI_03</span></div>
+        <p class="feat-note">MACD_C above its dynamic band MACD_H reads as strength, not danger.</p>
+      </div>
+    </div>
+
+    <div class="dropped-strip">
+      <h3>▼ Cut from the book</h3>
+      <div class="chips">
+        <span class="chip dn">SPY_O</span><span class="chip dn">SPY_H</span><span class="chip dn">SPY_L</span>
+        <span class="chip dn">TTM</span><span class="chip dn">BIAS_Diff</span><span class="chip dn">Push_Diff</span>
+        <span class="chip dn">MACD_L</span><span class="chip dn">oSlowK</span><span class="chip dn">oSlowD</span>
+        <span class="chip dn">binary crossover flags</span>
+      </div>
+      <p>Reasons, in order: redundant with SPY_C · fixed linear rule the model learns better · complex conditional noise · rule redundant with MACD_DIFF + Trigger · short-side only · redundant with RSI_03 (×2) · thresholds destroy information.</p>
+    </div>
+
+    <div class="queue-strip">
+      <h3>◇ Queued — macro &amp; breadth from FRED</h3>
+      <div class="chips">
+        <span class="chip">Growth_vs_Value</span><span class="chip">GVR_020/050/100/200</span>
+        <span class="chip">VIX_9D / 3M / 6M</span><span class="chip">VIX_Front_Slope</span><span class="chip">VIX_Back_Slope</span>
+        <span class="chip">VIX_9D_Z / 3M_Z</span><span class="chip">SP_Above_050/200</span><span class="chip">ND_Above_050/200</span>
+        <span class="chip">Advance_*</span><span class="chip">UpVolume_*</span><span class="chip">NHNL_Ratio_*</span>
+        <span class="chip">Participation_*</span><span class="chip">Fosback_*</span><span class="chip">TRIN_Z_*</span>
+      </div>
+      <p>Breadth families computed for SPY, QQQ, RSL and NYSE. These give the model regime context — which signals to trust in which environment.</p>
+    </div>
+
+    <p class="table-title">Normalization — one strategy per feature type</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Feature type</th><th>Members</th><th>Normalization</th></tr></thead>
+        <tbody>
+          <tr><td>Raw prices</td><td class="mono">OPEN, HIGH, LOW, CLOSE, SPY_*</td><td>Time-series z-score</td></tr>
+          <tr><td>Volume, range, counts</td><td class="mono">VOLUME, ATR, counts</td><td>Robust z-score (median + MAD)</td></tr>
+          <tr><td>Bounded oscillators</td><td class="mono">PFE, RSI, MACD</td><td>Raw values — no normalization</td></tr>
+          <tr><td>Ordered discrete</td><td class="mono">Trend_PV</td><td>Raw integer levels</td></tr>
+          <tr><td>Price levels</td><td class="mono">PV_BULL_START / STOP / H</td><td>(X − CLOSE) / CLOSE</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 04 DATA ================= -->
+<section class="section" id="data">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="sec-kicker">04 · Data discipline</p>
+      <h2>No leakage, ever</h2>
+      <p>The rules that keep the backtest honest — alignment, forward-fill, and a strictly chronological split.</p>
+    </div>
+
+    <div class="rules">
+      <div class="rule">
+        <h3>Same shape every day</h3>
+        <p>Every trading day carries the same column count. Slower frequencies are forward-filled to daily:</p>
+        <span class="mono-line">weekly → 5d · monthly → 21d · quarterly → ~63d</span>
+      </div>
+      <div class="rule">
+        <h3>Forward-fill is causal</h3>
+        <p>It carries the <b>last known</b> value until new data arrives — only past values fill future days, exactly like a real-time feed. No bias introduced.</p>
+      </div>
+      <div class="rule">
+        <h3>Merge by release date</h3>
+        <p>Each economic release is a separate dataset joined on publication date, so every day holds only what was actually public at the time.</p>
+      </div>
+      <div class="rule">
+        <h3>Bidirectional ≠ clairvoyant</h3>
+        <p>The encoder attends left-and-right <b>within days 1–252</b>. It never sees day 253 or any future return during encoding.</p>
+      </div>
+    </div>
+
+    <figure class="diagram">
+      <svg viewBox="0 0 960 150" role="img" aria-label="Chronological data split: train 1990 to 2018, validation 2019 to 2021, test 2022 to 2024.">
+        <text x="24" y="26" class="svg-phase">CHRONOLOGICAL SPLIT — NO SHUFFLING</text>
+        <rect x="24"  y="46" width="612" height="46" rx="8" fill="#E9EFFB" stroke="#2456C4"/>
+        <rect x="644" y="46" width="134" height="46" rx="8" fill="#FFF6E3" stroke="#B98A1D"/>
+        <rect x="786" y="46" width="150" height="46" rx="8" fill="#E1F1EA" stroke="#0B7A53"/>
+        <text x="330" y="74" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="13" font-weight="600" fill="#0D1B2A">TRAIN</text>
+        <text x="711" y="74" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="13" font-weight="600" fill="#0D1B2A">VAL</text>
+        <text x="861" y="74" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="13" font-weight="600" fill="#0D1B2A">TEST</text>
+        <text x="24"  y="116" class="svg-mono">1990</text>
+        <text x="616" y="116" class="svg-mono" text-anchor="middle">2018 | 2019</text>
+        <text x="781" y="116" class="svg-mono" text-anchor="middle">2021 | 2022</text>
+        <text x="936" y="116" class="svg-mono" text-anchor="end">2024</text>
+        <text x="24" y="142" class="svg-mono-lite">segment widths not to scale — the point is the ordering: the model is validated and tested only on years it has never seen</text>
+      </svg>
+    </figure>
+
+    <div class="chain" aria-label="Per-day encoding path">
+      <div class="chain-box"><b>day t</b>28 raw factors<br>(continuous)</div>
+      <div class="chain-arrow">→</div>
+      <div class="chain-box"><b>project</b>Linear layer<br>28 → 768</div>
+      <div class="chain-arrow">→</div>
+      <div class="chain-box"><b>+ position</b>day index, day-of-week,<br>day-of-month PE</div>
+      <div class="chain-arrow">→</div>
+      <div class="chain-box"><b>stack</b>252 × 768<br>sequence</div>
+      <div class="chain-arrow">→</div>
+      <div class="chain-box"><b>encode</b>6-layer transformer,<br>self-attention</div>
+      <div class="chain-arrow">→</div>
+      <div class="chain-box"><b>state</b>768-dim<br>embedding</div>
+    </div>
+
+    <p style="font-family:var(--mono);font-size:12.5px;color:var(--ink-2);margin-top:22px">
+      COMPUTE · 32 GB RAM is more than enough — model &lt;2 GB, training 2–6 h on CPU, no GPU required at this scale.
+    </p>
+  </div>
+</section>
+
+<!-- ================= 05 ALPHA ================= -->
+<section class="section" id="alpha">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="sec-kicker">05 · Alpha map</p>
+      <h2>Where the excess return comes from</h2>
+      <p>Four distinct sources, each tied to specific features — not a single magic signal.</p>
+    </div>
+
+    <div class="alpha-grid">
+      <div class="alpha-card">
+        <span class="num">α·1 — Microstructure</span>
+        <h3>Main-force structure</h3>
+        <p>Trend_PV quantifies the full attack → consolidate → attack cycle of institutional pushing, where most treat “main force” as just big orders.</p>
+        <span class="mech">Trend_PV · PV_BULL_* → hold strength, avoid shakeouts</span>
+      </div>
+      <div class="alpha-card">
+        <span class="num">α·2 — Asymmetric</span>
+        <h3>Exhaustion &amp; acceleration</h3>
+        <p>Trigger and Itrend read the second derivative of trend. Close &gt; Trigger &gt; Itrend confirms continuation; MACD_C above a rising MACD_H is overbought <i>expansion</i> — bullish, not a warning.</p>
+        <span class="mech">Trigger · Itrend · MACD_C&gt;MACD_H → enter early, exit before the drop</span>
+      </div>
+      <div class="alpha-card">
+        <span class="num">α·3 — Regime-dependent</span>
+        <h3>Context-aware weights</h3>
+        <p>Fixed-weight models break across regimes. Macro context lets attention learn that PV_BULL works in broad, low-VIX tape and defensive factors work in crises.</p>
+        <span class="mech">SP_Above_200 · VIX structure · Fosback → adaptive weighting</span>
+      </div>
+      <div class="alpha-card">
+        <span class="num">α·4 — Data</span>
+        <h3>Structured insight in</h3>
+        <p>Inputs are engineered insights — trend efficiency, step duration, fragility — not raw OHLCV. Layer 1 sees trend <i>quality</i> instead of spending ten layers learning it.</p>
+        <span class="mech">PFE · PV_BULL_STEP · Fosback → lighter learning burden</span>
+      </div>
+    </div>
+
+    <div class="equation">
+      <span class="equation-label">ALPHA EQUATION</span>
+      α <span class="op">=</span> <span class="pos">(Main-force attack structure × Trend acceleration)</span> <span class="op">+</span> <span class="pos">(Overbought momentum expansion × Market-breadth filter)</span> <span class="op">−</span> <span class="neg">(Noise in panic environments)</span>
+    </div>
+  </div>
+</section>
+<!-- ================= 06 EVOLUTION ================= -->
+<section class="section" id="evolution">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="sec-kicker">06 · How the design evolved</p>
+      <h2>The debates that reshaped v1</h2>
+      <p>The first sketch was an NLP transplant — tokens, sentences, 60-day “documents”. Pushing on each assumption produced a cleaner, more quantitative system.</p>
+    </div>
+
+    <div class="evo">
+      <div class="evo-row">
+        <div class="evo-cell before">
+          <span class="tag">▼ v1</span>
+          <h3>Discretize into tokens</h3>
+          <p>RS_90 = 95.4 becomes “RS_90_HIGH”; each day is a sentence of event words.</p>
+        </div>
+        <div class="evo-mid">→</div>
+        <div class="evo-cell after">
+          <span class="tag">▲ Final</span>
+          <h3>Continuous embeddings</h3>
+          <p>Linear projection of raw values into 768-dim. Tokenization was an NLP habit, not a requirement — binning threw away precision for nothing.</p>
+        </div>
+      </div>
+
+      <div class="evo-row">
+        <div class="evo-cell before">
+          <span class="tag">▼ v1</span>
+          <h3>60-day window</h3>
+          <p>Two months of context; only one quarterly update visible.</p>
+        </div>
+        <div class="evo-mid">→</div>
+        <div class="evo-cell after">
+          <span class="tag">▲ Final</span>
+          <h3>252-day window</h3>
+          <p>A full year: ~4 quarterly prints, seasonal cycles, and enough runway to read a fundamental trend.</p>
+        </div>
+      </div>
+
+      <div class="evo-row">
+        <div class="evo-cell before">
+          <span class="tag">▼ v1</span>
+          <h3>Retrieve, then train</h3>
+          <p>Feed Faiss’s top-50 neighbours into XGBoost as its training set.</p>
+        </div>
+        <div class="evo-mid">→</div>
+        <div class="evo-cell after">
+          <span class="tag">▲ Final</span>
+          <h3>Parallel paths</h3>
+          <p>50 samples can’t train anything — that’s overfitting by design. XGBoost fits on all history; retrieval is a separate, read-only consumer.</p>
+        </div>
+      </div>
+
+      <div class="evo-row">
+        <div class="evo-cell before">
+          <span class="tag">▼ v1</span>
+          <h3>Faiss for accuracy</h3>
+          <p>Average the top-50 neighbours’ returns and call it a probability.</p>
+        </div>
+        <div class="evo-mid">→</div>
+        <div class="evo-cell after">
+          <span class="tag">▲ Final</span>
+          <h3>Faiss for trust</h3>
+          <p>A naive neighbour average is biased and learns nothing. Faiss’s real value: a PM believes “this looks like NVDA 2023” far more than a bare 78%.</p>
+        </div>
+      </div>
+
+      <div class="evo-row">
+        <div class="evo-cell before">
+          <span class="tag">▼ v1</span>
+          <h3>Fine-tune HF BERT</h3>
+          <p>Stand on pre-trained shoulders and adapt BERT to market “sentences”.</p>
+        </div>
+        <div class="evo-mid">→</div>
+        <div class="evo-cell after">
+          <span class="tag">▲ Final</span>
+          <h3>Small encoder from scratch</h3>
+          <p>Wikipedia weights can’t read factor vectors. A 6-layer encoder trained on decades of daily states is right-sized and CPU-friendly.</p>
+        </div>
+      </div>
+
+      <div class="evo-row">
+        <div class="evo-cell before">
+          <span class="tag">▼ v1</span>
+          <h3>Econ events as inputs</h3>
+          <p>Feed earnings, GDP, CPI and Fed decisions into the encoder as features.</p>
+        </div>
+        <div class="evo-mid">→</div>
+        <div class="evo-cell after">
+          <span class="tag">▲ Final</span>
+          <h3>Events as case notes</h3>
+          <p>Stored as metadata beside each embedding — used only to explain retrieved precedents (“this occurred during a hiking cycle”).</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 07 FAQ ================= -->
+<section class="section" id="faq">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="sec-kicker">07 · Hard questions</p>
+      <h2>The interview-grade FAQ</h2>
+      <p>The challenges this design has to survive — with the answers that hold up.</p>
+    </div>
+
+    <div class="faq">
+      <details>
+        <summary>Isn’t a bidirectional encoder looking at the future?</summary>
+        <div class="body">No. “Bidirectional” means attention flows left-to-right <b>and</b> right-to-left <b>within the historical window</b> (days 1–252). The encoder never sees day 253 or any future return. Bidirectionality is about fully connecting the past, not peeking forward.</div>
+      </details>
+      <details>
+        <summary>Doesn’t the encoder lose information?</summary>
+        <div class="body">Yes — deliberately. It’s lossy compression: 3,000+ raw, noisy, highly correlated numbers become 768 meaningful ones. The loss falls on redundancy and noise; the underlying market state is what survives. That’s the point.</div>
+      </details>
+      <details>
+        <summary>Why not feed a raw flat vector straight into XGBoost?</summary>
+        <div class="body">You can, but XGBoost treats 252 × 28 numbers as <b>independent features</b> — it has no idea that feature #700 is the same factor as feature #728 one day later. The encoder’s positional encoding and self-attention give the model the temporal structure trees can’t represent.</div>
+      </details>
+      <details>
+        <summary>Why keep both Faiss and XGBoost?</summary>
+        <div class="body">Different jobs. <b>Faiss = interpretability</b>: auditable precedents that build trust. <b>XGBoost = accuracy</b>: a calibrated probability learned from all data. They are parallel — the classifier is never trained on retrieval output.</div>
+      </details>
+      <details>
+        <summary>Why drop SPY_O / SPY_H / SPY_L but keep SPY_C?</summary>
+        <div class="body">SPY_C (stock close / SPY close) captures the core stock-vs-market relationship. Open, high and low of the ratio add no independent information beyond the close for this purpose — three features cut, nothing lost.</div>
+      </details>
+      <details>
+        <summary>How do daily, weekly, monthly and quarterly data coexist?</summary>
+        <div class="body">Forward-fill everything to daily so each day is one fixed-length vector. The encoder doesn’t care about native frequencies — and because the fill only carries <b>last known</b> values forward, it mirrors a live feed with no lookahead.</div>
+      </details>
+      <details>
+        <summary>What does this need to run?</summary>
+        <div class="body">A 32 GB CPU machine is more than enough. The model uses under 2 GB and trains in roughly 2–6 hours on CPU. No GPU required at this scale.</div>
+      </details>
+      <details>
+        <summary>What exactly does XGBoost predict?</summary>
+        <div class="body">A <b>binary probability</b>: P(this window’s forward return lands in the top decile). It is not a ranking model — but sorting predicted probabilities across a universe of stocks yields a ranking for free.</div>
+      </details>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 08 OPEN ITEMS ================= -->
+<section class="section" id="plan">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="sec-kicker">08 · Open items</p>
+      <h2>What makes it bulletproof</h2>
+      <p>The gaps a sharp interviewer will probe first — close these before calling the project done.</p>
+    </div>
+
+    <div class="todo">
+      <div class="todo-item">
+        <span class="box" aria-hidden="true"></span>
+        <div>
+          <h3>Backtesting framework</h3>
+          <p>backtrader or vectorbt: buy above threshold, hold 6 months. Report equity curve, Sharpe, max drawdown — benchmarked against buy &amp; hold. Without this, every probability is a castle in the air.</p>
+        </div>
+        <span class="prio">CRITICAL</span>
+      </div>
+      <div class="todo-item">
+        <span class="box" aria-hidden="true"></span>
+        <div>
+          <h3>Baseline comparison</h3>
+          <p>Logistic regression, random forest, and factor-only XGBoost. The embedding has to earn its place — target an AUC lift of 5+ points over the best baseline.</p>
+        </div>
+        <span class="prio">CRITICAL</span>
+      </div>
+      <div class="todo-item">
+        <span class="box" aria-hidden="true"></span>
+        <div>
+          <h3>Wire in FRED macro &amp; breadth</h3>
+          <p>Growth/value ratios, the VIX term structure, and breadth families for SPY / QQQ / RSL / NYSE — the regime context that α·3 depends on.</p>
+        </div>
+        <span class="prio mid">NEXT</span>
+      </div>
+      <div class="todo-item">
+        <span class="box" aria-hidden="true"></span>
+        <div>
+          <h3>Regime-change handling</h3>
+          <p>Periodic index rebuilds (e.g. weekly) and optional time-decayed retrieval so precedents stay relevant when market structure shifts.</p>
+        </div>
+        <span class="prio mid">NEXT</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>STOCKGPT · MARKET STATE FOUNDATION MODEL — PROJECT BREAKDOWN</span>
+    <span>compiled from Summer_Project_Plan_3 + design discussion</span>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var links = document.querySelectorAll('.nav a');
+  if (!links.length || !('IntersectionObserver' in window)) return;
+  var map = {};
+  links.forEach(function(a){
+    var id = a.getAttribute('href').slice(1);
+    var el = document.getElementById(id);
+    if (el) map[id] = a;
+  });
+  var obs = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if (e.isIntersecting) {
+        links.forEach(function(a){ a.classList.remove('active'); });
+        var a = map[e.target.id];
+        if (a) a.classList.add('active');
+      }
+    });
+  }, {rootMargin: '-30% 0px -60% 0px'});
+  Object.keys(map).forEach(function(id){ obs.observe(document.getElementById(id)); });
+})();
+</script>
+</body>
+</html>

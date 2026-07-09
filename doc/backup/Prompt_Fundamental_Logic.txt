@@ -1,0 +1,184 @@
+/research
+
+Objective:
+
+Build a library of stock fundamental events that have demonstrated predictive power for future stock returns.
+
+Only include events supported by empirical evidence, academic research, institutional factor investing literature, or long-term practitioner validation.
+
+==========================================================
+ACCEPTED SOURCES
+================
+
+Priority 1:
+
+* Fama-French
+* AQR
+* Research Affiliates
+* MSCI Factor Research
+* S&P Global
+* Morningstar
+* Journal of Finance
+* Journal of Financial Economics
+* Review of Financial Studies
+
+Priority 2:
+
+* Warren Buffett
+* Benjamin Graham
+* Peter Lynch
+* Joel Greenblatt
+* Terry Smith
+* Charlie Munger
+* William O'Neil
+
+Priority 3:
+
+* Seeking Alpha studies with large sample backtests
+* Quantopian archives
+* Portfolio123 research
+* Alpha Architect
+* Verdad Capital
+
+==========================================================
+EXCLUDE
+=======
+
+Exclude:
+
+* Pure opinions
+* Unverified blog posts
+* Single-stock anecdotes
+* Technical indicators
+* Day trading signals
+* Signals without historical testing
+* Signals without clear thresholds
+
+==========================================================
+RESEARCH GOAL
+=============
+
+Identify fundamental events that consistently predict:
+
+* 3 month forward return
+* 6 month forward return
+* 12 month forward return
+* 24 month forward return
+
+Focus on:
+
+* Revenue Growth
+* EPS Growth
+* Earnings Revisions
+* ROE
+* ROIC
+* Gross Margin
+* Operating Margin
+* Free Cash Flow
+* Debt Ratios
+* Share Buybacks
+* Valuation Ratios
+* Asset Growth
+* Accruals
+* Insider Ownership
+* Capital Allocation
+
+==========================================================
+FOR EACH EVENT OUTPUT
+=====================
+
+Use EXACTLY the following format:
+
+### Event X: [Event Name] ★★★
+
+| Field                  | Content                                                     |
+| ---------------------- | ----------------------------------------------------------- |
+| Trigger Condition      | Exact formula and threshold                                 |
+| Statistical Evidence   | Sample period, hit rate, excess return, Sharpe if available |
+| Forward Return Profile | 3M / 6M / 12M / 24M                                         |
+| Logic Chain            | Why the event works                                         |
+| Threshold Optimization | Best-performing thresholds discovered in literature         |
+| Failure Scenarios      | When signal stops working                                   |
+| Data Requirements      | Required fundamental fields                                 |
+| Data Delay             | Reporting lag and practical implementation                  |
+| Empirical Sources      | Papers, books, institutional research                       |
+
+==========================================================
+IMPORTANT
+=========
+
+Prioritize events with:
+
+1. Multiple independent validations
+2. Large sample sizes
+3. At least 10 years of evidence
+4. Still effective after 2010
+5. Still effective after 2020 if available
+
+Rank each event:
+
+★★★★★ Exceptional
+★★★★ Strong
+★★★ Useful
+★★ Weak
+★ Marginal
+
+==========================================================
+FINAL DELIVERABLE
+=================
+
+Create:
+
+src/fundamental_event_research.txt
+
+Include:
+
+1. Top 50 fundamental events
+2. Ranked by evidence strength
+3. Ranked by expected predictive power
+4. Recommended implementation thresholds
+5. Mapping to TradeStation fields
+
+Goal:
+
+Build a production-quality fundamental event library for stock selection and backtesting.
+
+
+Additional Requirement:
+
+Only prioritize events that can be computed from the currently exported fields:
+
+MRQ_Total_Long_Term_Debt
+MRQ_Total_Equity
+MRQ_Total_Debt
+MRQ_Gross_Profit
+MRQ_Net_Income
+MRQ_Operating_Income
+MRQ_Revenue
+MRQ_EPS
+MRQ_Gross_Margin
+MRQ_Operating_Margin
+MRQ_Total_Asset
+MRQ_Total_Liabilities
+MRQ_Current_Asset
+MRQ_Current_Liabilities
+MRQ_LongTerm_Asset
+MRQ_LongTerm_Liabilities
+MRQ_Net_Interest
+TTM_Total_Equity
+TTM_Total_Debt
+TTM_Gross_Profit
+TTM_Net_Income
+TTM_Net_Interest
+TTM_Operating_Income
+TTM_Revenue
+TTM_EPS
+TTM_Gross_Margin
+TTM_Operating_Margin
+PE
+ROE
+LT_DE
+EPS_Growth
+Revenue_Growth
+
+For each event, provide the exact EasyLanguage formula needed to generate the event.

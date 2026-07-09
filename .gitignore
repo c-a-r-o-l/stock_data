@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Data files (too large for git)
+data/History_1_D/
+data/History_2_W/
+data/History_3_M/
+data/History_4_F/
+data/History_1_D_clean/
+data/History_2_W_clean/
+data/History_3_M_clean/
+data/History_4_F_clean/
+data/History_6_merge/
+data/History_4_E_Alfred/
+data/History_4_E_Alfred_Release/
+
+# Market data
+data/History_0_MKT/
+
+# Claude config
+.claude/
+
+# Environment
+.env
+
+# OS
+.DS_Store
+Thumbs.db
+*:Zone.Identifier

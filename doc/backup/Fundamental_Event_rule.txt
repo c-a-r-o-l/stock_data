@@ -1,0 +1,389 @@
+================================================================================
+Fundamental Event Token Format — StockGPT Market Language
+================================================================================
+版本: v1.0
+日期: 2026-06-18
+来源: doc/Fundamental_Event_Logic.txt (60 events, curated from 90)
+================================================================================
+
+Token Format:
+
+    Metric_Severity
+
+- Metric: PascalCase, the fundamental dimension being measured
+- Severity: baked into the name — same metric at different thresholds = different events
+
+Duration is NOT part of the token.  Duration is tracked by the CSV columns:
+    obs_date       = when the condition was last confirmed
+    available_date = when the data became available
+
+The "age" of an event = Today − obs_date (in months).
+The system computes this at query time — no need to encode it in the token.
+
+Example:
+    EPS_Accelerating          (event name only)
+    GM_WideMoat               (event name only)
+
+At query time:
+    EPS_Accelerating + obs_date 2026-05-29  →  "1 month old"
+    EPS_Accelerating + obs_date 2026-02-28  →  "4 months old"
+
+================================================================================
+Frequency — MONTHLY ONLY
+================================================================================
+
+Fundamental data is MONTHLY from TradeStation GetFundData().
+Fundamentals DO NOT change daily or weekly — only when a new quarterly
+filing is ingested.  There is no daily or weekly fundamental event stream.
+
+Output file:  fundamental_event_monthly.txt
+
+CSV format (matching macro_event convention):
+    obs_date,available_date,event
+
+Example:
+    2026-05-29,2026-06-18,EPS_Accelerating
+    2026-05-29,2026-06-18,GM_WideMoat
+
+================================================================================
+Severity
+================================================================================
+
+Severity IS part of the EventName.
+Same metric at different thresholds → different tokens:
+
+    Revenue_Declining      (Rev_Growth < 0%)
+    Revenue_Slow           (Rev_Growth 0-10%)
+    Revenue_Solid          (Rev_Growth 10-15%)
+    Revenue_Strong         (Rev_Growth 15-25%)
+    Revenue_Hyper          (Rev_Growth 25-35%)
+    Revenue_Explosive      (Rev_Growth > 35%)
+
+    GM_Low                 (GM 0-20%)
+    GM_Avg                 (GM 20-30%)
+    GM_AboveAvg            (GM 30-40%)
+    GM_WideMoat            (GM 40-50%)
+    GM_Exceptional         (GM > 50%)
+
+================================================================================
+Direction Tokens (for trend/acceleration events)
+================================================================================
+
+When a metric has a direction (improving, declining, accelerating, decelerating),
+encode the direction in the token:
+
+    EPS_Accelerating       (EPS growth rate increasing)
+    Revenue_Accelerating   (revenue growth rate increasing)
+    Revenue_Decelerating   (revenue growth rate slowing — EXIT signal)
+    GM_Expanding           (gross margin trending up)
+    GM_Inflecting          (gross margin turning up after decline)
+    Deleveraging           (LT debt/equity improving)
+    ROE_Expanding          (ROE trending higher)
+    OpMargin_Inflecting    (operating margin in 3-step uptrend)
+
+================================================================================
+Don't Split Unnecessarily
+================================================================================
+
+When other tokens already diagnose the context, keep one token:
+
+    ROE_High  (not ROE_15, ROE_20, ROE_25)
+
+The Rev_Growth and GM buckets provide the granularity.
+Other events can use simpler binary naming.
+
+================================================================================
+Point Events
+================================================================================
+
+Even "point events" (one-time transitions) use the same format.
+The obs_date tells the system how recently the transition occurred:
+
+    Earnings_Turnaround + obs_date 2026-05-29   →  "1 month ago, fresh"
+    Earnings_Turnaround + obs_date 2025-11-30   →  "7 months ago, fading"
+    Revenue_CycleTurn  + obs_date 2026-04-30   →  "2 months ago"
+    CoiledSpring       + obs_date 2026-03-31   →  "3 months ago"
+
+================================================================================
+Token Catalog: 60 Fundamental Events
+================================================================================
+
+--- CATEGORY A: Value / Cheapness (5 tokens) ---
+
+Token:  EBITEV_Cheap
+Source: Event 1 — Low Enterprise Multiple (EBIT/EV)
+Logic:  EBIT_Yield = TTM_OI / (MCap + TotalDebt - CurrentAsset) > 10%
+
+Token:  PE_Low
+Source: Event 2 — Low P/E Ratio
+Logic:  Earnings_Yield = 100/PE > 8.33%
+
+Token:  PB_Low
+Source: Event 3 — Low Price-to-Book
+Logic:  P/B < 1.5
+
+Token:  FCFYield_High
+Source: Event 4 — Free Cash Flow Yield
+Logic:  FCF/MarketCap > 5%
+
+Token:  FScore_High
+Source: Event 5 — Piotroski F-Score (5-pt proxy)
+Logic:  F_Score >= 4
+
+
+--- CATEGORY B: Profitability / Quality (6 tokens) ---
+
+Token:  Profitability_High
+Source: Event 6 — High Gross Profitability (Novy-Marx)
+Logic:  GP_Assets = TTM_GP / MRQ_TA > 33%
+
+Token:  ROE_High
+Source: Event 7 — High ROE
+Logic:  ROE > 15
+
+Token:  OpMargin_High
+Source: Event 8 — High Operating Margin
+Logic:  TTM_Operating_Margin > 15
+
+Token:  ROIC_High
+Source: Event 9 — ROIC Proxy (Quality)
+Logic:  TTM_OI / (MRQ_TA - MRQ_CL) > 20%
+
+Token:  ROE_Stable
+Source: Event 10 — ROE Stability (5-Year)
+Logic:  5Y avg ROE > 15, min > 10
+
+Token:  NIM_Expanding
+Source: Event 11 — Net Interest Margin (Banks)
+Logic:  NIM > 2% AND improving
+
+
+--- CATEGORY C: Growth / Earnings Momentum (4 tokens) ---
+
+Token:  EPS_Accelerating
+Source: Event 12 — EPS Acceleration
+Logic:  EPS_Growth > 0 AND EPS_Growth > EPS_Growth[12]
+
+Token:  Revenue_Momentum
+Source: Event 13 — Revenue Growth (Sales Momentum)
+Logic:  Revenue_Growth > 10 AND < 50
+
+Token:  Momentum_Dual
+Source: Event 14 — Price + Earnings Dual Momentum
+Logic:  EPS_Growth > 0 AND Revenue_Growth > 0 AND Price_Mom_6M > 0
+
+Token:  Earnings_Turnaround
+Source: Event 15 — Negative EPS Turnaround
+Logic:  TTM_EPS[12] < 0 AND TTM_EPS > 0
+
+
+--- CATEGORY D: Capital Efficiency / Investment (2 tokens) ---
+
+Token:  AssetGrowth_Low
+Source: Event 16 — Negative Asset Growth (CMA)
+Logic:  Asset_Growth < 5%
+
+Token:  Accruals_Low
+Source: Event 17 — Accruals Anomaly
+Logic:  Accrual_Pct < -5%
+
+
+--- CATEGORY E: Leverage / Safety (2 tokens) ---
+
+Token:  Leverage_Low
+Source: Event 18 — Low Leverage (Quality Safety)
+Logic:  LT_DE < 50
+
+Token:  Deleveraging
+Source: Event 19 — Deleveraging
+Logic:  LT_DE < LT_DE[12] AND Equity rising
+
+
+--- CATEGORY F: Payout / Capital Allocation (2 tokens) ---
+
+Token:  Buyback
+Source: Event 20 — Share Count Reduction
+Logic:  Share_Reduction > 2% YoY
+
+Token:  Dilution
+Source: Event 21 — Dilution Avoidance (EXCLUDE)
+Logic:  Share_Reduction < -3%
+
+
+--- CATEGORY G: Revenue-Driven (5 tokens) ---
+
+Token:  Revenue_Accelerating
+Source: Event 22 — Revenue Growth Acceleration
+Logic:  Rev_Accel > 0 AND Revenue_Growth > 0
+
+Token:  Revenue_Streak
+Source: Event 23 — Consecutive Quarterly Revenue Growth
+Logic:  3+ consecutive QoQ increases
+
+Token:  Revenue_Decelerating
+Source: Event 24 — Revenue Growth Deceleration (EXIT)
+Logic:  2 consecutive years of deceleration
+
+Token:  Revenue_Stable
+Source: Event 25 — Revenue Stability (Low Vol)
+Logic:  Rev_CV < 0.15 over 20 months
+
+Token:  PS_Contracting
+Source: Event 26 — P/S Ratio Contraction
+Logic:  PS declining 2+ years with positive revenue growth
+
+
+--- CATEGORY H: Gross Margin-Driven (3 tokens) ---
+
+Token:  GM_Expanding
+Source: Event 27 — Gross Margin Expansion (2-Year)
+Logic:  GM rising for 2+ consecutive years
+
+Token:  GM_Inflecting
+Source: Event 28 — Gross Margin Inflection
+Logic:  GM turned up after prior decline
+
+Token:  CostControl_Tight
+Source: Event 29 — Gross Margin vs Operating Margin Spread
+Logic:  Spread < 25pp AND tightening
+
+
+--- CATEGORY I: Combined / Interaction (5 tokens) ---
+
+Token:  Buffett_ValueQuality
+Source: Event 30 — Value + Profitability (Buffett)
+Logic:  PE < 15 AND ROE > 15
+
+Token:  Asness_ValueMom
+Source: Event 31 — Value + Momentum (Asness)
+Logic:  PE < 15 AND EPS_Growth > 0
+
+Token:  Quality_LowInvestment
+Source: Event 32 — Quality + Low Investment
+Logic:  ROE > 15 AND Asset_Growth < 5
+
+Token:  Piotroski_Value
+Source: Event 33 — F-Score + Value
+Logic:  P/B < 1.5 AND F_Score >= 4
+
+Token:  Composite_Strong
+Source: Event 34 — Full Composite Checklist
+Logic:  10-pt composite score >= 7
+
+
+--- CATEGORY J: Pattern & Composite (14 tokens) ---
+
+Token:  QualityGrowth_Triple
+Source: Event 35 — High Quality Growth
+Logic:  Rev > 15 AND EPS > 20 AND ROE > 15
+
+Token:  Growth_DualAccel
+Source: Event 36 — Dual Growth Acceleration
+Logic:  Revenue AND EPS growth both accelerating
+
+Token:  PEG_FairValue
+Source: Event 37 — PEG Ratio Under 1 (Lynch)
+Logic:  PE < EPS_Growth AND EPS_Growth > 10
+
+Token:  ROE_Expanding
+Source: Event 38 — ROE Expansion
+Logic:  ROE > ROE[12] AND ROE > 10
+
+Token:  Revenue_CycleTurn
+Source: Event 39 — Revenue Cycle Turn
+Logic:  Revenue_Growth: negative → stabilizing → positive
+
+Token:  OpMargin_Inflecting
+Source: Event 40 — Operating Margin Inflection
+Logic:  3-step rising pattern over 2 years
+
+Token:  EarningsMonster
+Source: Event 41 — Earnings Monster
+Logic:  Rev > 20 AND EPS > 40 AND ROE > 20
+
+Token:  QualityGrowth_Combo
+Source: Event 42 — Quality Growth Composite
+Logic:  QUALITY=1 AND GROWTH=1
+
+Token:  SuperStock
+Source: Event 43 — SuperStock (Quality+Growth+Value)
+Logic:  QUALITY=1 AND GROWTH=1 AND VALUE=1
+
+Token:  StockWinner_Master
+Source: Event 44 — Stock Winner Master
+Logic:  Quality+Growth AND all metrics improving
+
+Token:  OrganicGrowth
+Source: Event 45 — Revenue Growth Quality
+Logic:  Revenue_Growth > Asset_Growth
+
+Token:  MarginTurnover_Dual
+Source: Event 46 — Margin + Turnover Dual Expansion
+Logic:  Both OpMargin AND AssetTurnover improving
+
+Token:  CoiledSpring
+Source: Event 47 — PE Contraction + Earnings Growth
+Logic:  Earnings up >10% AND PE declining 2+ years
+
+Token:  RapidDeleveraging
+Source: Event 48 — Rapid Deleveraging + Earnings Growth
+Logic:  LT_DE down >30% AND EPS_Growth > 10
+
+
+--- CATEGORY K: Threshold Range Filters (12 tokens) ---
+
+Revenue Growth Buckets:
+Token:  Revenue_Declining
+Token:  Revenue_Slow
+Token:  Revenue_Solid
+Token:  Revenue_Strong
+Token:  Revenue_Hyper
+Token:  Revenue_Explosive
+
+Gross Margin Buckets:
+Token:  GM_Negative            (GM < 0% — distressed)
+Token:  GM_Low
+Token:  GM_Avg
+Token:  GM_AboveAvg
+Token:  GM_WideMoat            (GM 40-50% — Buffett-quality)
+Token:  GM_Exceptional         (GM > 50%)
+
+
+================================================================================
+Token Usage in Paragraphs
+================================================================================
+
+Each stock on each date becomes a paragraph with fundamental tokens:
+
+[FUNDAMENTAL]
+EPS_Accelerating
+Revenue_Strong
+ROE_High
+GM_WideMoat
+Leverage_Low
+Buyback
+Profitability_High
+PB_Low
+SuperStock
+
+================================================================================
+Data Output Format
+================================================================================
+
+When generating the fundamental event stream, use CSV matching macro_event
+conventions:
+
+    obs_date,available_date,event
+
+- obs_date:       date of the fundamental snapshot (month-end)
+- available_date: date when the data became available (~1 month after obs)
+- event:          the token (e.g., EPS_Accelerating)
+
+Example:
+    2026-05-29,2026-06-18,EPS_Accelerating
+    2026-05-29,2026-06-18,Rev_HighGrowth
+    2026-05-29,2026-06-18,ROE_High
+
+================================================================================
+END OF DOCUMENT
+================================================================================

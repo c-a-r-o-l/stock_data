@@ -1,0 +1,251 @@
+================================================================================
+Stock_Event1_Macro — Macro Event Pipeline: Step-by-Step Build Guide (English)
+================================================================================
+Version: v1.0
+Date: 2026-06-18
+Goal: A complete guide for a newcomer to replicate this project from scratch
+================================================================================
+
+================================================================================
+STEP 0: Environment Setup
+================================================================================
+
+You need:
+  - Windows 10/11
+  - Python 3.10+
+  - Git
+  - FRED API Key (free: https://fred.stlouisfed.org/docs/api/api_key.html)
+  - Local ETF monthly data (C:\ATM\History_3_M\ directory, 23 ETF CSV files)
+
+Terminal:
+  cd D:\Projects\Stock_Event1_Macro
+  python -m venv .venv
+  .venv\Scripts\pip.exe install requests python-dotenv
+
+Create .env file:
+  FRED_API_KEY=your_free_key_here
+
+================================================================================
+STEP 1: Download FRED Macro Data
+================================================================================
+
+File: src/download_macro.py (~400 lines)
+
+Purpose: Download ~115 macro indicators from FRED API into the data/ directory.
+
+Key design decisions:
+  - Filenames use category prefixes (A1_=Fed Balance Sheet, B_=Employment, C_=Inflation...)
+  - When sorted by name in data/, files from the same category group together
+  - 0.5 second delay per request (FRED API rate limit)
+
+Run:
+  src\download_macro.bat
+
+Verify: data/ should contain ~115 CSV files
+
+================================================================================
+STEP 2: Build Macro-to-Equity Logic Chains (Core Knowledge Base)
+================================================================================
+
+File: src/macro_logic_chains.txt (~2500 lines)
+
+This is the "brain" of the project — each Event is a verifiable macro-to-equity rule.
+
+2.1 Information Sources
+  - Academic papers (Estrella-Mishkin, Hamilton, Leamer, Shiller, Sahm...)
+  - Institutional research (NBER, FRED, NY Fed, Chicago Fed, BofA, Goldman Sachs...)
+  - Master investor frameworks (Dalio, Soros, Druckenmiller, Bacon, Howard Marks...)
+  - Deep research adversarial verification (5 rounds, 14 of 25 claims survived)
+
+2.2 Event Format (each Event is a table)
+  | Field | Content |
+  |-------|---------|
+  | Trigger Condition | Exact quantitative threshold |
+  | Macro Meaning | What this condition tells the market |
+  | Equity Impact | Direction + magnitude + historical examples |
+  | Style Factors | Growth/Value/Large/Small/Cyclical/Defensive |
+  | Logic Chain | Causal mechanism, step by step |
+  | Failure Scenarios | When this rule does NOT apply |
+  | Data Requirement | Which data/ file is needed |
+  | Data Delay | T+1(daily)/W+1(weekly)/M+1~2(monthly)/Q+1~2(quarterly) |
+  | Empirical Source | Paper/research report citation |
+
+2.3 Selection Criteria
+  - Must have empirical data support (no theoretical speculation)
+  - Must have 10+ years of backtesting
+  - Exclude pure technical analysis patterns
+  - Exclude intraday high-frequency signals
+
+2.4 Appendices
+  - Appendix A: Threshold Quick Reference (extreme bullish → extreme bearish)
+  - Appendix B: Master Investor Framework Index
+  - Appendix C: Academic References
+  - Appendix D: Data Catalog (D0 delay, D1 FRED, D2 ETF, D3 external, D4 section matrix)
+
+================================================================================
+STEP 3: Design Token Format (for StockGPT Integration)
+================================================================================
+
+Protocol: EventName_Duration
+
+Rules:
+  - Duration = round(Today - Observation_Period_End_Date) in the data's native unit
+  - Daily data uses D (e.g., BullSteepener_1D)
+  - Weekly data uses W (e.g., Claims_Rising_2W)
+  - Monthly data uses M (e.g., Payrolls_Declining_1M)
+  - Quarterly data uses Q (e.g., GDP_Slowing_1Q)
+  - Severity is part of EventName (e.g., VIX_Panic vs VIX_Capitulation)
+  - Don't artificially split events (e.g., Fed_Cut not split into Insurance/Recession — other events provide context)
+
+Output: Each event generates a token like BullSteepener_1D, SahmRule_3M
+
+================================================================================
+STEP 4: Write Event Detection Engine
+================================================================================
+
+File: src/generate_macro_events.py (~950 lines)
+
+This turns macro_logic_chains.txt knowledge into runnable code.
+
+4.1 Three output files
+  data/macro_event_daily.txt    — Daily events (obs_date,available_date,event)
+  data/macro_event_weekly.txt   — Weekly events
+  data/macro_event_monthly.txt  — Monthly events
+
+  Format: one event per row (not comma-separated)
+  Example: 2020-03-01,2020-04-01,VIX_Panic
+
+4.2 Data loading functions
+  - load_fred_csv(): Load FRED CSV (skip "." missing values)
+  - load_etf_csv(): Load ETF CSV (convert YYMMDD/YYYMMDD date format)
+  - _map_monthly_to_etf(): Map monthly PAYEMS dates to ETF month-end dates
+  - _nearest(data, date, window): Nearest-date matching (cross-frequency alignment)
+
+4.3 Critical pitfalls (we stepped on all of these)
+  1. GLD ETF is ~1/10 oz gold — MUST multiply by 10 for spot price
+  2. SLV ETF is ~1:1 silver — no adjustment needed
+  3. SPY ~ SPX/10 — Gold/SPY ratio needs 10x threshold compensation
+  4. ETF date format: 1994-1999 is 6-digit YYMMDD, 2000+ is 7-digit YYYMMDD
+  5. BAMLH0A0HYM2 (HY OAS) data only from 2023 — use BAA10Y (1986+) instead
+  6. WALCL/TGA/RRP released Wednesday, NFCI released Friday — need _nearest()
+  7. FYFSD is annual data (fiscal year ending Sept 30), NOT monthly
+  8. Don't use TLT ETF — use FRED DGS10 for bond data
+  9. ISM PMI is paywalled — use INDPRO (Industrial Production) YoY as proxy
+  10. Variable name collision: cp (Core PCE) and cp (Corporate Profits) conflict
+
+4.4 Event frequency assignment
+  Daily: Treasury yields, VIX, credit spreads, Fed rate, FX, commodities, equities
+  Weekly: Jobless claims, Fed balance sheet, NFCI
+  Monthly: Employment, inflation, housing, money supply, consumer sentiment, sector rotation, Gold/ETF indicators
+
+4.5 Run
+  src\generate_macro_events.bat
+
+  Expected output: 86 event types, ~34,000 rows
+  Daily: 26 types, 24K rows
+  Weekly: 16 types, 5K rows
+  Monthly: 44 types, 5K rows
+
+================================================================================
+STEP 5: Audit and Fix
+================================================================================
+
+5.1 Document Audit (macro_logic_chains.txt vs original papers)
+  Findings:
+  - Event 8 (Fed Cut) return numbers inflated (+34% should be +23%, -38% should be -18%)
+  - Event 19 (Sahm Rule) "2-5 month lead" claim NOT in original paper
+  - Event 22 (ISM) 92.3% precision on N=13 is false precision
+  -> Fixes: Split Event 8, correct numbers, add attributions
+
+5.2 Code Audit (generate_macro_events.py vs specification)
+  Findings:
+  - Event 6: 0.94% threshold applied to wrong spread (2Y-10Y, should be 3M-10Y)
+  - Event 11: Missing 30-day velocity filter
+  - Event 43: Missing 6-month consecutive condition
+  - 17 events completely missing from code
+  -> Fixes: Correct thresholds, add filters, implement missing events
+
+5.3 Data Audit (FRED API availability)
+  Findings:
+  - VIXCLS actually IS on FRED (was wrongly marked CBOE-external)
+  - CPATAX (corporate profits) actually IS on FRED
+  - GSCPI and CMDI are NOT on FRED (NY Fed direct download)
+  -> Fixes: Add 15 new FRED series, update data catalog
+
+5.4 Proxy Audit (alternative data calculations)
+  Findings:
+  - Gold/SPY ratio had 10x scaling error (SPY~SPX/10 uncompensated)
+  - Fed_Restrictive produced false positives during high inflation
+  - 8 other proxy calculations correct
+  -> Fixes: Correct threshold to 8.0, implement real rate calculation
+
+5.5 Historical Validation
+  Gold/Silver >80 correctly triggered March 2020 (GLD*10/SLV = 113.4)
+  BAA10Y correctly flagged 2008 GFC (6.11% > 5.5%) and 2020 COVID (4.31%)
+  Sahm Rule correctly triggered all 9 post-1970 recessions
+
+================================================================================
+STEP 6: Event Classification (4-Layer Framework)
+================================================================================
+
+Layer A: Directly Quantifiable (clear data/threshold/timing)
+  Examples: BullSteepener, VIX_Panic, SahmRule, OECD_CLI
+  Implementation: Direct if-condition detection
+
+Layer B: Convertible to Quantitative (case studies with constructed indicators)
+  Examples: Bacon correlation breakdown -> CrossAsset_CorrelationBreakdown
+            Carry collapse -> GlobalCarry_Breakdown
+            AQR macro momentum -> MacroMomentum 4-theme composite
+  Implementation: Construct proxy indicators, convert to detectable conditions
+
+Layer C: Historical Validation (backtest checkpoints, not signals)
+  Examples: 1997 Asian Crisis, 2000 Dotcom, 2008 GFC, 2020 COVID
+  Purpose: Verify code produces expected signals at known turning points
+
+Layer D: Meta Rules (lower confidence, not Buy/Sell)
+  Examples: Factor timing likely ineffective (Event 81)
+            1/3 of predictors fail out-of-sample (Event 86)
+  Purpose: Auto-check during audits, reduce confidence in macro timing over-reliance
+
+================================================================================
+STEP 7: Final State
+================================================================================
+
+macro_logic_chains.txt: 87 Events, 26 sections, ~2500 lines
+generate_macro_events.py: 86 event types, ~950 lines
+download_macro.py: ~115 FRED series, ~400 lines
+
+Output files:
+  data/macro_event_daily.txt    — 26 types, 24K rows
+  data/macro_event_weekly.txt   — 16 types, 5K rows
+  data/macro_event_monthly.txt  — 44 types, 5K rows
+
+Status breakdown:
+  FIRING: 53 events (65%)
+  DATA_LIMITED: 4 (condition never met in available data window)
+  NO_DATA: 21 (requires paid/external/manual data sources)
+  QUALITATIVE: 8 (historical benchmarks / frameworks / meta rules)
+  DISQUALIFIED: 1 (BDI disproven)
+
+================================================================================
+TOP 5 LESSONS LEARNED
+================================================================================
+
+1. Never assume a data source is unavailable — test the FRED API.
+   (We got this wrong twice: VIXCLS and CPATAX)
+
+2. ETF proxy data needs unit conversion.
+   (GLD*10 = gold spot, SPY*10 ~ SPX. Forget this, get 10x errors)
+
+3. Different-frequency data cannot be directly compared — use _nearest().
+   (WALCL Wednesday vs NFCI Friday — no _nearest, no match)
+
+4. The gap between original papers and popular summaries is enormous.
+   (Event 8 return numbers inflated by 30-50%)
+
+5. Code review cannot replace API testing.
+   (We thought Gold/Silver>80 never fired — it was just the pre-GLD*10 fix)
+
+================================================================================
+END OF DOCUMENT
+================================================================================

@@ -1,0 +1,1350 @@
+================================================================================
+FUNDAMENTAL EVENT LIBRARY — Stock Selection & Return Prediction
+================================================================================
+Generated: 2026-06-18
+Data Source: TradeStation GetFundData() fields (C:\ATM\History_4_Fundamental)
+Coverage:   273 tickers, 1989–2026, monthly frequency
+================================================================================
+
+TABLE OF CONTENTS
+Category A:  Value / Cheapness (Events 1–8)
+Category B:  Profitability / Quality (Events 9–17)
+Category C:  Growth / Earnings Momentum (Events 18–25)
+Category D:  Capital Efficiency / Investment (Events 26–32)
+Category E:  Leverage / Safety (Events 33–38)
+Category F:  Payout / Capital Allocation (Events 39–43)
+Category G:  Revenue-Driven Events (Events 44–54)
+Category H:  Gross Margin-Driven Events (Events 55–65)
+Category I:  Combined / Interaction Effects (Events 66–72)
+
+
+================================================================================
+CATEGORY A: VALUE / CHEAPNESS
+================================================================================
+
+### Event 1: Low Enterprise Multiple (EBIT/EV Proxy) ★★★★★
+
+| Field                  | Content |
+| ---------------------- | ------- |
+| Trigger Condition      | EBIT_Yield = TTM_Operating_Income / (MarketCap + MRQ_Total_Debt - MRQ_Current_Asset). Top 20%. |
+| Statistical Evidence   | 1963–2022: top-minus-bottom spread 5.6%–6.4% annual raw return. CAPM alpha 7.0%–12.2% (Schwartz & Hanauer 2022). EBIT/EV alone often beats combined Magic Formula (Davydov 2016). |
+| Forward Return Profile | 3M: moderate | 6M: strong | 12M: strongest | 24M: reversal risk |
+| Logic Chain            | EV captures debt that P/E misses. Low EV/EBIT = cheap enterprise relative to operating earnings power. Market mean-reverts pricing errors. |
+| Threshold Optimization | Top quintile (20%). Avoid negative EBIT firms. |
+| Failure Scenarios      | Value traps during recessions. Post-2010 US decay; still effective in Europe/emerging. |
+| Data Requirements      | TTM_Operating_Income, MRQ_Total_Debt, MRQ_Current_Asset, Close |
+| Data Delay             | ~1 month from quarter end |
+| Empirical Sources      | Greenblatt (2005); Gray & Carlisle (2012); Schwartz & Hanauer (2022) |
+
+EasyLanguage:
+```
+EV = (Close * 1000000) + MRQ_Total_Debt - MRQ_Current_Asset;
+EBIT_Yield = IFF(EV = 0, 0, TTM_Operating_Income / EV);
+Event_EBIT_EV = EBIT_Yield > 0.10;
+```
+
+
+### Event 2: Low P/E Ratio ★★★★
+
+| Field                  | Content |
+| ---------------------- | ------- |
+| Trigger Condition      | PE < 15 AND PE > 0. Or Earnings_Yield = 100/PE > 6.67%. Top 30% by EY. |
+| Statistical Evidence   | Basu (1977, 1983): low-PE portfolios outperform high-PE by 7-8% annually. Post-2000 decay in US. Still significant paired with quality filter. |
+| Forward Return Profile | 3M: weak | 6M: moderate | 12M: strong | 24M: moderate |
+| Logic Chain            | Investors overpay for growth. Low-PE firms are depressed relative to earnings power. Mean reversion. |
+| Threshold Optimization | PE < 10 (Graham); Earnings_Yield > 10% (deep value). Best with ROE > 15%. |
+| Failure Scenarios      | Value traps. Negative PE excludes unprofitable firms. |
+| Empirical Sources      | Basu (1977, 1983) JF; Fama & French (1992); Graham "The Intelligent Investor" |
+
+EasyLanguage:
+```
+Earnings_Yield = IFF(PE > 0 AND PE < 100, 100 / PE, 0);
+Event_Low_PE = Earnings_Yield > 8.33;
+Event_Deep_Value = Earnings_Yield > 10 AND ROE > 15;
+```
+
+
+### Event 3: Low Price-to-Book (P/B Proxy via Equity) ★★★★
+
+| Field                  | Content |
+| ---------------------- | ------- |
+| Trigger Condition      | P_B_Ratio < 1.5 (top 30% by B/P). Book/Price = MRQ_Total_Equity / MarketCap. |
+| Statistical Evidence   | Fama & French (1992): HML factor ~4-5% annual premium (1963-1990). Post-2000: US weakened but still significant ex-US. Industry-adjusted B/M restores significance (Kim et al. 2025). |
+| Forward Return Profile | 3M: weak | 6M: moderate | 12M: strong | 24M: strong |
+| Logic Chain            | Book value anchors fair value. Low P/B = market undervaluing assets. |
+| Threshold Optimization | B/P > 0.5. Best with profitability filter (ROE > 10). |
+| Failure Scenarios      | Intangible-heavy firms distort B/M. HML near zero since ~2007 in US. |
+| Empirical Sources      | Fama & French (1992, 1993, 2015) JF; Kim, Kim & Lee (2025) IRFA |
+
+EasyLanguage:
+```
+SharesOut = IFF(TTM_EPS <> 0, TTM_Net_Income / TTM_EPS, 0);
+BookPerShare = IFF(SharesOut > 0, MRQ_Total_Equity / SharesOut, 0);
+P_B_Ratio = IFF(BookPerShare > 0, Close / BookPerShare, 0);
+Event_Low_PB = P_B_Ratio > 0 AND P_B_Ratio < 1.5;
+Event_Low_PB_Quality = P_B_Ratio > 0 AND P_B_Ratio < 1.5 AND ROE > 15;
+```
+
+
+### Event 4: Free Cash Flow Yield (Proxy) ★★★★
+
+| Field                  | Content |
+| ---------------------- | ------- |
+| Trigger Condition      | FCF = TTM_NI + D&A_Proxy - CapEx_Proxy (CapEx_Proxy = ΔMRQ_TA YoY). FCF_Yield > 5%. |
+| Statistical Evidence   | Lakonishok et al. (1994): CF/P beats E/P for value. Hackel et al. (2005): FCF_Yield portfolio generates 7-9% annual alpha. |
+| Forward Return Profile | 3M: moderate | 6M: strong | 12M: strongest | 24M: moderate |
+| Logic Chain            | FCF = cash available after investment. Higher FCF = capacity for buybacks, dividends. Less manipulated than earnings. |
+| Threshold Optimization | FCF_Yield > 5% large; > 8% small. Combine with FCF/EV. |
+| Failure Scenarios      | Asset-lite firms generate high FCF structurally. CapEx proxy noisy. |
+| Empirical Sources      | Lakonishok et al. (1994) JF; Hackel et al. (2005); Richardson & Sloan (2003) JAE |
+
+EasyLanguage:
+```
+DnA = MaxList(0, TTM_Gross_Profit - TTM_Operating_Income);
+AssetChange = MRQ_Total_Asset - MRQ_Total_Asset[12];
+CapEx_Proxy = MaxList(0, AssetChange);
+FCF = TTM_Net_Income + DnA - CapEx_Proxy;
+SharesOut = IFF(TTM_EPS <> 0, TTM_Net_Income / TTM_EPS, 0);
+FCF_PerShare = IFF(SharesOut > 0, FCF / SharesOut, 0);
+FCF_Yield = IFF(Close > 0, 100 * FCF_PerShare / Close, 0);
+Event_FCF_Yield = FCF_Yield > 5;
+```
+
+
+### Event 5: Piotroski F-Score (5-Point Proxy) ★★★
+
+| Field                  | Content |
+| ---------------------- | ------- |
+| Trigger Condition      | F_Score >= 4 out of 5 proxy checks. Used within bottom 20% by P/B universe. |
+| Statistical Evidence   | Piotroski (2000): F-Score 8-9 beats low-P/B universe by 7.5% annually. Only works within value stock universe. |
+| Forward Return Profile | 3M: moderate | 6M: strong | 12M: strong | 24M: strong |
+| Logic Chain            | Separates value stocks with improving fundamentals from value traps. |
+| Threshold Optimization | F_Score >= 4 (proxy for >=7 out of 9 original). Within value universe only. |
+| Empirical Sources      | Piotroski (2000) JAR; Choi & Sias (2012) JFE |
+
+EasyLanguage:
+```
+F_Score = 0;
+If ROE > 0 Then F_Score = F_Score + 1;
+If MRQ_Net_Income > MRQ_Net_Income[12] Then F_Score = F_Score + 1;
+If TTM_Revenue > TTM_Revenue[12] Then F_Score = F_Score + 1;
+If MRQ_Gross_Margin > MRQ_Gross_Margin[12] Then F_Score = F_Score + 1;
+If LT_DE < LT_DE[12] Then F_Score = F_Score + 1;
+Event_F_Score = F_Score >= 4;
+```
+
+
+================================================================================
+CATEGORY B: PROFITABILITY / QUALITY
+================================================================================
+
+### Event 6: High Gross Profitability (Novy-Marx) ★★★★★
+
+| Field                  | Content |
+| ---------------------- | ------- |
+| Trigger Condition      | GP_Assets = TTM_Gross_Profit / MRQ_Total_Asset. Top 30%. |
+| Statistical Evidence   | Novy-Marx (2013) JFE: premium ~3.7% annually (1962-2010), t-stat 4.49 vs FF3. 2010-2025: +8.2%/yr over low-quality. Hanauer & Huber (2018): works in 49 countries. Novy-Marx & Medhat (2025): profitability subsumes ALL other quality factors. |
+| Forward Return Profile | 3M: moderate | 6M: strong | 12M: strongest | 24M: strong |
+| Logic Chain            | Profitable firms are growth firms. Market underestimates persistence of high profitability. |
+| Threshold Optimization | Top 30% by GP/Assets. Combine with value (bottom 30% by P/B). |
+| Failure Scenarios      | Works poorly in Japan. High-profit firms can be overvalued. |
+| Empirical Sources      | Novy-Marx (2013) JFE; Novy-Marx & Medhat (2025); Fama & French (2015) |
+
+EasyLanguage:
+```
+GP_Assets = IFF(MRQ_Total_Asset > 0, TTM_Gross_Profit / MRQ_Total_Asset, 0);
+Event_GP_Assets = GP_Assets > 0.33;
+Event_NovyMarx = GP_Assets > 0.33 AND PE < 15;
+```
+
+
+### Event 7: High ROE ★★★★
+
+| Field                  | Content |
+| ---------------------- | ------- |
+| Trigger Condition      | ROE > 15% (top quartile). ROE < 100 (exclude distortions). |
+| Statistical Evidence   | Fama & French (2015): RMW factor ~3% annually. Dimensional (1982-2014): 4.4% US, 3.6% Europe annual premium. Wang & Yu (2013): premium driven by low-ROE firms' underperformance. |
+| Forward Return Profile | 3M: weak | 6M: moderate | 12M: strong | 24M: strong |
+| Logic Chain            | ROE = shareholder return on equity. High ROE = competitive advantage. Low-ROE firms systematically overpriced. |
+| Threshold Optimization | ROE > 15% (US); ROE > 12% (international). Best with PE < 15. |
+| Failure Scenarios      | ROE inflated by leverage. Negative equity = meaningless ROE. |
+| Empirical Sources      | Fama & French (2015) JFE; Wang & Yu (2013); Buffett (prefers ROE > 15%) |
+
+EasyLanguage:
+```
+Event_High_ROE = ROE > 15 AND ROE < 100;
+Event_ROE_Value = ROE > 15 AND PE < 15 AND PE > 0;
+```
+
+
+### Event 8: High Operating Margin ★★★★
+
+| Field                  | Content |
+| ---------------------- | ------- |
+| Trigger Condition      | TTM_Operating_Margin > 15%. Top quartile. |
+| Statistical Evidence   | Fama & French operating profitability premium 3-4% annually (1963-2020). Novy-Marx & Medhat (2025): explains ~50% of value's post-2007 underperformance. |
+| Forward Return Profile | 3M: weak | 6M: moderate | 12M: strong | 24M: strong |
+| Logic Chain            | High margins = pricing power, cost advantage, differentiation. Persistent margins = durable moat. |
+| Threshold Optimization | TTM_Operating_Margin > 15% (US); > 12% (international). Rising margins > level. |
+| Failure Scenarios      | Banks have zero operating margin. Commodity sectors: cyclical mean reversion. |
+| Empirical Sources      | Fama & French (2015, 2018); Novy-Marx & Medhat (2025); Hanauer & Huber (2018) |
+
+EasyLanguage:
+```
+Event_High_OpMargin = TTM_Operating_Margin > 15 AND TTM_Revenue > 0;
+Event_Rising_OpMargin = TTM_Operating_Margin > TTM_Operating_Margin[12] AND TTM_Operating_Margin > 10;
+```
+
+
+### Event 9: ROIC Proxy (Quality) ★★★★
+
+| Field                  | Content |
+| ---------------------- | ------- |
+| Trigger Condition      | ROIC = TTM_Operating_Income / (MRQ_TA - MRQ_CL). Top 30%. ROIC > 20%. |
+| Statistical Evidence   | Greenblatt (2005): high ROC + high EY = Magic Formula. Blackburn & Cakici (2017): replacing ROC with GP generalizes better internationally. |
+| Forward Return Profile | 3M: moderate | 6M: strong | 12M: strong | 24M: moderate |
+| Logic Chain            | ROIC measures capital deployment efficiency. High ROIC = competitive moat. |
+| Threshold Optimization | ROIC > 20%; combined with EBIT/EV > 5%. Post-2010 US decay, still works in Europe. |
+| Empirical Sources      | Greenblatt (2005); Blackburn & Cakici (2017); Kreft (2022) |
+
+EasyLanguage:
+```
+Invested_Capital = MRQ_Total_Asset - MRQ_Current_Liabilities;
+ROIC = IFF(Invested_Capital > 0, TTM_Operating_Income / Invested_Capital, 0);
+Event_High_ROIC = ROIC > 0.20;
+Event_MagicFormula = ROIC > 0.20 AND EBIT_Yield > 0.07;
+```
+
+
+### Event 10: ROE Stability (5-Year Consistent High ROE) ★★★
+
+| Field                  | Content |
+| ---------------------- | ------- |
+| Trigger Condition      | ROE > 15% for each of the last 5 annual observations. ROE StdDev < 0.3 * Mean. |
+| Statistical Evidence   | Buffett criterion: consistent high ROE = durable moat. Ang et al. (2006): low idiosyncratic volatility earns higher risk-adjusted returns. |
+| Forward Return Profile | 3M: weak | 6M: weak | 12M: moderate | 24M: strong |
+| Logic Chain            | Consistent profitability = competitive advantage. Eliminates cyclical/mean-reverting profit spikes. |
+| Threshold Optimization | 5-year avg ROE > 15%, minimum annual ROE > 10%. Needs 60+ monthly bars. |
+| Empirical Sources      | Buffett (Berkshire letters); Ang et al. (2006) JF |
+
+EasyLanguage:
+```
+ROE_Avg5Y = (ROE + ROE[12] + ROE[24] + ROE[36] + ROE[48]) / 5;
+ROE_Min5Y = MinList(ROE, ROE[12], ROE[24], ROE[36], ROE[48]);
+ROE_Stable = ROE_Min5Y > 10 AND ROE_Avg5Y > 15;
+Event_ROE_Stable = ROE_Stable AND PE < 20;
+```
+
+
+### Event 11: Net Interest Margin (Banks Only) ★★
+
+| Field                  | Content |
+| ---------------------- | ------- |
+| Trigger Condition      | NIM = 100 * MRQ_Net_Interest / MRQ_Total_Asset. NIM > 2 AND NIM improving. |
+| Statistical Evidence   | English, Van den Heuvel & Zakrajsek (2018): NIM predicts bank profitability and stock returns. |
+| Forward Return Profile | 3M: weak | 6M: weak | 12M: moderate | 24M: strong |
+| Logic Chain            | For financials, net interest = gross profit equivalent. Improving NIM = better lending spreads. |
+| Threshold Optimization | NIM > 2% AND MRQ_Net_Interest > MRQ_Net_Interest[12]. |
+| Empirical Sources      | English et al. (2018) JFE |
+
+EasyLanguage:
+```
+NIM = IFF(MRQ_Total_Asset > 0, 100 * MRQ_Net_Interest / MRQ_Total_Asset, 0);
+Event_Bank_NIM = NIM > 2 AND MRQ_Net_Interest > MRQ_Net_Interest[12];
+```
+
+
+================================================================================
+CATEGORY C: GROWTH / EARNINGS MOMENTUM
+================================================================================
+
+### Event 12: EPS Acceleration (Earnings Momentum) ★★★★★
+
+| Field                  | Content |
+| ---------------------- | ------- |
+| Trigger Condition      | EPS_Growth > 0 AND EPS_Growth > EPS_Growth[12] (accelerating). EPS_Growth < 200 (exclude outliers). |
+| Statistical Evidence   | CJL (1996): earnings momentum yields ~7.5% spread. Combined price+earnings ~15.4% spread. Novy-Marx (2015): earnings momentum may subsume price momentum. |
+| Forward Return Profile | 3M: strong | 6M: strongest | 12M: moderate | 24M: reversal |
+| Logic Chain            | Earnings growth acceleration signals positive fundamental inflection. Market underreacts to trend changes. Analyst estimates lag. |
+| Threshold Optimization | EPS_Growth > 10 AND EPS_Accel > 0 AND EPS_Growth < 200. |
+| Failure Scenarios      | Easy comps = false acceleration. Commodity earnings = cyclical. |
+| Empirical Sources      | Chan, Jegadeesh & Lakonishok (1996, 1999) JF; Novy-Marx (2015) |
+
+EasyLanguage:
+```
+EPS_Accel = EPS_Growth - EPS_Growth[12];
+Event_EPS_Accel = EPS_Growth > 0 AND EPS_Accel > 0 AND EPS_Growth < 200;
+Event_EPS_Momentum = EPS_Growth > 10 AND EPS_Growth > EPS_Growth[12];
+```
+
+
+### Event 13: Revenue Growth (Sales Momentum) ★★★★
+
+| Field                  | Content |
+| ---------------------- | ------- |
+| Trigger Condition      | Revenue_Growth > 10% AND < 50% (exclude M&A spikes). Top quartile. |
+| Statistical Evidence   | Lakonishok et al. (1994): sales growth + value metrics predict returns. Revenue harder to manipulate than EPS. |
+| Forward Return Profile | 3M: moderate | 6M: strong | 12M: strong | 24M: moderate |
+| Logic Chain            | Top-line growth = genuine demand. Harder to fake than EPS. Sustainable growth from demand, not accounting. |
+| Threshold Optimization | Revenue_Growth > 10% AND < 50%. Paired with EPS_Growth in same direction = strongest. |
+| Empirical Sources      | Lakonishok et al. (1994) JF; Barbee et al. (1996) FAJ; O'Shaughnessy (2011) |
+
+EasyLanguage:
+```
+Event_Rev_Growth = Revenue_Growth > 10 AND Revenue_Growth < 50;
+Rev_Accel = Revenue_Growth - Revenue_Growth[12];
+Event_Rev_Accel = Revenue_Growth > 0 AND Rev_Accel > 0 AND Revenue_Growth < 50;
+```
+
+
+### Event 14: Price + Earnings Dual Momentum ★★★★★
+
+| Field                  | Content |
+| ---------------------- | ------- |
+| Trigger Condition      | EPS_Growth > 0 AND Revenue_Growth > 0 AND Price_Mom_6M > 0. All three aligned. |
+| Statistical Evidence   | CJL (1996): when price AND earnings momentum align, premium ~41% higher than either alone. Asness et al. (2014): value+momentum+quality = 2x market Sharpe. |
+| Forward Return Profile | 3M: strongest | 6M: strongest | 12M: strong | 24M: reversal |
+| Logic Chain            | Price momentum captures sentiment + fundamentals. Earnings momentum captures operating reality. Alignment = strongest signal. |
+| Threshold Optimization | All three > 0. Stronger: all three > 10%. |
+| Empirical Sources      | Chan, Jegadeesh & Lakonishok (1996) JF; Asness et al. (2014) FAI; Jegadeesh & Titman (1993) JF |
+
+EasyLanguage:
+```
+Price_Mom_6M = IFF(Close[6] > 0, 100 * (Close - Close[6]) / Close[6], 0);
+Event_Triple_Mom = EPS_Growth > 0 AND Revenue_Growth > 0 AND Price_Mom_6M > 0;
+Event_Triple_Mom_Strong = EPS_Growth > 10 AND Revenue_Growth > 10 AND Price_Mom_6M > 10;
+```
+
+
+### Event 15: Negative EPS Turnaround (Loss to Profit) ★★★
+
+| Field                  | Content |
+| ---------------------- | ------- |
+| Trigger Condition      | TTM_EPS[12] < 0 AND TTM_EPS > 0 AND MRQ_Net_Income > 0 for 2+ quarters. |
+| Statistical Evidence   | Hayn (1995): market underweights probability of loss reversal. Ertimur et al. (2003): loss-to-profit turnaround generates significant positive returns. |
+| Forward Return Profile | 3M: strong | 6M: strong | 12M: moderate | 24M: moderate |
+| Logic Chain            | Loss-making firms priced for distress. Turnaround = positive surprise. Market slow to incorporate. |
+| Threshold Optimization | Confirmed with 2+ quarters of positive MRQ_NI. |
+| Empirical Sources      | Hayn (1995) JAE; Ertimur et al. (2003) RAS |
+
+EasyLanguage:
+```
+Was_Losing = TTM_EPS[12] < 0;
+Is_Profitable = TTM_EPS > 0;
+Profit_2Q = MRQ_Net_Income > 0 AND MRQ_Net_Income[3] > 0;
+Event_Turnaround = Was_Losing AND Is_Profitable AND Profit_2Q;
+```
+
+
+### Event 16: Negative Asset Growth (CMA Factor) ★★★★★
+
+| Field                  | Content |
+| ---------------------- | ------- |
+| Trigger Condition      | Asset_Growth = 100 * (MRQ_TA - MRQ_TA[12]) / MRQ_TA[12]. Bottom 30% (slowest/negative growth). |
+| Statistical Evidence   | Cooper, Gulen & Schill (2008) JF: high asset growth = negative returns. Fama & French (2015): CMA factor. Watanabe et al. (2013) JFE: works across 40+ countries. |
+| Forward Return Profile | 3M: weak | 6M: moderate | 12M: strong | 24M: strong |
+| Logic Chain            | Asset expansion = empire building, overinvestment, diminishing returns. Low-growth firms are disciplined allocators. |
+| Threshold Optimization | Asset_Growth < 5% (slow). Asset_Growth < -5% (contracting) = strongest with ROE > 0. |
+| Failure Scenarios      | Contracting assets can signal distress. Japan: effect weaker. |
+| Empirical Sources      | Cooper, Gulen & Schill (2008) JF; Fama & French (2015); Watanabe et al. (2013) JFE |
+
+EasyLanguage:
+```
+Asset_Growth = IFF(MRQ_Total_Asset[12] > 0,
+    100 * (MRQ_Total_Asset - MRQ_Total_Asset[12]) / MRQ_Total_Asset[12], 0);
+Event_Low_AssetGrowth = Asset_Growth < 5;
+Event_Asset_Contraction = Asset_Growth < -5 AND ROE > 0;
+```
+
+
+### Event 17: Accruals Anomaly (Earnings Quality) ★★★★★
+
+| Field                  | Content |
+| ---------------------- | ------- |
+| Trigger Condition      | NOA = (MRQ_TA-MRQ_CA) - (MRQ_TL-MRQ_CL). Accrual_Pct = (NOA - NOA[12]) / Avg_TA. Bottom quintile (lowest accruals). |
+| Statistical Evidence   | Sloan (1996) TAR: accrual anomaly ~10% annual hedge return. Richardson et al. (2005): broader measure confirms. Green et al. (2011): ~50% post-publication decay but still significant. |
+| Forward Return Profile | 3M: moderate | 6M: strong | 12M: strongest | 24M: moderate |
+| Logic Chain            | High accruals = low earnings quality. Cash component of earnings is more persistent. Market fixates on headline EPS. |
+| Threshold Optimization | Bottom quintile (lowest accruals). Accrual_Pct < -5%. |
+| Failure Scenarios      | Effect weakened ~50% since publication. Banks: different accounting. |
+| Empirical Sources      | Sloan (1996) TAR; Richardson et al. (2005) JAE; Green et al. (2011) |
+
+EasyLanguage:
+```
+NOA = (MRQ_Total_Asset - MRQ_Current_Asset) - (MRQ_Total_Liabilities - MRQ_Current_Liabilities);
+NOA_Prev = (MRQ_Total_Asset[12] - MRQ_Current_Asset[12]) - (MRQ_Total_Liabilities[12] - MRQ_Current_Liabilities[12]);
+Avg_TA = (MRQ_Total_Asset + MRQ_Total_Asset[12]) / 2;
+Accrual_Pct = IFF(Avg_TA > 0, (NOA - NOA_Prev) / Avg_TA, 0);
+Event_Low_Accruals = Accrual_Pct < -0.05 AND MRQ_Net_Income > 0;
+```
+
+
+### Event 18: Low Leverage (Quality Safety) ★★★★
+
+| Field                  | Content |
+| ---------------------- | ------- |
+| Trigger Condition      | LT_DE < 50% (bottom 30%). Low long-term debt relative to equity. |
+| Statistical Evidence   | Penman et al. (2007): leverage negatively predicts returns in EV framework. Asness et al. (2019): QMJ includes low leverage. |
+| Forward Return Profile | 3M: weak | 6M: weak | 12M: moderate | 24M: strong |
+| Logic Chain            | Low leverage = financial flexibility, lower bankruptcy risk. Can opportunistically invest during downturns. |
+| Threshold Optimization | LT_DE < 50 (US); LT_DE < 30 (highest quality). With high ROE = profitable AND safe. |
+| Empirical Sources      | Penman et al. (2007) JFE; Asness et al. (2019) RFS |
+
+EasyLanguage:
+```
+Event_Low_Leverage = LT_DE < 50 AND MRQ_Total_Equity > 0;
+Event_Quality_Safety = LT_DE < 30 AND ROE > 15;
+```
+
+
+### Event 19: Deleveraging (Improving Debt Ratio) ★★★
+
+| Field                  | Content |
+| ---------------------- | ------- |
+| Trigger Condition      | LT_DE < LT_DE[12] AND MRQ_LT_Debt <= MRQ_LT_Debt[12] AND MRQ_Equity > MRQ_Equity[12]. |
+| Statistical Evidence   | Piotroski (2000): improving leverage = F-Score component. Dichev (1998): declining leverage reduces bankruptcy probability. |
+| Forward Return Profile | 3M: weak | 6M: moderate | 12M: moderate | 24M: strong |
+| Logic Chain            | Deleveraging via equity growth (not asset sales) = risk reduction + financial discipline. |
+
+EasyLanguage:
+```
+Event_Deleveraging = LT_DE < LT_DE[12]
+    AND MRQ_Total_Equity > MRQ_Total_Equity[12]
+    AND MRQ_Total_Long_Term_Debt <= MRQ_Total_Long_Term_Debt[12];
+```
+
+
+### Event 36-38: Additional Leverage Signals ★★
+
+EasyLanguage:
+```
+// Event 36: F-Score leverage component (standalone)
+Event_Piotroski_Leverage = LT_DE < LT_DE[12];
+
+// Event 37: Negative equity avoidance (EXCLUDE)
+Event_NegEquity_Exclude = MRQ_Total_Equity < 0;
+
+// Event 38: Altman Z-Score proxy (Z > 3.0 = safe zone)
+WC_TA = IFF(MRQ_Total_Asset > 0, (MRQ_Current_Asset - MRQ_Current_Liabilities) / MRQ_Total_Asset, 0);
+Retained_Proxy = TTM_Net_Income - MRQ_Net_Income;
+RE_TA = IFF(MRQ_Total_Asset > 0, MaxList(0, Retained_Proxy) / MRQ_Total_Asset, 0);
+EBIT_TA = IFF(MRQ_Total_Asset > 0, TTM_Operating_Income / MRQ_Total_Asset, 0);
+Shares = IFF(TTM_EPS <> 0, AbsValue(TTM_Net_Income / TTM_EPS), 0);
+MktCap = Close * Shares;
+MktCap_TL = IFF(MRQ_Total_Liabilities > 0, MktCap / MRQ_Total_Liabilities, 0);
+Sales_TA = IFF(MRQ_Total_Asset > 0, TTM_Revenue / MRQ_Total_Asset, 0);
+Z_Proxy = 1.2*WC_TA + 1.4*RE_TA + 3.3*EBIT_TA + 0.6*MktCap_TL + 1.0*Sales_TA;
+Event_Z_Safe = Z_Proxy > 3.0;
+Event_Z_Distress = Z_Proxy < 1.8;  // EXCLUDE
+```
+
+
+================================================================================
+CATEGORY F: PAYOUT / CAPITAL ALLOCATION
+================================================================================
+
+### Event 20: Implied Share Count Reduction (Buyback Proxy) ★★★★
+
+| Field                  | Content |
+| ---------------------- | ------- |
+| Trigger Condition      | Shares = TTM_NI / TTM_EPS. Share_Reduction = 100*(Shares[12]-Shares)/Shares[12] > 2%. |
+| Statistical Evidence   | Ikenberry et al. (1995): buyback firms outperform ~12% over 4 years. Pontiff & Woodgate (2008): net issuance anomaly stronger than momentum. Fama & French (2008): net share issuance factor. |
+| Forward Return Profile | 3M: moderate | 6M: strong | 12M: strongest | 24M: strong |
+| Logic Chain            | Buybacks = management signaling undervaluation. Reduces share count → boosts EPS mechanically. |
+| Threshold Optimization | Share_Reduction > 2% annually. Sustained over 4+ quarters. |
+| Failure Scenarios      | Debt-funded buybacks increase risk. Buybacks at peak valuations destroy value. |
+| Empirical Sources      | Ikenberry, Lakonishok & Vermaelen (1995) JFE; Pontiff & Woodgate (2008) JF |
+
+EasyLanguage:
+```
+SharesOut = IFF(TTM_EPS <> 0, TTM_Net_Income / TTM_EPS, 0);
+SharesOut_Prev = IFF(TTM_EPS[12] <> 0, TTM_Net_Income[12] / TTM_EPS[12], 0);
+Share_Reduction = IFF(SharesOut_Prev > 0, 100 * (SharesOut_Prev - SharesOut) / SharesOut_Prev, 0);
+Event_Buyback_Proxy = Share_Reduction > 2 AND SharesOut > 0 AND SharesOut_Prev > 0;
+```
+
+
+### Event 21: Dilution Avoidance (Exclude Net Issuers) ★★★★
+
+| Field                  | Content |
+| ---------------------- | ------- |
+| Trigger Condition      | Share_Reduction < -3% (3%+ annual dilution). EXCLUDE these firms. |
+| Statistical Evidence   | Pontiff & Woodgate (2008): issuance anomaly ~5% annual spread. Net issuers underperform by 3-5%/year. |
+| Empirical Sources      | Pontiff & Woodgate (2008) JF; Daniel & Titman (2006); Fama & French (2008) |
+
+EasyLanguage:
+```
+Event_Dilution_Exclude = Share_Reduction < -3;
+```
+
+
+================================================================================
+CATEGORY G: TTM_REVENUE-DRIVEN EVENTS (Events 44-54)
+================================================================================
+
+### Event 22: Revenue Growth Acceleration (Second Derivative) ★★★★
+
+| Field                  | Content |
+| ---------------------- | ------- |
+| Trigger Condition      | Rev_Accel = Revenue_Growth - Revenue_Growth[12]. Rev_Accel > 10 AND Revenue_Growth > 0. Revenue growth rate itself is accelerating. |
+| Statistical Evidence   | CJL (1996): revenue momentum effect independent of earnings momentum. Acceleration captures inflection before it shows in EPS. |
+| Forward Return Profile | 3M: strong | 6M: strong | 12M: moderate | 24M: reversal |
+| Logic Chain            | Revenue acceleration is the earliest fundamental signal — it precedes margin expansion and EPS growth. Market lags in pricing the second derivative. |
+| Threshold Optimization | Rev_Accel > 10pp. Stronger when both Revenue_Growth > 0 AND Rev_Accel > 0. |
+| Failure Scenarios      | Acceleration from easy comps (prior year was terrible). One-time large contract distorts. |
+| Data Requirements      | Revenue_Growth (exported YoY TTM_Revenue change). |
+| Data Delay             | ~1 month. |
+| Empirical Sources      | CJL (1996); O'Shaughnessy (2011); Barbee et al. (1996) FAJ |
+
+EasyLanguage:
+```
+Rev_Accel = Revenue_Growth - Revenue_Growth[12];
+Event_RevAccel = Revenue_Growth > 0 AND Rev_Accel > 0 AND Revenue_Growth < 50;
+Event_RevAccel_Strong = Revenue_Growth > 10 AND Rev_Accel > 10 AND Revenue_Growth < 50;
+```
+
+
+### Event 23: Consecutive Quarterly Revenue Growth (Streak) ★★★★
+
+| Field                  | Content |
+| ---------------------- | ------- |
+| Trigger Condition      | MRQ_Revenue > MRQ_Revenue[1] for 3+ consecutive quarters. Revenue streak = consistent growth. |
+| Statistical Evidence   | Loh & Warachka (2012): earnings streak predicts returns. Revenue streak = cleaner version (less accounting manipulation). |
+| Forward Return Profile | 3M: moderate | 6M: strong | 12M: strong | 24M: moderate |
+| Logic Chain            | Consecutive revenue growth = demand consistency. Breaks signal fundamental deterioration. |
+| Threshold Optimization | 3+ consecutive QoQ increases. |
+| Data Requirements      | MRQ_Revenue (quarterly pattern in monthly data). |
+| Data Delay             | ~1 month. |
+| Empirical Sources      | Loh & Warachka (2012); extended from earnings streak literature. |
+
+EasyLanguage:
+```
+Rev_Streak = MRQ_Revenue > MRQ_Revenue[1] AND MRQ_Revenue[1] > MRQ_Revenue[2]
+    AND MRQ_Revenue[2] > MRQ_Revenue[3];
+Event_RevStreak = Rev_Streak AND MRQ_Revenue > 0;
+```
+
+
+### Event 24: Revenue Growth Deceleration Warning ★★★
+
+| Field                  | Content |
+| ---------------------- | ------- |
+| Trigger Condition      | Revenue_Growth < Revenue_Growth[12] AND Revenue_Growth < Revenue_Growth[24]. Two consecutive years of deceleration. NEGATIVE signal. |
+| Statistical Evidence   | Penman & Zhang (2006): growth deceleration predicts negative earnings revisions and returns. Market slow to downgrade. |
+| Forward Return Profile | Negative signal for 6-12 months forward. |
+| Logic Chain            | Decelerating growth = growth story breaking. Market anchored to prior growth rates. |
+| Threshold Optimization | 2 consecutive years of deceleration. Especially negative if Revenue_Growth turns negative. |
+| Data Requirements      | Revenue_Growth. |
+| Data Delay             | ~1 month. |
+
+EasyLanguage:
+```
+Rev_Decel = Revenue_Growth < Revenue_Growth[12] AND Revenue_Growth[12] < Revenue_Growth[24];
+Event_RevDecel_Exit = Rev_Decel;  // SELL/EXIT signal
+```
+
+
+### Event 25: Revenue Stability (Low Volatility) ★★★
+
+| Field                  | Content |
+| ---------------------- | ------- |
+| Trigger Condition      | Rev_CV = StdDev(TTM_Revenue, 20) / Average(TTM_Revenue, 20) < 0.15. Low coefficient of variation. |
+| Statistical Evidence   | Dichev & Tang (2009): earnings/revenue volatility negatively predicts returns. Stable revenue = lower risk, lower distress probability, better compounding. |
+| Forward Return Profile | 3M: weak | 6M: moderate | 12M: strong | 24M: strong |
+| Logic Chain            | Revenue stability = predictable business model. Reduces earnings surprise risk. Quality signal. |
+| Threshold Optimization | Rev_CV < 0.15 (bottom quartile by volatility). |
+| Data Requirements      | TTM_Revenue (monthly series, 20 months minimum). |
+
+EasyLanguage:
+```
+Rev_Avg20 = Average(TTM_Revenue, 20);
+Rev_Std20 = StdDev(TTM_Revenue, 20);
+Rev_CV = IFF(Rev_Avg20 > 0, Rev_Std20 / Rev_Avg20, 999);
+Event_Rev_Stable = Rev_CV < 0.15 AND Rev_Avg20 > 0;
+```
+
+
+### Event 26: Price-to-Sales Ratio Contraction ★★★
+
+| Field                  | Content |
+| ---------------------- | ------- |
+| Trigger Condition      | PS_Ratio < PS_Ratio[12] AND PS_Ratio < PS_Ratio[24]. P/S declining for 2+ years (cheapening while revenue grows). |
+| Statistical Evidence   | Fisher (1984): P/S compression + revenue growth = "super stock" setup. Valuation contraction on growing sales = coiled spring. |
+| Forward Return Profile | 3M: moderate | 6M: strong | 12M: strong | 24M: strong |
+| Logic Chain            | When P/S falls while revenue grows, either price is declining (capitulation) or revenue is outpacing price (undervaluation). Both are contrarian bullish. |
+| Threshold Optimization | PS declining for 2 years AND Revenue_Growth > 5%. |
+
+EasyLanguage:
+```
+PS_Contracting = PS_Ratio < PS_Ratio[12] AND PS_Ratio[12] < PS_Ratio[24];
+Event_PS_Contraction = PS_Contracting AND Revenue_Growth > 5 AND PS_Ratio < 3;
+```
+
+
+### Event 27: Gross Margin Expansion (Trend) ★★★★★
+
+| Field                  | Content |
+| ---------------------- | ------- |
+| Trigger Condition      | TTM_Gross_Margin > TTM_Gross_Margin[12] AND TTM_Gross_Margin[12] > TTM_Gross_Margin[24]. 2 years of sustained expansion. |
+| Statistical Evidence   | Penman & Zhang (2006): margin expansion is a primary driver of quality returns. Novy-Marx (2013): improving profitability predicts returns better than static profitability. Sustained GM expansion = competitive advantage strengthening. |
+| Forward Return Profile | 3M: moderate | 6M: strong | 12M: strong | 24M: strong |
+| Logic Chain            | GM expansion = pricing power improving OR costs declining. Two-year trend filters one-time events. Market is slow to extrapolate margin trends. |
+| Threshold Optimization | 2+ years of expansion. Acceleration (rate of expansion increasing) = strongest. |
+| Failure Scenarios      | Expansion from cyclical commodity price decline (not sustainable). Mix shift to higher-margin products (one-time). |
+| Data Requirements      | TTM_Gross_Margin. |
+| Data Delay             | ~1 month. |
+| Empirical Sources      | Penman & Zhang (2006); Novy-Marx (2013) JFE; Hanauer & Huber (2018). |
+
+EasyLanguage:
+```
+GM_Expand_2Y = TTM_Gross_Margin > TTM_Gross_Margin[12]
+    AND TTM_Gross_Margin[12] > TTM_Gross_Margin[24];
+
+GM_Expansion_Rate = (TTM_Gross_Margin - TTM_Gross_Margin[12])
+    - (TTM_Gross_Margin[12] - TTM_Gross_Margin[24]);
+
+Event_GM_Expansion = GM_Expand_2Y AND TTM_Revenue > 0;
+Event_GM_Expansion_Accel = GM_Expand_2Y AND GM_Expansion_Rate > 0 AND TTM_Revenue > 0;
+```
+
+
+### Event 28: Gross Margin Inflection (Turnaround) ★★★★
+
+| Field                  | Content |
+| ---------------------- | ------- |
+| Trigger Condition      | TTM_Gross_Margin > TTM_Gross_Margin[12] AND TTM_Gross_Margin[12] < TTM_Gross_Margin[24]. Inflection up after prior decline. |
+| Statistical Evidence   | Ertimur et al. (2003): fundamental turnarounds generate the strongest returns. GM inflection = earliest operational improvement signal, before it shows in net income. |
+| Forward Return Profile | 3M: strong | 6M: strong | 12M: strong | 24M: moderate |
+| Logic Chain            | GM inflection means pricing or cost structure is improving. Precedes EPS improvement by 1-2 quarters. Market anchors on declining trend, misses reversal. |
+| Threshold Optimization | GM up > 2pp from trough; prior decline was > 3pp from peak. |
+
+EasyLanguage:
+```
+GM_Inflection = TTM_Gross_Margin > TTM_Gross_Margin[12]
+    AND TTM_Gross_Margin[12] < TTM_Gross_Margin[24];
+
+GM_Inflection_Strength = TTM_Gross_Margin - TTM_Gross_Margin[12];
+
+Event_GM_Inflection = GM_Inflection AND GM_Inflection_Strength > 2 AND TTM_Revenue > 0;
+```
+
+
+### Event 29: Gross Margin vs Operating Margin Spread ★★★
+
+| Field                  | Content |
+| ---------------------- | ------- |
+| Trigger Condition      | GM_OM_Spread = TTM_Gross_Margin - TTM_Operating_Margin. Spread < 25pp (tight). Tight spread = low overhead. Spread tightening (improving cost control). |
+| Statistical Evidence   | DuPont analysis: spread between GM and OM = SG&A burden. Improving spread = cost discipline. Lev & Thiagarajan (1993): gross margin less SG&A growth predicts returns. |
+| Forward Return Profile | 3M: moderate | 6M: moderate | 12M: strong | 24M: moderate |
+| Logic Chain            | Wide GM but narrow OM = high overhead eating profits. Tightening spread = operating leverage working. |
+| Threshold Optimization | Spread < 25pp AND spread < spread[12] (improving). |
+
+EasyLanguage:
+```
+GM_OM_Spread = TTM_Gross_Margin - TTM_Operating_Margin;
+GM_OM_Spread_Prev = TTM_Gross_Margin[12] - TTM_Operating_Margin[12];
+
+Event_GM_OM_Tight = GM_OM_Spread < 25
+    AND GM_OM_Spread < GM_OM_Spread_Prev
+    AND TTM_Revenue > 0;
+```
+
+
+### Event 30: Value + Profitability (Buffett Premium) ★★★★★
+
+| Field                  | Content |
+| ---------------------- | ------- |
+| Trigger Condition      | PE < 15 AND PE > 0 AND ROE > 15 AND ROE < 100. Cheap AND profitable. |
+| Statistical Evidence   | Frazzini, Kabiller & Pedersen (2018) FAJ: Buffett portfolio (levered quality + value): Sharpe 0.76 vs 0.39 market. Asness et al. (2019): QMJ + value diversification. |
+| Forward Return Profile | 3M: moderate | 6M: strong | 12M: strongest | 24M: strongest |
+| Empirical Sources      | Frazzini, Kabiller & Pedersen (2018) FAJ; Fama & French (2015); Asness et al. (2019) RFS |
+
+EasyLanguage:
+```
+Event_Buffett = PE > 0 AND PE < 15 AND ROE > 15 AND ROE < 100;
+```
+
+
+### Event 31: Value + Momentum (Asness Combo) ★★★★★
+
+| Field                  | Content |
+| ---------------------- | ------- |
+| Trigger Condition      | PE < 15 AND EPS_Growth > 0 AND EPS_Growth < 200. Cheap with improving fundamentals. |
+| Statistical Evidence   | Asness, Moskowitz & Pedersen (2013) JF: value+momentum negatively correlated → diversification multiplier. Combined Sharpe ~1.0+. |
+| Forward Return Profile | 3M: strong | 6M: strong | 12M: strongest | 24M: strong |
+| Empirical Sources      | Asness, Moskowitz & Pedersen (2013) JF |
+
+EasyLanguage:
+```
+Event_Value_Mom = PE > 0 AND PE < 15 AND EPS_Growth > 0 AND EPS_Growth < 200;
+```
+
+
+### Event 32: Quality + Low Investment (RMW+CMA) ★★★★
+
+| Field                  | Content |
+| ---------------------- | ------- |
+| Trigger Condition      | ROE > 15 AND Asset_Growth < 5 AND ROE < 100. High profit + conservative investment. |
+| Statistical Evidence   | Fama & French (2015): RMW and CMA jointly explain average returns. 5-6% annual premium. |
+| Empirical Sources      | Fama & French (2015, 2018); Novy-Marx (2013) |
+
+EasyLanguage:
+```
+Event_RMW_CMA = ROE > 15 AND Asset_Growth < 5 AND ROE < 100;
+```
+
+
+### Event 33: F-Score + Value (Piotroski Strategy) ★★★★
+
+| Field                  | Content |
+| ---------------------- | ------- |
+| Trigger Condition      | P_B_Ratio < 1.5 AND F_Score >= 4. Value stock with improving fundamentals. |
+| Statistical Evidence   | Piotroski (2000) JAR: F-Score 8-9 + low P/B beats market by 7.5%/year. |
+| Empirical Sources      | Piotroski (2000) JAR |
+
+EasyLanguage:
+```
+Event_Piotroski = P_B_Ratio > 0 AND P_B_Ratio < 1.5 AND F_Score >= 4;
+```
+
+
+### Event 34: The Full Composite Checklist ★★★★★
+
+| Field                  | Content |
+| ---------------------- | ------- |
+| Trigger Condition      | Score 1 point each (max 10): PE < 20, ROE > 15, EPS_Growth > 0, Asset_Growth < 10, LT_DE < 50, OpMargin > 10, Share_Reduction > 1, Revenue_Growth > 0, F_Score >= 3, TTM_Revenue > 0. Score >= 7 = strong buy; >= 5 = buy; <= 2 = avoid. |
+| Statistical Evidence   | Multi-signal composites consistently outperform single signals. Asness et al. (2014): diversified factor portfolio Sharpe ~1.0-1.5. |
+| Forward Return Profile | 3M: strong | 6M: strong | 12M: strongest | 24M: strong |
+| Empirical Sources      | Asness, Frazzini, Israel & Moskowitz (2014); Harvey, Liu & Zhu (2016) |
+
+EasyLanguage:
+```
+Composite = 0;
+If PE > 0 AND PE < 20 Then Composite = Composite + 1;
+If ROE > 15 AND ROE < 100 Then Composite = Composite + 1;
+If EPS_Growth > 0 AND EPS_Growth < 200 Then Composite = Composite + 1;
+If Asset_Growth < 10 Then Composite = Composite + 1;
+If LT_DE < 50 AND LT_DE >= 0 Then Composite = Composite + 1;
+If TTM_Operating_Margin > 10 AND TTM_Revenue > 0 Then Composite = Composite + 1;
+If Share_Reduction > 1 Then Composite = Composite + 1;
+If Revenue_Growth > 0 AND Revenue_Growth < 50 Then Composite = Composite + 1;
+If F_Score >= 3 Then Composite = Composite + 1;
+If TTM_Revenue > 0 Then Composite = Composite + 1;
+
+Event_Composite_Strong = Composite >= 7;
+Event_Composite_Buy = Composite >= 5;
+Event_Composite_Avoid = Composite <= 2;
+```
+
+
+================================================================================
+SUMMARY: RANKING BY EVIDENCE STRENGTH
+================================================================================
+
+Rank  Evt   Name                                          Category    Stars   Horizon
+  1    9    Gross Profitability (Novy-Marx)               Profit      ★★★★★   12M
+  2   21    Price + Earnings Dual Momentum                Growth      ★★★★★    6M
+  3   26    Negative Asset Growth (CMA)                   Investment  ★★★★★   12M
+  4   28    Accruals Anomaly (Earnings Quality)           Efficiency  ★★★★★   12M
+  5   66    Value + Profitability (Buffett)               Combined    ★★★★★   12M
+  6   67    Value + Momentum (Asness)                     Combined    ★★★★★   12M
+  7   72    Full Composite Checklist                      Combined    ★★★★★   12M
+  8   18    EPS Acceleration                              Growth      ★★★★★    6M
+  9    1    Low Enterprise Multiple (EBIT/EV)             Value       ★★★★★   12M
+ 10   55    Gross Margin Expansion (Sustained)            GM-Driven   ★★★★★   12M
+ 11   44    Revenue Growth Acceleration                   Rev-Driven  ★★★★     6M
+ 12   45    Consecutive Quarterly Revenue Growth          Rev-Driven  ★★★★    12M
+ 13   33    Low Leverage                                  Leverage    ★★★★    24M
+ 14    2    Low P/E Ratio                                 Value       ★★★★    12M
+ 15    6    FCF Yield (Proxy)                             Value       ★★★★    12M
+ 16   10    High ROE                                      Profit      ★★★★    12M
+ 17   11    High Operating Margin                         Profit      ★★★★    12M
+ 18   13    ROIC Proxy (Quality)                          Profit      ★★★★    12M
+ 19   19    Revenue Growth                                Growth      ★★★★    12M
+ 20   23    Revenue Growth + Margin Expansion             Growth      ★★★★    12M
+ 21   27    Low Asset Growth + High ROE                   Investment  ★★★★    12M
+ 22   39    Share Buyback Proxy                           Payout      ★★★★    12M
+ 23   41    Buyback + Low PE (Buffett)                    Payout      ★★★★    12M
+ 24   43    Dilution Avoidance (Exclude)                  Payout      ★★★★     6M
+ 25   56    Gross Margin Inflection (Turnaround)          GM-Driven   ★★★★    12M
+ 26   57    Gross Margin 10-Year High                     GM-Driven   ★★★★    12M
+ 27   61    GM × Rev Growth (Quality Compounder)          GM-Driven   ★★★★    12M
+ 28   68    Quality + Low Investment (RMW+CMA)            Combined    ★★★★    12M
+ 29   69    F-Score + Value (Piotroski)                   Combined    ★★★★    12M
+ 30    3    Low Price-to-Book                             Value       ★★★★    24M
+ 31   46    Revenue Growth Deceleration (EXIT)            Rev-Driven  ★★★      N/A
+ 32   47    Revenue vs Asset Growth Alignment             Rev-Driven  ★★★     12M
+ 33   48    Revenue per Share Trend                       Rev-Driven  ★★★     12M
+ 34   49    Revenue Stability (Low Volatility)            Rev-Driven  ★★★     12M
+ 35   50    P/S Ratio Contraction                         Rev-Driven  ★★★     12M
+ 36   51    Revenue Growth + PE Contraction               Rev-Driven  ★★★     12M
+ 37   53    Rev Growth × Gross Margin (Quality)           Rev-Driven  ★★★     12M
+ 38   54    Revenue Surprise vs Trajectory                Rev-Driven  ★★★      3M
+ 39   58    Gross Margin Mean Reversion (Low Improv.)     GM-Driven   ★★★     12M
+ 40   59    Gross Margin Floor (5-Year Min)               GM-Driven   ★★★     12M
+ 41   60    GM vs OM Spread (Cost Control)                GM-Driven   ★★★     12M
+ 42   62    Gross Margin Regime Change                    GM-Driven   ★★★     12M
+ 43   63    Gross Margin Stability (Low Vol)              GM-Driven   ★★★     24M
+ 44    8    Piotroski F-Score (5-pt Proxy)               Combined    ★★★     12M
+ 45   12    High Gross Margin                             Profit      ★★★     24M
+ 46   20    Earnings Surprise (SUE)                       Growth      ★★★      3M
+ 47   22    Earnings Revisions Proxy                      Growth      ★★★      3M
+ 48   24    Negative EPS Turnaround                       Growth      ★★★      6M
+ 49   30    NOA Growth (Slowest)                          Efficiency  ★★★     12M
+ 50   40    Net Payout Yield (Proxy)                      Payout      ★★★     12M
+ 51   70    Magic Formula (Greenblatt)                    Combined    ★★★     12M
+ 52   71    Earnings Growth + Deleveraging                Combined    ★★★     12M
+ 53    4    Price-to-Sales Low                            Value       ★★★     12M
+ 54    5    EV/EBITDA Low (Proxy)                         Value       ★★★     12M
+ 55   14    High Asset Turnover                           Efficiency  ★★★     24M
+ 56   15    ROE Stability (5-Year)                        Profit      ★★★     24M
+ 57   52    TTM Revenue vs MRQ Run Rate                   Rev-Driven  ★★      12M
+ 58   64    Gross Margin Industry Leadership              GM-Driven   ★★      12M
+ 59   65    Negative GM Recovery                          GM-Driven   ★★       6M
+ 60   16    DuPont ROE Decomposition                      Profit      ★★      24M
+ 61   17    Net Interest Margin (Banks)                   Profit      ★★      24M
+ 62   25    Dividend Growth Capacity                      Payout      ★★      24M
+ 63   29    Asset Turnover Improvement                    Efficiency  ★★      24M
+ 64   42    Payout Ratio Sustainability                   Payout      ★★      24M
+ 65    7    Earnings Yield vs Risk-Free Rate              Value       ★★★     24M
+ 66   31    Current Ratio Stability                       Leverage    ★★      24M
+ 67   32    Interest Coverage                             Leverage    ★★      24M
+ 68   34    Total Debt/Equity Low                         Leverage    ★★★     12M
+ 69   35    Deleveraging                                  Leverage    ★★★     24M
+ 70   36-38 Leverage Exclusions (Neg E, Z-Score)          Leverage    ★★       N/A
+
+
+================================================================================
+IMPLEMENTATION NOTES
+================================================================================
+
+1. ALL events use only exported TradeStation fields. No external data needed.
+2. Key proxies: MarketCap = Close × TTM_NI / TTM_EPS; D&A = TTM_GP - TTM_OI;
+   CapEx ≈ ΔMRQ_TA YoY; FCF = TTM_NI + D&A - CapEx; NOA = (TA-CA) - (TL-CL).
+3. Data lag: ~1 month from quarter end for fundamentals. PE updates daily.
+4. Exclusion filters: MRQ_Total_Equity < 0; TTM_Revenue = 0 (for non-financials).
+5. Bank detection: TTM_Revenue = 0 AND TTM_Net_Interest != 0.
+6. Best results when multiple signals align (Events 66-72).
+
+================================================================================
+KEY REFERENCES
+================================================================================
+Sloan (1996) TAR — Accruals | Fama & French (1992, 1993, 2015) JF — Factors
+Jegadeesh & Titman (1993) JF — Momentum | Novy-Marx (2013) JFE — Gross Profit
+Cooper, Gulen & Schill (2008) JF — Asset Growth | Pontiff & Woodgate (2008) JF — Issuance
+Piotroski (2000) JAR — F-Score | CJL (1996) JF — Earnings Momentum
+Bernard & Thomas (1989, 1990) JAR — PEAD | Ikenberry et al. (1995) JFE — Buybacks
+Asness et al. (2019) RFS — QMJ | Penman et al. (2007) JFE — Book/Price
+Fairfield et al. (2003) TAR — NOA | Gleason & Lee (2003) TAR — Revisions
+Greenblatt (2005) | Graham (1949) | Buffett (Berkshire letters) | O'Shaughnessy (2011)
+Penman & Zhang (2006) | Kaczmarek & Zaremba (2025) | Novy-Marx & Medhat (2025)
+
+================================================================================
+CATEGORY J: PATTERN-BASED & COMPOSITE EVENTS (Events 73-90)
+================================================================================
+
+### Event 35: High Quality Growth (Triple Confirmation) ★★★★
+
+| Field                  | Content |
+| ---------------------- | ------- |
+| Trigger Condition      | Revenue_Growth > 15 AND EPS_Growth > 20 AND ROE > 15 |
+|                        | AND Revenue_Growth < 50 AND EPS_Growth < 200 AND ROE < 100 |
+| Statistical Evidence   | CJL (1996): earnings momentum ~7.5% spread. Fama & French (2015): profitability premium ~3-4%. Novy-Marx (2013): profitable growth firms earn highest premium. Triple confirmation filters >85% of universe. |
+| Forward Return Profile | 3M: strong | 6M: strong | 12M: strongest | 24M: strong |
+| Logic Chain            | Three independent quality/growth dimensions: (1) top-line demand, (2) bottom-line conversion, (3) capital efficiency. When all three are strong simultaneously, the business is compounding value at an exceptional rate. |
+| Threshold Optimization | Rev > 15, EPS > 20, ROE > 15. Stricter variant: Rev > 20, EPS > 30, ROE > 20 (F14). |
+| Failure Scenarios      | Cyclical peaks — all three can peak together in late-cycle. Need PE < 25 filter to avoid overpaying. |
+| Data Requirements      | Revenue_Growth, EPS_Growth, ROE |
+| Data Delay             | ~1 month |
+| Empirical Sources      | CJL (1996) JF; Fama & French (2015) JF; Novy-Marx (2013) JFE; O'Shaughnessy (2011) |
+
+EasyLanguage:
+```
+Event_HighQualityGrowth = Revenue_Growth > 15
+    AND Revenue_Growth < 50
+    AND EPS_Growth > 20
+    AND EPS_Growth < 200
+    AND ROE > 15
+    AND ROE < 100;
+```
+
+
+### Event 36: Dual Growth Acceleration (Revenue + EPS Accelerating) ★★★★
+
+| Field                  | Content |
+| ---------------------- | ------- |
+| Trigger Condition      | Revenue_Growth > Revenue_Growth[12] AND EPS_Growth > EPS_Growth[12] |
+|                        | AND Revenue_Growth > 0 AND EPS_Growth > 0 |
+| Statistical Evidence   | CJL (1996): earnings momentum and price momentum are distinct, additive signals. When BOTH revenue growth AND EPS growth accelerate simultaneously, it signals broad-based fundamental improvement. Market underreacts to the second derivative. |
+| Forward Return Profile | 3M: strong | 6M: strong | 12M: moderate | 24M: reversal |
+| Logic Chain            | Acceleration in BOTH top and bottom line = business momentum is genuinely improving, not just cost-cutting. Revenue acceleration confirms demand; EPS acceleration confirms operating leverage. Dual signal reduces false positives from single-metric noise. |
+| Threshold Optimization | Both signals accelerating AND positive. Accel by >5pp for stronger signal. |
+| Failure Scenarios      | Acceleration from easy comps (prior year disaster). Revenue acceleration from M&A not organic. |
+| Data Requirements      | Revenue_Growth, EPS_Growth |
+| Data Delay             | ~1 month |
+| Empirical Sources      | CJL (1996) JF; Novy-Marx (2015) |
+
+EasyLanguage:
+```
+Rev_Accel = Revenue_Growth - Revenue_Growth[12];
+EPS_Accel = EPS_Growth - EPS_Growth[12];
+
+Event_DualAccel = Revenue_Growth > 0 AND EPS_Growth > 0
+    AND Rev_Accel > 0 AND EPS_Accel > 0;
+
+Event_DualAccel_Strong = Revenue_Growth > 10 AND EPS_Growth > 10
+    AND Rev_Accel > 5 AND EPS_Accel > 5;
+```
+
+
+### Event 37: PEG Ratio Under 1 (Lynch Growth at Reasonable Price) ★★★
+
+| Field                  | Content |
+| ---------------------- | ------- |
+| Trigger Condition      | PEG = PE / EPS_Growth. PEG < 1 AND PE > 0 AND EPS_Growth > 10. |
+| Statistical Evidence   | Peter Lynch popularized in "One Up on Wall Street" (1989). Practitioner evidence strong; academic evidence mixed because trailing EPS_Growth is an imperfect proxy for future growth. Better when combined with earnings stability (low CV of EPS). |
+| Forward Return Profile | 3M: moderate | 6M: moderate | 12M: strong | 24M: moderate |
+| Logic Chain            | P/E should be proportional to growth rate. PEG < 1 = market undervaluing growth. Works best when: (1) growth is stable/predictable, (2) firm is profitable, (3) not a cyclical peak. |
+| Threshold Optimization | PEG < 1 AND EPS_Growth > 10 (avoid tiny-growth firms with artificially low PEG). PEG < 0.5 = deep value. |
+| Failure Scenarios      | Trailing EPS growth != future growth. Cyclical high growth → low PEG at the peak = value trap. Need earnings stability filter. |
+| Data Requirements      | PE, EPS_Growth |
+| Data Delay             | PE real-time; EPS_Growth ~1 month |
+| Empirical Sources      | Lynch (1989) "One Up on Wall Street"; O'Shaughnessy (2011) |
+
+EasyLanguage:
+```
+PEG = IFF(EPS_Growth > 0 AND PE > 0, PE / EPS_Growth, 999);
+Event_Lynch_PEG = PEG < 1 AND PEG > 0 AND EPS_Growth > 10 AND EPS_Growth < 200;
+Event_Lynch_PEG_Deep = PEG < 0.5 AND PEG > 0 AND EPS_Growth > 15;
+```
+
+
+### Event 38: ROE Expansion ★★★
+
+| Field                  | Content |
+| ---------------------- | ------- |
+| Trigger Condition      | ROE > ROE[12] AND ROE > 10. Capital efficiency improving YoY. |
+| Statistical Evidence   | Fama & French (2015): changes in profitability predict returns. Wang & Yu (2013): improving ROE firms outperform declining ROE firms. Simpler than full DuPont but directionally useful. |
+| Forward Return Profile | 3M: weak | 6M: moderate | 12M: moderate | 24M: strong |
+| Logic Chain            | ROE expansion = business quality improving. Can come from margin expansion, asset turnover improvement, or deleveraging — all positive. |
+| Threshold Optimization | ROE > 10 (minimum quality) AND expanding. Expansion > 5pp = stronger signal. |
+
+EasyLanguage:
+```
+ROE_Expanding = ROE > ROE[12] AND ROE > 10 AND ROE < 100;
+ROE_Expansion_Strength = ROE - ROE[12];
+Event_ROE_Expanding = ROE_Expanding AND ROE_Expansion_Strength > 2;
+```
+
+
+### Event 39: Revenue Cycle Turn (Inflection Pattern) ★★★★
+
+| Field                  | Content |
+| ---------------------- | ------- |
+| Trigger Condition      | Revenue_Growth[24] < -5 AND Revenue_Growth[12] > -3 AND Revenue_Growth > 5. |
+|                        | Pattern: negative → stabilizing → positive. Demand cycle turning up. |
+| Statistical Evidence   | Lakonishok et al. (1994): revenue growth trends predict returns. Turning points in revenue are the most underappreciated signals — the market anchors on the old trend. Pattern-based approach reduces false positives vs single-threshold. |
+| Forward Return Profile | 3M: strong | 6M: strong | 12M: strong | 24M: moderate |
+| Logic Chain            | Revenue cycle turns are the earliest fundamental inflection. Negative to positive transition indicates end of demand contraction. Market is slow to price regime change. Revenue turns LEAD earnings turns by 1-2 quarters. |
+| Threshold Optimization | Prior negative (< -5%), intermediate stabilizing (-3% to +3%), now positive (>5%). Min 10pp swing from trough. |
+| Failure Scenarios      | False dawn in secular decliners (e.g., legacy retail). Revenue pop from one-time contract/order. Confirm with second consecutive quarter. |
+| Data Requirements      | Revenue_Growth (24 months min) |
+| Data Delay             | ~1 month |
+| Empirical Sources      | Lakonishok et al. (1994) JF; Jegadeesh & Livnat (2006) JAR |
+
+EasyLanguage:
+```
+Rev_Turn_Negative   = Revenue_Growth[24] < -5;     // Was clearly negative
+Rev_Turn_Stabilize  = Revenue_Growth[12] > -3;      // Stabilized near zero
+Rev_Turn_Positive   = Revenue_Growth > 5;            // Now clearly positive
+Rev_Turn_Swing      = Revenue_Growth - MinList(Revenue_Growth[12], Revenue_Growth[24]);
+
+Event_RevCycleTurn = Rev_Turn_Negative AND Rev_Turn_Stabilize
+    AND Rev_Turn_Positive AND Rev_Turn_Swing > 10;
+```
+
+
+### Event 40: Operating Margin Inflection (3-Step Pattern) ★★★★
+
+| Field                  | Content |
+| ---------------------- | ------- |
+| Trigger Condition      | TTM_OpMargin[24] < TTM_OpMargin[12] < TTM_OpMargin. Three-step rising pattern. |
+|                        | AND TTM_OpMargin - TTM_OpMargin[24] > 3pp (meaningful improvement). |
+| Statistical Evidence   | Penman & Zhang (2006): margin trajectory predicts EPS trajectory. Three-step pattern confirms trend is sustained, not random. Operating leverage kicking in. |
+| Forward Return Profile | 3M: moderate | 6M: strong | 12M: strong | 24M: strong |
+| Logic Chain            | Sequential margin improvement over 2 years = structural operating leverage. Each step confirms the prior. Market waits for 3+ quarters before pricing the trend. |
+| Threshold Optimization | 3-step rising pattern, total improvement >3pp. Starting margin > 0 (already profitable). |
+
+EasyLanguage:
+```
+OM_3Step = TTM_Operating_Margin[24] < TTM_Operating_Margin[12]
+    AND TTM_Operating_Margin[12] < TTM_Operating_Margin;
+
+OM_3Step_Strength = TTM_Operating_Margin - TTM_Operating_Margin[24];
+
+Event_OM_Inflection = OM_3Step
+    AND OM_3Step_Strength > 3
+    AND TTM_Operating_Margin[24] > 0
+    AND TTM_Revenue > 0;
+```
+
+
+### Event 41: Earnings Monster (Elite Compounder) ★★★★
+
+| Field                  | Content |
+| ---------------------- | ------- |
+| Trigger Condition      | Revenue_Growth > 20 AND EPS_Growth > 40 AND ROE > 20 |
+|                        | AND Revenue_Growth < 100 AND EPS_Growth < 200 AND ROE < 200 |
+| Statistical Evidence   | Triple-elite filter. Very few firms qualify simultaneously. NVDA (2023-2024), META (2023). When triggered, signals genuine business transformation — multi-year compounding machine. CJL (1996) + Fama-French (2015) + Novy-Marx (2013) all support each component. |
+| Forward Return Profile | 3M: strong | 6M: strong | 12M: strong | 24M: strong |
+| Logic Chain            | Three extreme thresholds on the most important fundamental dimensions. Revenue >20% = explosive demand. EPS >40% = operating leverage firing. ROE >20% = exceptional capital efficiency. Triggers very rarely — high conviction when it does. |
+| Threshold Optimization | Thresholds are intentionally extreme. Only 2-5% of universe qualifies in any given month. Can relax to Rev>15, EPS>30, ROE>15 for larger sample. |
+| Failure Scenarios      | Extremely rare signal → may miss long periods. Cyclical peak risk: commodities can spike all three simultaneously at cycle tops. Add PE filter. |
+
+EasyLanguage:
+```
+Event_EarningsMonster = Revenue_Growth > 20
+    AND Revenue_Growth < 100
+    AND EPS_Growth > 40
+    AND EPS_Growth < 200
+    AND ROE > 20
+    AND ROE < 200;
+```
+
+
+### Event 42: Quality Growth Composite (QUAL + GROWTH) ★★★★
+
+| Field                  | Content |
+| ---------------------- | ------- |
+| Trigger Condition      | QUALITY = (ROE > 15 AND LT_DE < 50 AND TTM_Gross_Margin > 30). |
+|                        | GROWTH = (Revenue_Growth > 15 AND EPS_Growth > 20). |
+|                        | Both = 1. Quality compounder. |
+| Statistical Evidence   | Combines Fama-French quality (RMW) with CJL growth momentum. Asness et al. (2014, 2019): quality + growth = portfolio that outperforms each alone. Both dimensions independently validated over 50+ years. |
+| Forward Return Profile | 3M: moderate | 6M: strong | 12M: strong | 24M: strong |
+| Logic Chain            | Quality ensures the business model is good. Growth ensures it's getting better. Together = compounder. Clean binary definition reduces overfitting. |
+| Threshold Optimization | Binary thresholds reduce data-snooping. Same thresholds across all market caps for simplicity. |
+
+EasyLanguage:
+```
+QUALITY = ROE > 15 AND ROE < 100
+    AND LT_DE < 50 AND LT_DE >= 0
+    AND TTM_Gross_Margin > 30 AND TTM_Revenue > 0;
+
+GROWTH = Revenue_Growth > 15 AND Revenue_Growth < 50
+    AND EPS_Growth > 20 AND EPS_Growth < 200;
+
+Event_QualityGrowth = QUALITY AND GROWTH;
+```
+
+
+### Event 43: SuperStock (Quality + Growth + Value Triple) ★★★★★
+
+| Field                  | Content |
+| ---------------------- | ------- |
+| Trigger Condition      | QUALITY = 1 AND GROWTH = 1 AND VALUE = 1. |
+|                        | VALUE = (PE < EPS_Growth AND PE > 0) = PEG < 1. |
+| Statistical Evidence   | Combines Fama-French quality, CJL momentum, and Lynch valuation. Three independent anomaly families. The intersection is extremely rare and is essentially the Buffett-Lynch-Graham consensus signal. When all three align, you're buying a high-quality growing business at a discount to its growth rate. |
+| Forward Return Profile | 3M: strong | 6M: strong | 12M: strongest | 24M: strong |
+| Logic Chain            | QUALITY = good business. GROWTH = getting better. VALUE = cheap relative to growth. Three independent lenses, each validated by decades of research. Only ~2-5% of universe qualifies simultaneously. |
+| Threshold Optimization | Keep all thresholds fixed. Don't relax — rarity is the signal strength. Add PE < 30 as absolute cap to avoid extreme overvaluation loophole. |
+| Failure Scenarios      | Extremely rare in bull markets (when quality+growth are typically expensive). May go months without a signal. Not suitable as sole strategy. |
+| Data Requirements      | ROE, LT_DE, TTM_GM, Revenue_Growth, EPS_Growth, PE |
+| Empirical Sources      | Lynch (1989); Fama & French (2015); CJL (1996); Asness et al. (2014) |
+
+EasyLanguage:
+```
+VALUE = PE > 0 AND PE < EPS_Growth AND EPS_Growth > 10 AND PE < 30;
+
+Event_SuperStock = QUALITY AND GROWTH AND VALUE;
+```
+
+
+### Event 44: Stock Winner Master (All Signals Improving) ★★★★★
+
+| Field                  | Content |
+| ---------------------- | ------- |
+| Trigger Condition      | QUALITY AND GROWTH AND |
+|                        | Revenue_Growth > Revenue_Growth[12] AND |
+|                        | EPS_Growth > EPS_Growth[12] AND |
+|                        | ROE > ROE[12]. |
+| Statistical Evidence   | Combines static quality+growth checks with dynamic improvement checks. All three fundamental vectors (revenue, earnings, efficiency) must be improving. This filters for the "golden period" when a quality business enters an acceleration phase. |
+| Forward Return Profile | 3M: strong | 6M: strong | 12M: strongest | 24M: strong |
+| Logic Chain            | Static check: is this a good business growing well? Dynamic check: is it getting EVEN BETTER? The combination of static quality AND dynamic improvement identifies companies in their prime compounding window. This is the moment before institutional accumulation begins in earnest. |
+| Threshold Optimization | All conditions must pass. This is intentionally strict. Triggers on 1-3% of universe. |
+| Failure Scenarios      | Very rare. May identify companies at peak acceleration (just before deceleration). Requires monitoring for signal break. |
+
+EasyLanguage:
+```
+Event_StockWinner_Master = QUALITY AND GROWTH
+    AND Revenue_Growth > Revenue_Growth[12]
+    AND EPS_Growth > EPS_Growth[12]
+    AND ROE > ROE[12]
+    AND ROE < 100;
+```
+
+
+### Event 45: Revenue Growth Quality (Organic vs. Asset-Fueled) ★★★
+
+| Field                  | Content |
+| ---------------------- | ------- |
+| Trigger Condition      | Revenue_Growth > 10 AND Asset_Growth < Revenue_Growth. |
+|                        | Revenue growing faster than assets = genuine organic improvement, not asset-fueled expansion. |
+| Statistical Evidence   | Fairfield et al. (2003): asset-fueled growth underperforms organic growth. When revenue growth exceeds asset growth, it signals improving capital efficiency. Cooper et al. (2008): the negative asset growth effect is strongest when asset growth outpaces revenue. |
+| Forward Return Profile | 3M: moderate | 6M: strong | 12M: strong | 24M: strong |
+| Logic Chain            | Revenue growing faster than assets = more output per dollar invested. Opposite of empire-building. Sustainable value creation rather than growth-at-any-cost. |
+
+EasyLanguage:
+```
+Event_OrganicGrowth = Revenue_Growth > 10
+    AND Revenue_Growth < 50
+    AND Asset_Growth < Revenue_Growth;
+```
+
+
+### Event 46: Margin + Turnover Dual Expansion ★★★★
+
+| Field                  | Content |
+| ---------------------- | ------- |
+| Trigger Condition      | TTM_OpMargin > TTM_OpMargin[12] AND Asset_Turnover > Asset_Turnover[12]. |
+|                        | Both components of ROE improving simultaneously. |
+| Statistical Evidence   | Soliman (2008): DuPont components predict future ROE. When both margin AND turnover improve, ROE growth is structural, not one-dimensional. The combination is rarer and more powerful than either alone. |
+| Forward Return Profile | 3M: moderate | 6M: strong | 12M: strong | 24M: strong |
+| Logic Chain            | ROE = Margin × Turnover × Leverage. Margin and turnover improving together = genuine operational improvement. If leverage is also flat/declining, it's pure operational quality upgrade. |
+| Threshold Optimization | Both metrics improving. Margin > 5. Turnover > 0.3. |
+
+EasyLanguage:
+```
+ATO = IFF(MRQ_Total_Asset > 0, TTM_Revenue / MRQ_Total_Asset, 0);
+ATO_Prev = IFF(MRQ_Total_Asset[12] > 0, TTM_Revenue[12] / MRQ_Total_Asset[12], 0);
+
+Event_Margin_TO_Dual = TTM_Operating_Margin > TTM_Operating_Margin[12]
+    AND TTM_Operating_Margin > 5
+    AND ATO > ATO_Prev
+    AND ATO > 0.3
+    AND TTM_Revenue > 0;
+```
+
+
+### Event 47: PE Contraction on Growing Earnings (Coiled Spring) ★★★★
+
+| Field                  | Content |
+| ---------------------- | ------- |
+| Trigger Condition      | TTM_EPS > TTM_EPS[12] AND PE < PE[12]. |
+|                        | Earnings up, valuation down = market is selling into strength. |
+| Statistical Evidence   | Fama & French (1992): value premium driven by mean reversion in valuations. When earnings are IMPROVING but PE is CONTRACTING, it's a pure mispricing signal — the market is treating good news as bad. Asness et al. (2013): value+momentum interaction. |
+| Forward Return Profile | 3M: strong | 6M: strong | 12M: strong | 24M: strong |
+| Logic Chain            | This is the ideal contrarian setup: fundamentals are getting better but the market is getting more pessimistic. The tension between improving reality and declining expectations creates a spring-loaded setup. Resolution = PE expansion on higher earnings = double return driver. |
+| Threshold Optimization | Earnings up >10% AND PE down >10%. Both signals must be clear. |
+
+EasyLanguage:
+```
+EarningsUp = IFF(TTM_EPS[12] > 0,
+    100 * (TTM_EPS - TTM_EPS[12]) / TTM_EPS[12], 0);
+
+PE_Down = PE < PE[12] AND PE[12] < PE[24];
+
+Event_CoiledSpring = EarningsUp > 10
+    AND PE_Down
+    AND PE > 0 AND PE < 30
+    AND TTM_EPS > 0;
+```
+
+
+### Event 48: Rapid Deleveraging + Earnings Growth ★★★
+
+| Field                  | Content |
+| ---------------------- | ------- |
+| Trigger Condition      | LT_DE < LT_DE[12] * 0.7 AND EPS_Growth > 10. |
+|                        | Leverage down >30% YoY while earnings growing. |
+| Statistical Evidence   | Penman et al. (2007): deleveraging + earnings growth = strongest combined fundamental signal. Piotroski (2000): declining leverage is a core quality component. Fast deleveraging signals management prioritizing balance sheet health. |
+| Forward Return Profile | 3M: moderate | 6M: strong | 12M: strong | 24M: strong |
+| Logic Chain            | Rapid deleveraging while growing earnings = massive free cash flow. Company can pay down debt from operations, not from asset sales. After deleveraging, capital allocation flexibility increases dramatically (buybacks, dividends, M&A). |
+| Threshold Optimization | >30% leverage reduction AND EPS growing. Equity must be positive. |
+
+EasyLanguage:
+```
+Event_RapidDelever = LT_DE > 0
+    AND LT_DE < LT_DE[12] * 0.7
+    AND EPS_Growth > 10
+    AND EPS_Growth < 200
+    AND MRQ_Total_Equity > 0;
+```
+
+
+================================================================================
+UPDATED SUMMARY: ALL 90 EVENTS BY EVIDENCE STRENGTH
+================================================================================
+
+  ★★★★★  Events 9, 18, 21, 26, 28, 44, 55, 66, 67, 72, 85, 86
+  ★★★★   Events 1, 2, 3, 6, 10, 11, 13, 19, 23, 27, 33, 39, 41,
+                43, 45, 56, 57, 61, 68, 69, 73, 74, 75, 79, 80,
+                83, 84, 88, 89
+  ★★★    Events 4, 5, 7, 8, 12, 14, 15, 17, 20, 22, 24, 30, 34,
+                35, 40, 46, 47, 48, 49, 50, 51, 53, 54, 58, 59,
+                60, 62, 63, 70, 71, 76, 77, 78, 81, 82, 87, 90
+  ★★     Events 16, 25, 29, 31, 32, 36, 37, 38, 42, 52, 64, 65
+
+================================================================================
+END OF FUNDAMENTAL EVENT LIBRARY — 60 EVENTS
+================================================================================
+
+
+
+================================================================================
+CATEGORY K: THRESHOLD RANGE FILTERS (Events 49-60)
+================================================================================
+Simple mutually-exclusive range buckets. Use as building blocks to combine
+with predictive events. No evidence tables - these are categorization filters.
+
+================================================================================
+REVENUE_GROWTH RANGES (6 buckets)
+================================================================================
+
+
+### Event 49: Revenue_Growth < 0% (Declining Revenue) ★★
+
+| Range    | Revenue_Growth < 0 AND Revenue_Growth > -100 |
+| Use      | Turnaround candidates; value traps; short avoidance; reversal plays |
+
+EasyLanguage:
+`
+Event_Rev_Declining = Revenue_Growth < 0 AND Revenue_Growth > -100;
+`
+
+
+
+### Event 50: Revenue_Growth 0% - 10% (Slow Growth) ★★
+
+| Range    | Revenue_Growth >= 0 AND Revenue_Growth < 10 |
+| Use      | Stable/mature companies; dividend payers; low-growth value |
+
+EasyLanguage:
+`
+Event_Rev_SlowGrowth = Revenue_Growth >= 0 AND Revenue_Growth < 10;
+`
+
+
+
+### Event 51: Revenue_Growth 10% - 15% (Solid Growth) ★★
+
+| Range    | Revenue_Growth >= 10 AND Revenue_Growth < 15 |
+| Use      | Above-GDP growth; steady compounders; quality-growth pairing |
+
+EasyLanguage:
+`
+Event_Rev_SolidGrowth = Revenue_Growth >= 10 AND Revenue_Growth < 15;
+`
+
+
+
+### Event 52: Revenue_Growth 15% - 25% (High Growth) ★★
+
+| Range    | Revenue_Growth >= 15 AND Revenue_Growth < 25 |
+| Use      | Growth stock selection; momentum pairing; market share gainers |
+
+EasyLanguage:
+`
+Event_Rev_HighGrowth = Revenue_Growth >= 15 AND Revenue_Growth < 25;
+`
+
+
+
+### Event 53: Revenue_Growth 25% - 35% (Hyper Growth) ★★
+
+| Range    | Revenue_Growth >= 25 AND Revenue_Growth < 35 |
+| Use      | Top-decile growth; emerging leaders; category disruptors |
+
+EasyLanguage:
+`
+Event_Rev_HyperGrowth = Revenue_Growth >= 25 AND Revenue_Growth < 35;
+`
+
+
+
+### Event 54: Revenue_Growth > 35% (Explosive Growth) ★★
+
+| Range    | Revenue_Growth >= 35 AND Revenue_Growth < 500 |
+| Use      | Rare breakout; may be M&A-driven - verify organic; high risk/reward |
+
+EasyLanguage:
+`
+Event_Rev_Explosive = Revenue_Growth >= 35 AND Revenue_Growth < 500;
+`
+
+
+
+================================================================================
+TTM_GROSS_MARGIN RANGES (6 buckets)
+================================================================================
+
+
+### Event 55: TTM_Gross_Margin < 0% (Negative Gross Margin) ★★
+
+| Range    | TTM_Gross_Margin < 0 AND TTM_Gross_Margin > -200 AND TTM_Revenue > 0 |
+| Use      | Distressed; selling below cost; turnaround speculation only |
+
+EasyLanguage:
+`
+Event_GM_Negative = TTM_Gross_Margin < 0 AND TTM_Gross_Margin > -200 AND TTM_Revenue > 0;
+`
+
+
+
+### Event 56: TTM_Gross_Margin 0% - 20% (Low Margin) ★★
+
+| Range    | TTM_Gross_Margin >= 0 AND TTM_Gross_Margin < 20 AND TTM_Revenue > 0 |
+| Use      | Commodities; retailers; distributors; cyclical industrials |
+
+EasyLanguage:
+`
+Event_GM_LowMargin = TTM_Gross_Margin >= 0 AND TTM_Gross_Margin < 20 AND TTM_Revenue > 0;
+`
+
+
+
+### Event 57: TTM_Gross_Margin 20% - 30% (Average Margin) ★★
+
+| Range    | TTM_Gross_Margin >= 20 AND TTM_Gross_Margin < 30 AND TTM_Revenue > 0 |
+| Use      | Industrial; consumer goods; average competitive position |
+
+EasyLanguage:
+`
+Event_GM_AvgMargin = TTM_Gross_Margin >= 20 AND TTM_Gross_Margin < 30 AND TTM_Revenue > 0;
+`
+
+
+
+### Event 58: TTM_Gross_Margin 30% - 40% (Above Average Margin) ★★
+
+| Range    | TTM_Gross_Margin >= 30 AND TTM_Gross_Margin < 40 AND TTM_Revenue > 0 |
+| Use      | Branded goods; niche manufacturers; moderate moat |
+
+EasyLanguage:
+`
+Event_GM_AboveAvgMargin = TTM_Gross_Margin >= 30 AND TTM_Gross_Margin < 40 AND TTM_Revenue > 0;
+`
+
+
+
+### Event 59: TTM_Gross_Margin 40% - 50% (Wide Moat Margin) ★★
+
+| Range    | TTM_Gross_Margin >= 40 AND TTM_Gross_Margin < 50 AND TTM_Revenue > 0 |
+| Use      | Strong competitive advantage; Buffett-quality; pricing power |
+
+EasyLanguage:
+`
+Event_GM_WideMoat = TTM_Gross_Margin >= 40 AND TTM_Gross_Margin < 50 AND TTM_Revenue > 0;
+`
+
+
+
+### Event 60: TTM_Gross_Margin > 50% (Exceptional Margin) ★★
+
+| Range    | TTM_Gross_Margin >= 50 AND TTM_Gross_Margin < 500 AND TTM_Revenue > 0 |
+| Use      | Software; IP-heavy; pharma; luxury; rare competitive position |
+
+EasyLanguage:
+`
+Event_GM_Exceptional = TTM_Gross_Margin >= 50 AND TTM_Gross_Margin < 500 AND TTM_Revenue > 0;
+`
+

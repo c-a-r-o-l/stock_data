@@ -1,0 +1,1372 @@
+================================================================================
+               Market State Foundation Model — Column Reference
+================================================================================
+
+Project  : Transformer Encoder for market state embedding (768-dim output)
+Author   : Auto-generated from TradeStation EasyLanguage export scripts
+Date     : 2026-07-02
+Version  : 1.0
+
+Scope    : Four datasets, merged via forward-fill into sequences of 60–252 days:
+           - History_0_MKT  : Market-wide context (daily frequency, single file)
+           - History_1_D    : Stock-specific features, daily bars
+           - History_2_W    : Stock-specific features, weekly bars
+           - History_3_M    : Stock-specific features, monthly bars
+
+================================================================================
+TABLE OF CONTENTS
+================================================================================
+
+  A. Common Columns (all stock timeframes)
+  B. Daily-Only Columns (History_1_D)
+  C. Market-Wide Columns (History_0_MKT)
+  D. Column Cross-Reference by Timeframe
+  E. Normalization Strategy Summary
+
+================================================================================
+A. COMMON COLUMNS — Present in History_1_D, History_2_W, History_3_M
+================================================================================
+
+Unless noted otherwise, the "Period" column gives the window used in the
+daily dataset. Weekly and monthly datasets use the same window size but
+measured in weeks or months respectively.
+
+--------------------------------------------------------------------------------
+A1. METADATA
+--------------------------------------------------------------------------------
+
+[ 1] SYMBOL
+     Meaning     : Ticker symbol (e.g., "AAPL", "NVDA").
+     Market Logic: Identifier only — carries no predictive signal.
+     Data Type   : STRING (categorical)
+     Data Range  : ~311 unique tickers
+     Norm Strategy: Embedding / one-hot (not fed to Transformer directly;
+                   ticker is used to group sequences).
+
+[ 2] DATE
+     Meaning     : Bar date in YYMMDD integer format.
+                   Years >= 70 → 19xx; years < 70 → 20xx.
+     Market Logic: Provides temporal ordering. Not a direct feature but
+                   essential for sequence construction and train/test splits.
+     Data Type   : INTEGER
+     Data Range  : 1969-09 to 2026-05 (varies by ticker)
+     Norm Strategy: Not used as a model feature. Convert to datetime for
+                   splitting logic.
+
+[ 3] BarNumber
+     Meaning     : Monotonically increasing bar index per ticker, starting at 1.
+     Market Logic: Encodes absolute age of the ticker's data. Could leak
+                   future information if used directly. Typically excluded.
+     Data Type   : INTEGER (sequential)
+     Data Range  : 1 to ~15,000 (daily), 1 to ~3,000 (weekly), 1 to ~700 (monthly)
+     Norm Strategy: Exclude from model input (data-leakage risk).
+
+--------------------------------------------------------------------------------
+A2. PRICE & VOLUME — Raw OHLCV
+--------------------------------------------------------------------------------
+
+[ 4] VOLUME_AVG
+     Meaning     : Average volume over the last 10 bars.
+     Market Logic: Baseline for relative volume. A spike in VOLUME vs.
+                   VOLUME_AVG indicates institutional participation or news.
+     Data Type   : FLOAT
+     Data Range  : 0 to billions (raw share count)
+     Norm Strategy: Log(1 + x) then Z-score (volume is log-normally distributed).
+
+[ 5] VOLUME
+     Meaning     : Total volume for this bar (shares traded).
+     Market Logic: High volume confirms price moves; low volume suggests
+                   lack of conviction. Volume precedes price.
+     Data Type   : FLOAT
+     Data Range  : 0 to billions
+     Norm Strategy: Log(1 + x) then Z-score.
+
+[ 6] OPEN
+     Meaning     : Opening price at the first trade of the bar.
+     Market Logic: Gap analysis (OPEN vs prior CLOSE). Gaps signal overnight
+                   information shocks.
+     Data Type   : FLOAT
+     Data Range  : $0.01 to ~$700,000 (Berkshire Hathaway A)
+     Norm Strategy: Z-score per ticker (or relative-to-SPY normalization).
+
+[ 7] HIGH
+     Meaning     : Highest price reached during the bar.
+     Market Logic: Resistance level, intra-bar selling pressure upper bound.
+     Data Type   : FLOAT
+     Data Range  : Same as OPEN
+     Norm Strategy: Z-score per ticker, or (HIGH/CLOSE - 1) as ratio feature.
+
+[ 8] LOW
+     Meaning     : Lowest price reached during the bar.
+     Market Logic: Support level, intra-bar buying pressure lower bound.
+     Data Type   : FLOAT
+     Data Range  : Same as OPEN
+     Norm Strategy: Z-score per ticker, or (LOW/CLOSE - 1) as ratio feature.
+
+[ 9] CLOSE
+     Meaning     : Closing price at the last trade of the bar.
+     Market Logic: The most important price — settlement value. Most
+                   indicators are derived from CLOSE.
+     Data Type   : FLOAT
+     Data Range  : Same as OPEN
+     Norm Strategy: Z-score per ticker (recommended). Alternatively,
+                   log-return: ln(CLOSE / CLOSE[t-1]).
+
+--------------------------------------------------------------------------------
+A3. SPY-RELATIVE PRICES — Stock prices normalized by SPX
+--------------------------------------------------------------------------------
+
+     Formula:     SPY_X = 1,000,000 * Stock_X / SPX_X
+     Market Logic: Removes broad-market drift so the Transformer sees
+                   stock-specific alpha. A rising SPY_C means the stock is
+                   outperforming the S&P 500. These are the "market context"
+                   features mandated by Principle #5.
+
+[10] SPY_O
+     Meaning     : Stock OPEN divided by SPX OPEN, scaled by 1e6.
+     Market Logic: Relative opening strength vs. the market.
+     Data Type   : FLOAT
+     Data Range  : ~0 to millions (ratio * 1e6)
+     Norm Strategy: Z-score. Values are already relative, so cross-sectional
+                   comparison is valid.
+
+[11] SPY_H
+     Meaning     : Stock HIGH / SPX HIGH, scaled by 1e6.
+     Market Logic: Intra-bar relative strength ceiling.
+     Data Type   : FLOAT
+     Norm Strategy: Z-score.
+
+[12] SPY_L
+     Meaning     : Stock LOW / SPX LOW, scaled by 1e6.
+     Market Logic: Intra-bar relative weakness floor.
+     Data Type   : FLOAT
+     Norm Strategy: Z-score.
+
+[13] SPY_C
+     Meaning     : Stock CLOSE / SPX CLOSE, scaled by 1e6.
+     Market Logic: Relative closing strength. The primary relative-strength
+                   metric. If SPY_C trends up, the stock is outperforming.
+     Data Type   : FLOAT
+     Norm Strategy: Z-score.
+
+--------------------------------------------------------------------------------
+A4. HEIKIN-ASHI PRICES — Smoothed candlestick values
+--------------------------------------------------------------------------------
+
+     Heikin-Ashi (HA) candles filter noise by averaging OHLC:
+       HA_C = (O + H + L + C) / 4
+       HA_O = (HA_O[t-1] + HA_C[t-1]) / 2
+       HA_H = MAX(H, HA_O, HA_C)
+       HA_L = MIN(L, HA_O, HA_C)
+     First bar: HA_O = OPEN, HA_C = (O+H+L+C)/4
+
+     Market Logic: HA candles produce smoother trends with fewer false
+                   reversals. A sequence of HA candles with no lower wicks
+                   (HA_O = HA_L) signals a strong uptrend. HA is a form of
+                   low-pass filter on price — the Transformer can attend to
+                   raw OHLC for high-frequency detail and HA for trend.
+
+     Both the stock ticker and SPY-relative prices have HA counterparts.
+
+--- Stock Heikin-Ashi ---
+
+[14] HA_O    — Heikin-Ashi open for the stock.               FLOAT, Z-score
+[15] HA_H    — Heikin-Ashi high for the stock.               FLOAT, Z-score
+[16] HA_L    — Heikin-Ashi low for the stock.                FLOAT, Z-score
+[17] HA_C    — Heikin-Ashi close for the stock.              FLOAT, Z-score
+
+--- SPY Heikin-Ashi ---
+
+[18] HA_O_SPY  — Heikin-Ashi open for SPY-relative.          FLOAT, Z-score
+[19] HA_H_SPY  — Heikin-Ashi high for SPY-relative.          FLOAT, Z-score
+[20] HA_L_SPY  — Heikin-Ashi low for SPY-relative.           FLOAT, Z-score
+[21] HA_C_SPY  — Heikin-Ashi close for SPY-relative.         FLOAT, Z-score
+
+--------------------------------------------------------------------------------
+A5. SWING HIGH / LOW DETECTION — DayH, DayL, DayCH, DayCL
+--------------------------------------------------------------------------------
+
+     These use the BB_DAY_H and BB_DAY_L functions from Functions.txt.
+     BB_DAY_H(Price, Length): counts how many consecutive bars have a HIGH
+     higher than all previous HIGH for Length bars. When the sequence breaks,
+     the counter resets. Essentially: "how many bars since a new N-bar high?"
+
+     BB_DAY_L: same logic but for LOWs (counting lower lows).
+
+     Market Logic: Encodes market structure — higher highs (uptrend) and
+                   lower lows (downtrend). A DayH value of 20 (at the limit)
+                   means the current bar broke to a new N-bar high (breakout).
+                   These are structural features (Principle #4).
+
+[22] DayH
+     Meaning  : Count of consecutive new N-bar highs (lookback varies by
+                timeframe: 200 daily, 50 weekly, 20 monthly).
+                Value 20 = breakout (new high confirmed).
+     Data Type: INTEGER (0–20+)
+     Norm Strategy: Min-Max to [0, 1] dividing by lookback length.
+
+[23] DayL
+     Meaning  : Count of consecutive new N-bar lows.
+                Value 20 = breakdown (new low confirmed).
+     Data Type: INTEGER (0–20+)
+     Norm Strategy: Min-Max to [0, 1].
+
+[24] DayCH
+     Meaning  : DayH applied to CLOSE instead of HIGH.
+                More sensitive to trend direction changes.
+     Data Type: INTEGER
+     Norm Strategy: Min-Max to [0, 1].
+
+[25] DayCL
+     Meaning  : DayL applied to CLOSE instead of LOW.
+     Data Type: INTEGER
+     Norm Strategy: Min-Max to [0, 1].
+
+--------------------------------------------------------------------------------
+A6. MOVING AVERAGES — SMA & EMA
+--------------------------------------------------------------------------------
+
+     Market Logic: Moving averages are the foundation of trend-following.
+                   Price relative to MAs defines the regime (bull above,
+                   bear below). Multiple MA periods let the Transformer
+                   learn multi-scale trend alignment. EMA responds faster
+                   than SMA to recent changes.
+
+--- Stock Simple Moving Averages ---
+
+Note: Not all periods are present in all timeframes. See Section D.
+
+[26] SMA_010  — 10-bar SMA of CLOSE.                         FLOAT, Z-score
+[27] SMA_020  — 20-bar SMA.                                  FLOAT, Z-score
+[28] SMA_030  — 30-bar SMA (Daily only).                     FLOAT, Z-score
+[29] SMA_040  — 40-bar SMA (Daily, Weekly).                  FLOAT, Z-score
+[30] SMA_050  — 50-bar SMA.                                  FLOAT, Z-score
+[31] SMA_060  — 60-bar SMA (Daily only).                     FLOAT, Z-score
+[32] SMA_080  — 80-bar SMA (Daily only).                     FLOAT, Z-score
+[33] SMA_100  — 100-bar SMA (Daily only).                    FLOAT, Z-score
+[34] SMA_120  — 120-bar SMA (Daily only).                    FLOAT, Z-score
+[35] SMA_140  — 140-bar SMA (Daily only).                    FLOAT, Z-score
+[36] SMA_160  — 160-bar SMA (Daily only).                    FLOAT, Z-score
+[37] SMA_180  — 180-bar SMA (Daily only).                    FLOAT, Z-score
+[38] SMA_200  — 200-bar SMA (Daily only).                    FLOAT, Z-score
+
+--- Stock Exponential Moving Averages ---
+
+[39] EMA_020  — 20-bar EMA of CLOSE.                         FLOAT, Z-score
+[40] EMA_050  — 50-bar EMA (Daily, Weekly).                  FLOAT, Z-score
+[41] EMA_100  — 100-bar EMA (Daily only).                    FLOAT, Z-score
+[42] EMA_200  — 200-bar EMA (Daily only).                    FLOAT, Z-score
+
+--- SPY-relative Moving Averages ---
+
+     These are MAs of SPY_C (the relative close). They show whether the
+     stock's outperformance trend is accelerating or decelerating.
+
+[43] SPY_020  — 20-bar EMA of SPY_C.                         FLOAT, Z-score
+[44] SPY_050  — 50-bar EMA of SPY_C (Daily, Weekly).         FLOAT, Z-score
+[45] SPY_100  — 100-bar EMA of SPY_C (Daily only).           FLOAT, Z-score
+[46] SPY_200  — 200-bar EMA of SPY_C (Daily only).           FLOAT, Z-score
+
+--- Polarized Fractal Efficiency (PFE) ---
+
+     PFE measures how efficiently price travels from point A to point B.
+     Formula: PFE = sqrt((CP-CP[N])^2 + N^2) / sum of sqrt(1 + (CP[i]-CP[i-1])^2)
+     Then smoothed with 5-bar EMA.
+
+     Market Logic: PFE > 50 = strong trend (efficient movement).
+                   PFE < 30 = choppy/consolidating market.
+                   Distinct from MA crossover — measures path efficiency,
+                   not just price level.
+
+[47] PFE_010  — PFE(10) smoothed with EMA(5).          FLOAT [0-100], Min-Max
+[48] PFE_020  — PFE(20) smoothed with EMA(5).          FLOAT [0-100], Min-Max
+[49] PFE_050  — PFE(50) smoothed with EMA(5).          FLOAT [0-100], Min-Max
+[50] PFE_100  — PFE(100) smoothed with EMA(5). Daily only. FLOAT [0-100], Min-Max
+
+--------------------------------------------------------------------------------
+A7. TREND & REGRESSION — Fit, Trigger, ITrend
+--------------------------------------------------------------------------------
+
+     These form a regression-based trend system using an alpha=0.07 smoothing
+     filter applied to (H+L)/2 (the mid-price):
+
+       ITrend  = alpha-adjusted EMA with smoothing (Ehlers-style filter)
+       Trigger = 2 * ITrend[t] - ITrend[t-2]  (momentum projection)
+       Fit     = 2nd-order low-pass filter with period=10 (smoother than ITrend)
+
+     Market Logic: This is a dual-smoother trend system. ITrend is the fast
+                   line, Fit is the slow line, Trigger is the signal line.
+                   When ITrend crosses above Trigger, uptrend begins.
+                   The separate Fit provides a slower, more reliable trend
+                   baseline. Together they encode trend direction, strength,
+                   and acceleration.
+
+[51] Fit
+     Meaning  : Low-pass filtered mid-price (period=10, critical damping).
+                The "slow" trend line. Acts as dynamic support/resistance.
+     Data Type: FLOAT (price scale)
+     Norm Strategy: Divide by CLOSE (ratio to price), then Z-score.
+
+[52] Trigger
+     Meaning  : 2*ITrend - ITrend[t-2]. Forward-projected trend value.
+                Acts as a faster signal line.
+     Data Type: FLOAT (price scale)
+     Norm Strategy: Divide by CLOSE, then Z-score.
+
+[53] Itrend
+     Meaning  : Instantaneous trend (Ehlers alpha filter on mid-price).
+                The "fast" trend line.
+     Data Type: FLOAT (price scale)
+     Norm Strategy: Divide by CLOSE, then Z-score.
+
+[54] Trigger_Itrend_OHLC
+     Meaning  : Combined state of Trigger + ITrend relative to OHLC.
+                Values: -2,-1,0,1,2. See Functions.txt lines 438-467.
+                  +2 = Trigger < LOW  AND ITrend <= LOW   (strong bullish)
+                  +1 = Trigger < CLOSE (partial bullish)
+                   0 = neutral (consolidation/no clear signal)
+                  -1 = Trigger > CLOSE (partial bearish)
+                  -2 = Trigger > HIGH AND ITrend >= HIGH  (strong bearish)
+     Market Logic: Encodes whether the fast trend system confirms or
+                   contradicts the bar's OHLC. +2 means both ITrend and
+                   Trigger are below the entire bar (price breaking up
+                   through resistance). This is a structural feature
+                   (Principle #4).
+     Data Type: INTEGER (-2 to +2)
+     Norm Strategy: Divide by 2 → range [-1, 1]. Identity is also fine
+                   since the range is already compact and symmetric.
+
+--- SPY counterparts ---
+
+     Same indicators computed on SPY-relative prices (SPY_H, SPY_L, etc.)
+
+[55] Fit_SPY              — Fit on SPY-relative mid-price.    FLOAT, Z-score
+[56] Trigger_SPY          — Trigger on SPY-relative.          FLOAT, Z-score
+[57] Itrend_SPY           — ITrend on SPY-relative.           FLOAT, Z-score
+[58] Trigger_Itrend_OHLC_SPY — OHLC-relative state for SPY.   INTEGER [-2,2]
+
+--------------------------------------------------------------------------------
+A8. VOLATILITY & BANDS — STD, Bollinger, ATR, BIAS, TTM
+--------------------------------------------------------------------------------
+
+[59] STD_20
+     Meaning  : 20-bar standard deviation of CLOSE.
+     Market Logic: Rolling volatility. High STD_20 = turbulent market.
+                   Low STD_20 = quiet/compressed market (preceding expansion).
+     Data Type: FLOAT (price scale, always >= 0)
+     Norm Strategy: Divide by CLOSE (relative volatility), then Z-score.
+
+[60] BBH_20
+     Meaning  : Bollinger Band High = SMA_020 + 2 * STD_20.
+     Market Logic: Upper 2-sigma boundary. Price > BBH_20 = overbought
+                   (2.5% probability under normal distribution). Sustained
+                   rides above BBH signal strong momentum, not mean reversion.
+     Data Type: FLOAT (price scale)
+     Norm Strategy: (CLOSE - BBH_20) / STD_20 → Z-score of distance from band,
+                   already normalized.
+
+[61] BBL_20
+     Meaning  : Bollinger Band Low = SMA_020 - 2 * STD_20.
+     Market Logic: Lower 2-sigma boundary. Price < BBL_20 = oversold.
+     Data Type: FLOAT (price scale)
+     Norm Strategy: (CLOSE - BBL_20) / STD_20 → Z-score.
+
+[62] ATR
+     Meaning  : Average True Range (20-bar).
+                TR = MAX(H-L, |H-C[t-1]|, |L-C[t-1]|)
+     Market Logic: Volatility that accounts for gaps. ATR is used for
+                   position sizing (1 ATR = normal daily/weekly range).
+                   Rising ATR = expanding volatility regime.
+     Data Type: FLOAT (price scale, >= 0)
+     Norm Strategy: Divide by CLOSE → relative ATR, then Z-score.
+
+[63] ATR_200  (Daily only)
+     Meaning  : 200-bar ATR. Long-term volatility baseline.
+     Market Logic: Current ATR vs. ATR_200 ratio shows whether current
+                   volatility is elevated vs. historical norm.
+     Data Type: FLOAT
+     Norm Strategy: Divide by CLOSE, then Z-score.
+
+[64] BIAS_Diff
+     Meaning  : Composite bias indicator. Measures the gap between EMA_020
+                and Fit, then compares it to two dynamic thresholds
+                (BIAS_Diff_A = distance from historical high of bias;
+                 BIAS_Diff_B = distance from 1-sigma below average bias).
+                The function selects the minimum of these two when both are
+                negative (oriented divergence) and handles mixed-sign cases
+                with Heikin-Ashi and price-action confirmation.
+     Market Logic: Detects when price has diverged too far from the smoothed
+                   trend (EMA vs. regression). Negative values = price is
+                   stretched below trend (potential mean-reversion long).
+                   Positive = stretched above (potential mean-reversion short).
+                   This is NOT a simple Bollinger %B — it uses two adaptive
+                   thresholds and requires structural confirmation (HA, inside
+                   bars, gap patterns) before signaling.
+     Data Type: FLOAT (can be positive or negative)
+     Norm Strategy: Z-score.
+
+[65] TTM
+     Meaning  : 2 * STD_20 - 1.5 * ATR.
+     Market Logic: When STD_20 > 0.75 * ATR, TTM > 0 (trending — directional
+                   volatility exceeds noise). When STD_20 < 0.75 * ATR, TTM < 0
+                   (choppy — noise exceeds trend). A regime classifier: trending
+                   vs. mean-reverting environment.
+     Data Type: FLOAT (can be negative)
+     Norm Strategy: Z-score.
+
+--------------------------------------------------------------------------------
+A9. PRICE-VOLUME TREND — PV_BULL / PV_BEAR state machine
+--------------------------------------------------------------------------------
+
+     Reference: Functions.txt lines 102-170 (BB_Trend_S_PV).
+
+     This is a state machine that tracks bullish and bearish price-volume
+     phases. It's the most structurally complex feature group.
+
+     Core Logic:
+     - A bull phase starts when CLOSE crosses above the bear stop level
+       (PV_BEAR_STOP) and confirms with volume > average.
+     - A bear phase starts when CLOSE crosses below the bull stop level
+       (PV_BULL_STOP) and confirms with volume > average.
+     - Each phase has a sequential counter (STEP) that increments when
+       the stop level changes.
+     - Trend_PV = +PV_BULL when bull active, -PV_BEAR when bear active.
+
+     Market Logic: Encodes market microstructure (Principle #4).
+                   These phases capture the ebb and flow of buying/selling
+                   pressure with volume confirmation. PV_BULL_CNT tells you
+                   how long the current bull run has lasted — duration is a
+                   key feature for regime persistence.
+
+[66] Trend_PV
+     Meaning  : Current PV state (+N = bull phase N, -N = bear phase N, 0 = neutral).
+     Data Type: INTEGER
+     Data Range: Typically -10 to +10
+     Norm Strategy: Tanh normalization: tanh(x / 5) → range (-1, 1).
+                   Or Z-score if distribution permits.
+
+--- Bull Phase Group ---
+
+[67] PV_BULL
+     Meaning  : Bull phase active flag. 1 = in bull phase, 0 = not.
+     Data Type: INTEGER (0 or 1)
+     Norm Strategy: Identity (already binary).
+
+[68] PV_BULL_STEP
+     Meaning  : Sequential bull phase counter (increments each new bull phase).
+     Data Type: INTEGER (1, 2, 3, ...)
+     Norm Strategy: Log(1 + x) then Z-score, or clip at 10.
+
+[69] PV_BULL_START
+     Meaning  : LOW price at which the current bull phase started.
+     Data Type: FLOAT (price)
+     Norm Strategy: (CLOSE - PV_BULL_START) / CLOSE → % gain from start, Z-score.
+
+[70] PV_BULL_STOP
+     Meaning  : LOW price stop level for the current bull phase.
+                If price drops below this, the bull phase ends.
+     Data Type: FLOAT (price)
+     Norm Strategy: (CLOSE - PV_BULL_STOP) / CLOSE → Z-score.
+
+[71] PV_BULL_CNT
+     Meaning  : Number of bars elapsed in the current bull phase.
+     Data Type: INTEGER
+     Norm Strategy: Log(1 + x), Z-score.
+
+[72] PV_BULL_H
+     Meaning  : Highest HIGH reached during the current bull phase.
+     Data Type: FLOAT (price)
+     Norm Strategy: (PV_BULL_H - CLOSE) / CLOSE → % drawdown from peak, Z-score.
+
+--- Bear Phase Group ---
+
+[73] PV_BEAR          — Bear active flag. 0/1.                Identity
+[74] PV_BEAR_STEP     — Sequential bear phase counter.        Log+Z-score
+[75] PV_BEAR_START    — HIGH price at bear phase start.       % from start, Z-score
+[76] PV_BEAR_STOP     — HIGH price stop level for bear phase. % to stop, Z-score
+[77] PV_BEAR_CNT      — Bars elapsed in bear phase.           Log+Z-score
+[78] PV_BEAR_L        — Lowest LOW in bear phase.             % above trough, Z-score
+
+--------------------------------------------------------------------------------
+A10. BEAR/BULL TREND — Stochastic-anchored trend detection
+--------------------------------------------------------------------------------
+
+     Reference: Functions.txt lines 257-425 (BB_Trend_S_BEAR_BULL).
+
+     This is a multi-condition trend classifier. It evaluates 15+ distinct
+     conditions to determine whether the bar is bullish (Bull=2) or bearish
+     (Bear=2), then tracks consecutive counts.
+
+     Key conditions checked (Bull example):
+     - "Bone": CP > max(ITrend, Trigger, Fit) AND CP > EMA_020 AND ITrend rising
+     - "Head and Toe": Fit < Trigger < ITrend < EMA_020 with close above Trigger
+     - All MAs aligned: EMA_020 > EMA_020[t-1] AND ITrend rising AND Fit rising
+     - MACD breakout: MACD_C > MACD_H AND CP > max(ITrend, Trigger)
+     - MACD + 3Bar: MACD_DIFF > 0 AND Trend_S_3Bar = 1
+     - Simple: CP > EMA_020 AND CP > max(ITrend, Trigger)
+     - Fallback: CP > OPEN
+     - Demark reversal: prevents whipsaw (if 2 bull bars then 1 bear but
+       Demark support holds, stay bull)
+
+     Market Logic: This is a fusion classifier — it combines trend,
+                   momentum, and structural signals into a single bull/bear
+                   call. The 15 conditions are ordered by reliability.
+                   The Stochastic sub-indicators add a second layer
+                   (Stochastic_Bull = 1-5, increasing confidence).
+
+[79] Trend_BEAR_BULL
+     Meaning  : 1 = bull active, -1 = bear active, 0 = neutral.
+     Data Type: INTEGER (-1, 0, 1)
+     Data Range: -1, 0, 1
+     Norm Strategy: Identity (already [-1, 0, 1]).
+
+[80] Bull_CNT
+     Meaning  : Number of consecutive bars with Bull > 0.
+     Data Type: INTEGER (0+)
+     Norm Strategy: Log(1 + x), Z-score.
+
+[81] Stochastic_Bull
+     Meaning  : Confidence level of bull signal (0–5, higher = stronger).
+                Uses MACD and Stochastic oscillator to rank the bull case.
+     Data Type: INTEGER (0–5)
+     Norm Strategy: Divide by 5 → [0, 1].
+
+[82] Stochastic_Bull_CNT
+     Meaning  : Consecutive bars with Stochastic_Bull > 0.
+     Data Type: INTEGER
+     Norm Strategy: Log(1 + x), Z-score.
+
+[83] Bear_CNT
+     Meaning  : Number of consecutive bars with Bear > 0.
+     Data Type: INTEGER (0+)
+     Norm Strategy: Log(1 + x), Z-score.
+
+[84] Stochastic_Bear
+     Meaning  : Confidence level of bear signal (0–5).
+     Data Type: INTEGER (0–5)
+     Norm Strategy: Divide by 5 → [0, 1] (then optionally negate for direction).
+
+[85] Stochastic_Bear_CNT
+     Meaning  : Consecutive bars with Stochastic_Bear > 0.
+     Data Type: INTEGER
+     Norm Strategy: Log(1 + x), Z-score.
+
+--- SPY Bull/Bear Counterparts ---
+
+     Same logic applied to SPY-relative prices.
+
+[86] Trend_BEAR_BULL_SPY         — INTEGER [-1,0,1], Identity
+[87] Bull_CNT_SPY                — INTEGER, Log+Z-score
+[88] Stochastic_Bull_SPY         — INTEGER [0-5], /5
+[89] Stochastic_Bull_CNT_SPY     — INTEGER, Log+Z-score
+[90] Bear_CNT_SPY                — INTEGER, Log+Z-score
+[91] Stochastic_Bear_SPY         — INTEGER [0-5], /5
+[92] Stochastic_Bear_CNT_SPY     — INTEGER, Log+Z-score
+
+NOTE: History_3_M (Monthly) uses BB_Trend_S_BEAR_BULL_ONLY instead of the
+      full BB_Trend_S_BEAR_BULL, so Stochastic sub-fields are NOT present
+      in the monthly dataset. See Section D for the cross-reference.
+
+--------------------------------------------------------------------------------
+A11. PUSH/DIFF — Divergence between price and momentum
+--------------------------------------------------------------------------------
+
+     Reference: Functions.txt lines 216-254 (BB_Trend_S_Push).
+
+     Push_Diff measures divergence between a custom price transformation
+     and its smoothed average:
+
+       Push     = MACD( XAverage(4*CP - 2*CP[t-2] - (H+L), 2),  12, 26 )
+       Push_Diff = 100 * (3*Push - XAverage(Push, 10)) / EMA_020
+
+     Trend_S_Push encodes the trend of Push_Diff:
+       +3 = positive, accelerating above zero
+       +2 = positive, slowing but still above zero
+       +1 = positive, decelerating toward zero
+       -1 = negative, recovering toward zero
+       -2 = negative, slowing but still below zero
+       -3 = negative, accelerating below zero
+
+     Market Logic: Push_Diff measures the rate of change of a smoothed
+                   price derivative. When Push_Diff crosses above 0, price
+                   momentum is accelerating faster than its average.
+                   This is a leading indicator — it turns before MACD.
+                   The Bull/Bear counters track persistence.
+
+[93] Trend_S_Push_Diff    — Trend state of Push_Diff.    INTEGER [-3,3], /3 → [-1,1]
+[94] Push_Diff            — Raw Push_Diff value.         FLOAT, Z-score
+[95] Push_Diff_Bull_CNT   — Consecutive bullish Push bars.  INTEGER, Log+Z-score
+[96] Push_Diff_Bear_CNT   — Consecutive bearish Push bars.  INTEGER, Log+Z-score
+
+--- SPY Push/Diff ---
+
+[ 97] Trend_S_Push_Diff_SPY     — INTEGER [-3,3], /3 → [-1,1]
+[ 98] Push_Diff_SPY             — FLOAT, Z-score
+[ 99] Push_Diff_Bull_CNT_SPY    — INTEGER, Log+Z-score
+[100] Push_Diff_Bear_CNT_SPY    — INTEGER, Log+Z-score
+
+--------------------------------------------------------------------------------
+A12. COMPOSITE TREND SIGNALS
+--------------------------------------------------------------------------------
+
+[101] Trend_S_3Bar
+      Meaning  : 3-bar reversal pattern (Functions.txt lines 1-74).
+                 A state machine tracking swing highs/lows:
+                 When CLOSE > H_Limit[t-1]: start bull phase (ThreeBar=1).
+                   H_B1/B2/B3 = last 3 confirmed highs.
+                   H_Limit = max of H_B1,B2,B3 (resistance).
+                 When CLOSE < L_Limit[t-1]: start bear phase (ThreeBar=-1).
+                   L_Limit = min of L_B1,B2,B3 (support).
+                 Resets daily at 08:34 (intraday) or when BarNumber < 3.
+      Market Logic: Classic swing-point detection. A flip from -1 to +1
+                    is a "3-bar reversal" — price broke above the last 3
+                    swing highs. Used as a key confirmation in the
+                    Bear/Bull classifier and Bottom/Mid/Top pattern logic.
+      Data Type: INTEGER (-1, 0, 1)
+      Norm Strategy: Identity (already compact and directional).
+
+[102] Trend_S_HKA
+      Meaning  : Heikin-Ashi trend for stock (Functions.txt lines 176-213).
+                   +2 = HA_O < HA_C AND HA_O = HA_L (bull candle with no lower wick)
+                   +1 = HA_O < HA_C (bull candle with lower wick)
+                   -1 = HA_O > HA_C (bear candle with upper wick)
+                   -2 = HA_O > HA_C AND HA_O = HA_H (bear candle with no upper wick)
+      Market Logic: HA candle quality. +2 = strong bull (no lower shadow =
+                    buyers dominated entire bar). -2 = strong bear. The
+                    distinction between +1 and +2 is critical — it separates
+                    "grinding" trends from "surging" trends.
+      Data Type: INTEGER (-2, -1, 0, 1, 2)
+      Norm Strategy: Divide by 2 → [-1, 1].
+
+[103] Trend_S_HKA_SPY
+      Meaning  : Same as Trend_S_HKA but on SPY-relative HA candles.
+      Data Type: INTEGER (-2 to +2)
+      Norm Strategy: /2 → [-1, 1].
+
+[104] TTM_Momentum
+      Meaning  : 100 * (2*(C+H+L) - 3*(Highest(H,20) + Lowest(L,20)))
+                       / (Highest(H,20) + Lowest(L,20))
+      Market Logic: Normalized position within the 20-bar range. If price
+                    is near the 20-bar high, TTM_Momentum ≈ +100. Near the
+                    20-bar low, TTM_Momentum ≈ -100. This is analogous to
+                    the Stochastic oscillator but uses H+L instead of just C,
+                    and applies a 3x weighting to the extremes. More sensitive
+                    to range expansion than standard oscillators.
+      Data Type: FLOAT (typically -100 to +100, but can exceed)
+      Norm Strategy: Divide by 100 → [-1, 1] approximately. Clip outliers.
+
+--------------------------------------------------------------------------------
+A13. MACD — Moving Average Convergence Divergence
+--------------------------------------------------------------------------------
+
+     Formula:       MACD_C    = EMA(CLOSE, 12) - EMA(CLOSE, 26)
+                    MACD_DIFF = 3 * (MACD_C - EMA(MACD_C, 10))
+                    MACD_H    = EMA(MACD_C, 10) + STDDEV(MACD_C, 10)
+                    MACD_L    = EMA(MACD_C, 10) - STDDEV(MACD_C, 10)
+
+     Market Logic: The standard MACD system. MACD_DIFF is the histogram —
+                   when it crosses above 0, MACD line crosses above signal
+                   (bullish crossover). MACD_H and MACD_L form Bollinger-like
+                   bands around the signal line to detect extreme momentum.
+
+     NOTE: In the daily dataset, there is also a Trend_S_MACD_Diff column
+           that is computed but its output is NOT exported to the CSV.
+           The raw MACD components are exported instead.
+
+[105] MACD_C
+      Meaning  : MACD line (12/26 EMA difference).
+                 Positive = short-term trend above long-term trend.
+      Data Type: FLOAT (price scale)
+      Norm Strategy: Divide by CLOSE → relative MACD, then Z-score.
+
+[106] MACD_H
+      Meaning  : Signal line + 1 STD (upper Bollinger Band on MACD).
+                 When MACD_C > MACD_H, momentum is extremely bullish.
+      Data Type: FLOAT
+      Norm Strategy: (MACD_C - MACD_H) / STDDEV(MACD_C, 10) → Z-score.
+
+[107] MACD_L
+      Meaning  : Signal line - 1 STD (lower Bollinger Band on MACD).
+      Data Type: FLOAT
+      Norm Strategy: (MACD_C - MACD_L) / STDDEV(MACD_C, 10) → Z-score.
+
+[108] MACD_DIFF
+      Meaning  : MACD histogram = 3 * (MACD_C - Signal).
+      Data Type: FLOAT
+      Norm Strategy: Z-score.
+
+--------------------------------------------------------------------------------
+A14. OSCILLATORS — Stochastic & RSI
+--------------------------------------------------------------------------------
+
+[109] oSlowK
+      Meaning  : Stochastic Slow %K (10, 3, 10).
+                 100 * (CLOSE - Lowest(LOW, 10)) / (Highest(HIGH, 10) - Lowest(LOW, 10))
+                 then smoothed with 3-period SMA.
+      Market Logic: Position of close within the 10-bar range. >80 = overbought,
+                    <20 = oversold. The Slow variant reduces whipsaws vs. Fast %K.
+      Data Type: FLOAT [0–100]
+      Norm Strategy: (x - 50) / 50 → [-1, 1] centered at 0.
+
+[110] oSlowD
+      Meaning  : Stochastic Slow %D = 10-period SMA of oSlowK.
+      Market Logic: Signal line. oSlowK crossing above oSlowD = buy signal.
+      Data Type: FLOAT [0–100]
+      Norm Strategy: (x - 50) / 50 → [-1, 1].
+
+[111] RSI_03
+      Meaning  : Relative Strength Index, 3-period.
+                 100 - 100/(1 + RS) where RS = avg(up closes, 3) / avg(down closes, 3)
+      Market Logic: Ultra-short-term momentum. RSI_03 < 30 on a 3-bar window
+                    captures intra-trend pullbacks (dips to buy in uptrends).
+                    RSI_03 > 70 captures short-term exhaustion.
+      Data Type: FLOAT [0–100]
+      Norm Strategy: (x - 50) / 50 → [-1, 1].
+
+--------------------------------------------------------------------------------
+A15. BAR PATTERNS — Candle-level structural features
+--------------------------------------------------------------------------------
+
+[112] Range_CLOSE
+      Meaning  : Close position within bar range.
+                    +2 = close in top 25% of range (strong close)
+                    +1 = close in 25%-33% from top
+                     0 = middle 33%-67%
+                    -1 = close in 25%-33% from bottom
+                    -2 = close in bottom 25% (weak close)
+      Market Logic: Where price settles matters. A +2 close (top 25%) on high
+                    volume = accumulation. A -2 close on high volume = distribution.
+      Data Type: INTEGER (-2 to +2)
+      Norm Strategy: /2 → [-1, 1].
+
+[113] Bar_Narrow
+      Meaning  : Narrow Range bar count. Looks back up to 20 bars to find how
+                 many consecutive bars had wider ranges than current.
+                 Capped at 8 (NR8+), floored at 0 (if < 3 bars narrower).
+                 NR7 = narrowest range in 7 bars.
+      Market Logic: NR7/NR8 bars are volatility compression signals. They
+                    often precede explosive breakout moves. The number encodes
+                    the degree of compression.
+      Data Type: INTEGER (0–8)
+      Norm Strategy: /8 → [0, 1].
+
+[114] Bar_Inside
+      Meaning  : Inside bar count. Counts consecutive bars where HIGH[t] < HIGH[t-1]
+                 AND LOW[t] > LOW[t-1] (current bar fully inside prior bar).
+                 4 = 4 consecutive inside bars (coiling pattern).
+      Market Logic: Inside bars = indecision/consolidation. Multiple inside
+                    bars form a "coil" — energy building for a breakout.
+                    The count signals how extended the consolidation is.
+      Data Type: INTEGER (0–4)
+      Norm Strategy: /4 → [0, 1].
+
+--- Daily-only Bar Patterns ---
+
+[115] Bar_Exhaustion  (Daily only)
+      Meaning  : Exhaustion bar. +2 = open above BBH_20 AND close in bottom
+                 half (bull trap / buying exhaustion). -2 = open below BBL_20
+                 AND close in top half (bear trap / selling exhaustion).
+      Market Logic: Wide-range reversal bars. When price opens outside the
+                    Bollinger Bands but closes back toward the mean, it signals
+                    that the breakout attempt failed — a potential reversal.
+      Data Type: INTEGER (-2, 0, 2)
+      Norm Strategy: /2 → [-1, 0, 1].
+
+[116] Bar_Breakout    (Daily only)
+      Meaning  : +1 = DayH reached 20 (new 20-bar high breakout).
+                 -1 = DayL reached 20 (new 20-bar low breakdown).
+      Market Logic: Breakout confirmation. A DayH=20 with Bar_Breakout=1 and
+                    high volume = valid breakout. False breakouts (DayH=20 but
+                    Bar_Breakout=0) are also informative.
+      Data Type: INTEGER (-1, 0, 1)
+      Norm Strategy: Identity.
+
+[117] Bar_GAP_Runaway (Daily only)
+      Meaning  : +1 = gap up (LOW[t] > HIGH[t-1]) in uptrend (EMA_020[t-1] < C[t-1]).
+                 -1 = gap down (HIGH[t] < LOW[t-1]) in downtrend.
+      Market Logic: Gap-and-run = trend continuation gaps. Price gaps beyond
+                    prior range and keeps going. Strongest type of gap —
+                    indicates urgency among buyers/sellers.
+      Data Type: INTEGER (-1, 0, 1)
+      Norm Strategy: Identity.
+
+[118] Bar_GAP_Range   (Daily only)
+      Meaning  : +1 = gap up in downtrend (counter-trend gap, likely to fill).
+                 -1 = gap down in uptrend (counter-trend gap, likely to fill)
+                 AND DayH/DayL < 20 (not a breakout).
+      Market Logic: Gap into range = exhaustion/fade gap. Price gaps but the
+                    prior trend and Day indicator suggest the gap will fill.
+                    These are fade-trading opportunities.
+      Data Type: INTEGER (-1, 0, 1)
+      Norm Strategy: Identity.
+
+--------------------------------------------------------------------------------
+B. DAILY-ONLY COLUMNS (History_1_D)
+--------------------------------------------------------------------------------
+
+These columns are present ONLY in the daily dataset.
+
+[119] SMA_030 through SMA_200
+      Additional simple moving averages (see A6 listing above).
+      Reason for daily-only: weekly/monthly don't have enough bars for
+      200-period lookback on many tickers.
+
+[120] EMA_050, EMA_100, EMA_200
+      Additional exponential moving averages.
+
+[121] SPY_050, SPY_100, SPY_200
+      Additional SPY-relative EMAs.
+
+[122] ATR_200
+      200-bar Average True Range. Long-term volatility baseline.
+
+[123] PFE_100
+      PFE with 100-bar lookback.
+
+[124] BottomTop
+      Meaning  : Composite pattern label string. Concatenation of sub-patterns
+                 detected by the trend engine:
+                   /+BTM  = Bull Trend Start (beginning of uptrend)
+                   /+Mid  = Bull Trend Middle (confirmed uptrend continuation)
+                   /+Beauty= Beauty Trend (strong trend with tight channels)
+                   /+Spring= Spring pattern (bear trap → bull reversal)
+                   /+Pivot = Pivot (trend acceleration within existing uptrend)
+                   /+PDF   = Price Discovery / Follow-through
+                   /-DWN   = Bearish breakdown (downtrend initiation)
+                   /-CRH   = Bearish crash signal
+                   /+Bull  = Bull confirmation with SPY alignment
+                   /-Bear  = Bear confirmation with SPY alignment
+      Market Logic: This is the output of a sophisticated multi-condition
+                    pattern recognition system. Each sub-pattern combines
+                    trend (SMA/EMA alignment), momentum (MACD, Push_Diff,
+                    TTM_Momentum), structural (Trend_PV, 3Bar, PV phases),
+                    and confirmation (Stochastic, BIAS_Diff) checks.
+                    The specific label encodes the regime type and quality.
+      Data Type: STRING (e.g., "/+BTM/+Mid", "/+Beauty", "")
+      Norm Strategy: Multi-hot encoding or learned embedding. Each sub-label
+                    (BTM, Mid, Beauty, Spring, Pivot, PDF, DWN, CRH, Bull,
+                    Bear) becomes a binary feature.
+
+      Sub-pattern definitions (from the EasyLanguage code):
+
+      /+BTM (Bottom — trend initiation):
+        Bull_CNT 1-4 + Stochastic_Bull_CNT=1 + positive momentum across all
+        oscillators (TTM, MACD, Push_Diff) + close > open.
+        OR: Bull_CNT=1 + existing Stochastic bull + brief prior bear phase
+        (1-2 bars) + SMA_050 rising + all oscillators positive + 3Bar > 0 + PV > 0.
+
+      /+Mid (Middle — trend continuation):
+        SMA_020 > SMA_050 > SMA_200 (bull alignment), SMA_200 rising, PV > 0,
+        MACD histogram growing, recent Push_Diff weakness (3-bar dip), and a
+        trigger event (Push crosses 0, 3Bar flips positive, PV flips, or Bull_CNT=1).
+        OR: SMA_020 < SMA_050 but SMA_050 > SMA_200 (pullback within uptrend),
+        with stronger confirmation required (TTM momentum turning, Push crossing 0).
+
+      /+Beauty (Beauty trend — strong, clean uptrend):
+        C > EMA_020 > EMA_050 > EMA_200, MACD_DIFF > 0, Push_Diff > 0,
+        Trend_PV < 3 (early phase), 5-bar confirmation that price rides above
+        Trigger (tight channel), Trigger < SMA_020 + 1.5*STD.
+
+      /+Spring (Spring — bear trap reversal):
+        C > EMA_020, EMA_050 > EMA_200, EMAs compressing, Trend_PV = -1
+        (brief bear phase), close > prior close, PV_BEAR_START declining
+        (lower highs on bear phases = compression), and oscillator turns
+        (Stochastic %K curling, RSI_03 curling, or Trigger cross).
+
+      /+Pivot (Pivot — trend acceleration):
+        C > SMA_200, Trend_PV rising (+1 to +N), Bull/Bear composite is bearish
+        (contrarian), Stochastic_Bull active, Trigger near SMA_020+STD,
+        with MA slope or Stochastic or Push_Diff accelerating,
+        strong close (2*(C-O) > H-L or close near top), and no bearish divergence.
+
+      /+PDF (Price Discovery Follow-through):
+        DayCH breakout (DayCH > 2*prior DayCH, >5), 3Bar > 0, PV in early
+        bull phase (1-2), MACD histogram growing and above signal, MA alignment
+        (either SMA_020 > SMA_050, or SMA_020 < SMA_050 with SMA_050 > SMA_200,
+        or C > SMA_050 in downtrend).
+        OR: SMA_020 > SMA_050, MACD leading price (MACD bottom predates price
+        bottom by 1.5x), and at least one oscillator turning positive.
+
+      /-DWN (Down — bearish breakdown):
+        Three scenarios of increasing severity, all requiring: O > C, C[t-1] > C,
+        and a filter excluding BBL_20 above SMA_050 and BIAS_Diff/TTM positive.
+        Scenario 1 (SMA_050 < SMA_020, SMA_200 > SMA_050): strong close weakness
+        (O-C > 3*(C-L)), SMA_020 diverging from SMA_050, Trend_PV = -1, all
+        oscillators negative (BIAS_Diff/TTM/TTM_Momentum/MACD_DIFF/Push_Diff < 0).
+        Scenario 2 (SMA_050 < SMA_020, SMA_200 > SMA_020): price rejected at
+        SMA_050/Trigger, with multiple exclusion filters for false signals.
+        Scenario 3 (SMA_050 < SMA_020, SMA_200 < SMA_050): highest severity,
+        requires history of SMA_050 < SMA_200 (bear market), SMA_020[2] > SMA_020[1]
+        (failed rally), trend destruction across multiple dimensions.
+
+      /-CRH (Crash — accelerated bearish breakdown):
+        SMA_050 > SMA_020 (bear cross), SMA_050 declining from peak, price
+        below all MAs and Trigger, 20-bar SMA_050 peak > 5 bars ago, PV < 2
+        (bear phase starting), recent price above SMA_020 (trapped longs),
+        Push_Diff declining, BBH[t-1] + 2*STD > SMA_200.
+        OR: same SMA configuration but even weaker — price below all MAs,
+        MACD/TTM negative, 3Bar negative, BBL below SMA_200 or extreme.
+
+      /+Bull (Bull confirmation with SPY alignment):
+        Trend_PV = 1 (new bull phase) AND one of:
+        - Bull_CNT = 1, SPY also in bull, Stochastic_Bull_SPY >= 2,
+          Stochastic_Bear_SPY = 0, EMAs not in bearish alignment.
+        - Bull_CNT = 1, SPY Bull_CNT > 0, Stochastic_Bull_SPY = 1,
+          Stochastic_Bear_SPY = 0, EMA_050 rising.
+        - Bull_CNT = 1, SPY Bull_CNT > 1, Stochastic bull with tighter
+          or equal count to SPY, SPY Stochastic bull > bear.
+        - Bull_CNT > 1, SPY Bull_CNT > 0, BIAS_Diff curling up (trough
+          pattern: [2]>0, [1]<0, [0]>0), all oscillators positive, EMAs
+          aligned bull (EMA_200 < EMA_050 < EMA_020), Trigger near band.
+
+      /-Bear (Bear confirmation with SPY alignment):
+        Trend_PV = -1, C < EMA_200 (bear market), SPY_050 > SPY_L (SPY not
+        at extreme), bear counts align with or exceed SPY, and recent high
+        above EMA_020 (failed rally), with exclusion filters for premature
+        signals.
+
+--------------------------------------------------------------------------------
+C. MARKET-WIDE COLUMNS (History_0_MKT)
+================================================================================
+
+The MKT dataset has one row per trading day (same daily frequency as History_1_D).
+All stocks in a given sequence share the same MKT row for that date.
+
+--------------------------------------------------------------------------------
+C1. GROWTH vs. VALUE
+--------------------------------------------------------------------------------
+
+     IWF = iShares Russell 1000 Growth ETF
+     IWD = iShares Russell 1000 Value ETF
+
+[001] Growth_vs_Value
+      Meaning  : IWF.Close / IWD.Close.
+      Market Logic: Ratio > 1 = growth outperforming value (risk-on).
+                    Ratio < 1 = value outperforming growth (risk-off).
+                    A rising ratio indicates bullish risk appetite.
+      Data Type: FLOAT (typically 1.0–2.5)
+      Norm Strategy: Z-score.
+
+[002–005] GVR_020, GVR_050, GVR_100, GVR_200
+      Meaning  : SMA of Growth_vs_Value at 20, 50, 100, 200 days.
+      Market Logic: Short-term vs. long-term trend in risk appetite.
+                    GVR_020 > GVR_200 = growth trend accelerating.
+      Data Type: FLOAT
+      Norm Strategy: Z-score (or ratio to current Growth_vs_Value).
+
+--------------------------------------------------------------------------------
+C2. VIX — Volatility Indices
+--------------------------------------------------------------------------------
+
+     VIX indices measure implied volatility from SPX option prices.
+
+[006] VIX_9D
+      Meaning  : 9-day VIX (short-term implied volatility).
+      Market Logic: "Fear gauge" for very near-term. Spikes on sudden
+                    market drops. Mean-reverting: high VIX → future low
+                    VIX (and market recovery).
+      Data Type: FLOAT (typically 8–85, extreme ~100+)
+      Norm Strategy: Log(x) then Z-score (VIX is log-normal).
+
+[007] VIX_3M
+      Meaning  : 3-month VIX (medium-term IV).
+      Market Logic: Less reactive than VIX_9D. The spread between VIX_9D
+                    and VIX_3M is the VIX futures curve front slope.
+      Data Type: FLOAT (typically 10–50)
+      Norm Strategy: Log(x) then Z-score.
+
+[008] VIX_6M
+      Meaning  : 6-month VIX (longer-term IV expectation).
+      Market Logic: Smoothest VIX measure. Used for back slope of term
+                    structure.
+      Data Type: FLOAT (typically 12–40)
+      Norm Strategy: Log(x) then Z-score.
+
+[009] VIX_Front_Slope
+      Meaning  : VIX_3M - VIX_9D.
+      Market Logic: Positive = contango (normal market — near-term fear
+                    lower than medium-term). Negative = backwardation
+                    (stress — near-term fear exceeds medium-term). A flip
+                    to backwardation often marks a market bottom.
+      Data Type: FLOAT (typically -15 to +10)
+      Norm Strategy: Z-score.
+
+[010] VIX_Back_Slope
+      Meaning  : VIX_6M - VIX_3M.
+      Market Logic: Measures the steepness of the far end of the VIX curve.
+                    Persistent flattening = complacency.
+      Data Type: FLOAT (typically -5 to +5)
+      Norm Strategy: Z-score.
+
+[011] VIX_9D_Z
+      Meaning  : Z-score of VIX_9D relative to 200-day MA.
+                (VIX_9D - AVG(VIX_9D, 200)) / STDDEV(VIX_9D, 200)
+      Market Logic: How extreme is current fear relative to the last 200 days?
+                    Z > 2 = extremely fearful (potential bounce).
+                    Z < -1 = extremely complacent (potential correction).
+      Data Type: FLOAT (typically -2 to +4)
+      Norm Strategy: Already a Z-score — Identity or clip to [-3, 3].
+
+[012] VIX_3M_Z
+      Meaning  : Z-score of VIX_3M relative to 200-day MA.
+      Data Type: FLOAT
+      Norm Strategy: Identity (already normalized).
+
+--------------------------------------------------------------------------------
+C3. MARKET BREADTH — % Stocks Above Moving Averages
+--------------------------------------------------------------------------------
+
+     These measure the percentage of index constituents trading above their
+     50-day or 200-day simple moving averages.
+
+[013] SP_Above_050
+      Meaning  : % of S&P 500 stocks above their 50-day SMA.
+      Market Logic: Broadly above 50% = healthy market. Below 30% = oversold.
+                    Divergence: index making new highs but SP_Above_050
+                    declining = weakening breadth (bearish).
+      Data Type: FLOAT [0–100]
+      Norm Strategy: (x - 50) / 50 → [-1, 1].
+
+[014] SP_Above_200
+      Meaning  : % of S&P 500 stocks above their 200-day SMA.
+      Market Logic: Long-term breadth. Below 30% = bear market territory.
+      Data Type: FLOAT [0–100]
+      Norm Strategy: (x - 50) / 50 → [-1, 1].
+
+[015] ND_Above_050
+      Meaning  : % of NASDAQ-100 stocks above 50-day SMA.
+      Market Logic: Tech-heavy breadth measure. More volatile than SPX breadth.
+      Data Type: FLOAT [0–100]
+      Norm Strategy: (x - 50) / 50 → [-1, 1].
+
+[016] ND_Above_200
+      Meaning  : % of NASDAQ-100 stocks above 200-day SMA.
+      Data Type: FLOAT [0–100]
+      Norm Strategy: (x - 50) / 50 → [-1, 1].
+
+--------------------------------------------------------------------------------
+C4. MARKET INTERNALS — By Index (SPY, QQQ, RSL, NYSE)
+================================================================================
+
+     For each of four indices (S&P 500, NASDAQ-100, Russell 2000, NYSE),
+     the following 6 derived indicators are computed from raw Advance/Decline/
+     UpVolume/DownVolume/NewHigh/NewLow data.
+
+     Raw inputs:
+       ADV  = number of advancing issues
+       DEC  = number of declining issues
+       UVL  = up volume (volume of advancing issues)
+       DVL  = down volume (volume of declining issues)
+       NH   = new 52-week highs
+       NL   = new 52-week lows
+
+--- For S&P 500 (columns 17–22) ---
+
+[017] TRIN_Z_SPY
+      Meaning  : Z-score of Arms Index (TRIN).
+                 TRIN = (ADV/DEC) / (UVL/DVL)  [advance/decline ratio
+                        divided by up/down volume ratio].
+                 Then Z-scored over 200 days.
+      Market Logic: TRIN < 1 = bullish (volume flowing into advancing stocks).
+                    TRIN > 1 = bearish (volume flowing into declining stocks).
+                    Z-score normalizes across regimes. TRIN_Z < -1.5 = extreme
+                    bullish volume flow.
+      Data Type: FLOAT
+      Norm Strategy: Identity (already Z-scored).
+
+[018] NHNL_Ratio_SPY
+      Meaning  : NH / (NH + NL).
+      Market Logic: 1.00 = all new highs (extremely bullish). 0.00 = all new
+                    lows (extremely bearish). 0.50 = balance. This is the
+                    purest measure of trend health — are stocks making new
+                    highs or new lows?
+      Data Type: FLOAT [0–1]
+      Norm Strategy: (x - 0.5) * 2 → [-1, 1].
+
+[019] Fosback_SPY
+      Meaning  : Fosback Index = MIN(NH, NL) / Median(ADV+DEC, 5).
+      Market Logic: Norman Fosback's indicator. High values = many new highs
+                    AND many new lows simultaneously (divergence/churn).
+                    Low values = one-sided market (either strongly up or
+                    strongly down). A spike in Fosback often precedes a top.
+      Data Type: FLOAT [0–1]
+      Norm Strategy: Z-score.
+
+[020] Participation_SPY
+      Meaning  : (NH - NL) / Median(ADV+DEC, 5).
+      Market Logic: Net new highs as % of total issues. Positive = more new
+                    highs (broad participation). Negative = more new lows
+                    (broad deterioration). The 5-day median denominator
+                    smooths total issues for comparability.
+      Data Type: FLOAT (can be negative)
+      Norm Strategy: Z-score.
+
+[021] Advance_SPY
+      Meaning  : ADV / Median(ADV+DEC, 5).
+      Market Logic: % of issues advancing. > 0.50 = more advancers.
+                    A day with Advance > 0.70 = broad rally.
+      Data Type: FLOAT [0–1]
+      Norm Strategy: (x - 0.5) * 2 → [-1, 1].
+
+[022] UpVolume_SPY
+      Meaning  : UVL / Median(UVL+DVL, 5).
+      Market Logic: % of volume in advancing stocks. > 0.50 = volume favors
+                    advancers. UpVolume > 0.80 on an up day = strong
+                    institutional buying.
+      Data Type: FLOAT [0–1]
+      Norm Strategy: (x - 0.5) * 2 → [-1, 1].
+
+--- For NASDAQ-100 (columns 23–28) ---
+
+[023] TRIN_Z_QQQ          — Same as TRIN_Z_SPY, for NASDAQ-100.    FLOAT, Identity
+[024] NHNL_Ratio_QQQ      — NH/(NH+NL) for NASDAQ.                 FLOAT [0-1], (x-0.5)*2
+[025] Fosback_QQQ         — Fosback Index for NASDAQ.              FLOAT, Z-score
+[026] Participation_QQQ   — (NH-NL)/total for NASDAQ.              FLOAT, Z-score
+[027] Advance_QQQ         — ADV/total for NASDAQ.                  FLOAT [0-1], (x-0.5)*2
+[028] UpVolume_QQQ        — UVL/total for NASDAQ.                  FLOAT [0-1], (x-0.5)*2
+
+--- For Russell 2000 (columns 29–34) ---
+
+[029] TRIN_Z_RSL          — same logic.                            FLOAT, Identity
+[030] NHNL_Ratio_RSL      — same logic.                            FLOAT [0-1], (x-0.5)*2
+[031] Fosback_RSL         — same logic.                            FLOAT, Z-score
+[032] Participation_RSL   — same logic.                            FLOAT, Z-score
+[033] Advance_RSL         — same logic.                            FLOAT [0-1], (x-0.5)*2
+[034] UpVolume_RSL        — same logic.                            FLOAT [0-1], (x-0.5)*2
+
+--- For NYSE (columns 35–40) ---
+
+[035] TRIN_Z_NYSE         — same logic.                            FLOAT, Identity
+[036] NHNL_Ratio_NYSE     — same logic.                            FLOAT [0-1], (x-0.5)*2
+[037] Fosback_NYSE        — same logic.                            FLOAT, Z-score
+[038] Participation_NYSE  — same logic.                            FLOAT, Z-score
+[039] Advance_NYSE        — same logic.                            FLOAT [0-1], (x-0.5)*2
+[040] UpVolume_NYSE       — same logic.                            FLOAT [0-1], (x-0.5)*2
+
+     Market Logic for the four-index breadth suite:
+     SPY breadth = large-cap leadership. QQQ breadth = tech/growth leadership.
+     RSL breadth = small-cap (risk-on/off barometer). NYSE = broadest measure.
+     Divergences between them are powerful signals:
+     - SPY breadth strong, RSL breadth weak = narrow large-cap rally (fragile)
+     - QQQ breadth leads SPY breadth = growth-driven rally (bullish)
+     - RSL breadth leads SPY breadth = broad risk-on (most bullish)
+
+================================================================================
+D. COLUMN CROSS-REFERENCE BY TIMEFRAME
+================================================================================
+
+                    | History_0_MKT | History_1_D | History_2_W | History_3_M
+--------------------|---------------|-------------|-------------|-------------
+SYMBOL              |      X        |      X      |      X      |      X
+DATE                |      X        |      X      |      X      |      X
+BarNumber           |      X        |      X      |      X      |      X
+--------------------|---------------|-------------|-------------|-------------
+VOLUME_AVG          |               |      X      |      X      |      X
+VOLUME              |               |      X      |      X      |      X
+OPEN                |               |      X      |      X      |      X
+HIGH                |               |      X      |      X      |      X
+LOW                 |               |      X      |      X      |      X
+CLOSE               |               |      X      |      X      |      X
+SPY_O/H/L/C         |               |      X      |      X      |      X
+HA_O/H/L/C          |               |      X      |      X      |      X
+HA_O/H/L/C_SPY      |               |      X      |      X      |      X
+DayH/DayL/DayCH/DayCL|              |      X      |      X      |      X
+--------------------|---------------|-------------|-------------|-------------
+SMA_010             |               |      X      |      X      |      X
+SMA_020             |               |      X      |      X      |      X
+SMA_030             |               |      X      |      X      |
+SMA_040             |               |      X      |      X      |
+SMA_050             |               |      X      |      X      |
+SMA_060             |               |      X      |             |
+SMA_080             |               |      X      |             |
+SMA_100             |               |      X      |             |
+SMA_120             |               |      X      |             |
+SMA_140             |               |      X      |             |
+SMA_160             |               |      X      |             |
+SMA_180             |               |      X      |             |
+SMA_200             |               |      X      |             |
+EMA_020             |               |      X      |      X      |      X
+EMA_050             |               |      X      |      X      |
+EMA_100             |               |      X      |             |
+EMA_200             |               |      X      |             |
+SPY_020             |               |      X      |      X      |      X
+SPY_050             |               |      X      |      X      |
+SPY_100             |               |      X      |             |
+SPY_200             |               |      X      |             |
+PFE_010             |               |      X      |      X      |      X
+PFE_020             |               |      X      |      X      |      X
+PFE_050             |               |      X      |      X      |
+PFE_100             |               |      X      |             |
+--------------------|---------------|-------------|-------------|-------------
+Fit/Trigger/Itrend  |               |      X      |      X      |      X
+Trigger_Itrend_OHLC |               |      X      |      X      |      X
+Fit/Trigger/Itrend_SPY|             |      X      |      X      |      X
+Trig_Itr_OHLC_SPY   |               |      X      |      X      |      X
+--------------------|---------------|-------------|-------------|-------------
+STD_20              |               |      X      |      X      |      X
+BBH_20              |               |      X      |      X      |      X
+BBL_20              |               |      X      |      X      |      X
+ATR                 |               |      X      |      X      |      X
+ATR_200             |               |      X      |             |
+BIAS_Diff           |               |      X      |      X      |      X
+TTM                 |               |      X      |      X      |      X
+--------------------|---------------|-------------|-------------|-------------
+Trend_PV            |               |      X      |      X      |      X
+PV_BULL/STEP/START/STOP/CNT/H      |      X      |      X      |      X
+PV_BEAR/STEP/START/STOP/CNT/L      |      X      |      X      |      X
+--------------------|---------------|-------------|-------------|-------------
+Trend_BEAR_BULL     |               |      X      |      X      |
+Bull_CNT            |               |      X      |      X      |
+Stochastic_Bull     |               |      X      |      X      |
+Stochastic_Bull_CNT |               |      X      |      X      |
+Bear_CNT            |               |      X      |      X      |
+Stochastic_Bear     |               |      X      |      X      |
+Stochastic_Bear_CNT |               |      X      |      X      |
+Trend_BEAR_BULL_SPY |               |      X      |      X      |
+Bull_CNT_SPY        |               |      X      |      X      |
+Stoch_Bull_SPY      |               |      X      |      X      |
+Stoch_Bull_CNT_SPY  |               |      X      |      X      |
+Bear_CNT_SPY        |               |      X      |      X      |
+Stoch_Bear_SPY      |               |      X      |      X      |
+Stoch_Bear_CNT_SPY  |               |      X      |      X      |
+--------------------|---------------|-------------|-------------|-------------
+Trend_S_Push_Diff   |               |      X      |      X      |      X
+Push_Diff           |               |      X      |      X      |      X
+Push_Diff_Bull_CNT  |               |      X      |      X      |      X
+Push_Diff_Bear_CNT  |               |      X      |      X      |      X
+Tr_S_Push_Diff_SPY  |               |      X      |      X      |      X
+Push_Diff_SPY       |               |      X      |      X      |      X
+Push_Diff_Bull_CNT_SPY|            |      X      |      X      |      X
+Push_Diff_Bear_CNT_SPY|            |      X      |      X      |      X
+--------------------|---------------|-------------|-------------|-------------
+Trend_S_3Bar        |               |      X      |      X      |      X
+Trend_S_HKA         |               |      X      |      X      |      X
+Trend_S_HKA_SPY     |               |      X      |      X      |      X
+TTM_Momentum        |               |      X      |      X      |      X
+--------------------|---------------|-------------|-------------|-------------
+MACD_C              |               |      X      |      X      |      X
+MACD_H              |               |      X      |      X      |      X
+MACD_L              |               |      X      |      X      |      X
+MACD_DIFF           |               |      X      |      X      |      X
+oSlowK              |               |      X      |      X      |      X
+oSlowD              |               |      X      |      X      |      X
+RSI_03              |               |      X      |      X      |      X
+--------------------|---------------|-------------|-------------|-------------
+Range_CLOSE         |               |      X      |      X      |      X
+Bar_Narrow          |               |      X      |      X      |      X
+Bar_Inside          |               |      X      |      X      |      X
+Bar_Exhaustion      |               |      X      |             |
+Bar_Breakout        |               |      X      |             |
+Bar_GAP_Runaway     |               |      X      |             |
+Bar_GAP_Range       |               |      X      |             |
+BottomTop           |               |      X      |             |
+--------------------|---------------|-------------|-------------|-------------
+Growth_vs_Value     |      X        |             |             |
+GVR_020/050/100/200 |      X        |             |             |
+VIX_9D/3M/6M        |      X        |             |             |
+VIX_Front/Back_Slope|      X        |             |             |
+VIX_9D_Z/3M_Z       |      X        |             |             |
+SP_Above_050/200    |      X        |             |             |
+ND_Above_050/200    |      X        |             |             |
+TRIN_Z (x4 idx)     |      X        |             |             |
+NHNL_Ratio (x4)     |      X        |             |             |
+Fosback (x4)        |      X        |             |             |
+Participation (x4)  |      X        |             |             |
+Advance (x4)        |      X        |             |             |
+UpVolume (x4)       |      X        |             |             |
+
+Column counts:   MKT=43    Daily=118    Weekly=103    Monthly=78
+                 (3 meta + 40 features) per MKT; similar for stock files.
+
+================================================================================
+E. NORMALIZATION STRATEGY SUMMARY
+================================================================================
+
+For the Transformer Encoder, all features must be normalized to comparable
+scales before being projected into the 768-dim embedding space. Below is the
+recommended strategy by feature category.
+
+--------------------------------------------------------------------------------
+Category              | Strategy            | Rationale
+--------------------------------------------------------------------------------
+Raw prices (O,H,L,C)  | Z-score per ticker  | Removes absolute price level;
+                       |   or log-return     | model sees relative changes
+--------------------------------------------------------------------------------
+SPY-relative prices   | Z-score             | Already cross-sectionally
+                       |                     | comparable
+--------------------------------------------------------------------------------
+HA prices             | Z-score             | Smooth variant of raw prices
+--------------------------------------------------------------------------------
+Volume                | Log(1+x) → Z-score  | Volume is log-normal
+--------------------------------------------------------------------------------
+SMA/EMA               | (MA - CLOSE)/CLOSE  | Distance from MA as % of price
+                       |   then Z-score      | is more informative than raw MA
+--------------------------------------------------------------------------------
+Bollinger Bands       | (CLOSE - BB)/STD    | Already a normalized distance;
+                       |                     | Identity or light Z-score
+--------------------------------------------------------------------------------
+ATR, STD_20, TTM      | /CLOSE → Z-score    | Relative to price level
+--------------------------------------------------------------------------------
+RSI, Stochastic       | (x - 50)/50         | Center at 0, range [-1, 1]
+--------------------------------------------------------------------------------
+PFE                   | (x - 50)/50         | Center at 0, range [-1, 1]
+--------------------------------------------------------------------------------
+Integer states        | Identity or /max    | Already compact. E.g.:
+  (-2 to +2)          |                     | Trend_S_HKA / 2 → [-1, 1]
+  (0 to N)            |                     | Log(1+x) for duration counters
+--------------------------------------------------------------------------------
+Binary flags          | Identity            | Already 0/1 or -1/0/1
+  (Trend_BEAR_BULL,   |                     |
+   PV_BULL, etc.)     |                     |
+--------------------------------------------------------------------------------
+VIX & VIX slopes      | Log(VIX) → Z-score  | VIX is log-normal
+--------------------------------------------------------------------------------
+Breadth % (SP_Above,  | (x - 50)/50         | Range [-1, 1]
+  Advance, UpVolume)  |                     |
+--------------------------------------------------------------------------------
+NHNL_Ratio            | (x - 0.5)*2         | Range [-1, 1]
+--------------------------------------------------------------------------------
+TRIN_Z, VIX_Z         | Identity            | Already Z-scored in formula
+--------------------------------------------------------------------------------
+Growth_vs_Value       | Z-score             | Ratio, unbounded
+--------------------------------------------------------------------------------
+BottomTop             | Multi-hot           | Each sub-label → binary feature
+--------------------------------------------------------------------------------
+
+================================================================================
+IMPLEMENTATION NOTES
+================================================================================
+
+1. TICKER-WISE FITTING: Z-score normalization should be fit per-ticker (or
+   per-ticker-group) for price-level features, but cross-sectional (across
+   all tickers) for market features and SPY-relative features.
+
+2. FORWARD-FILL NOTE: When merging daily + weekly + monthly timeframes into a
+   single sequence, weekly and monthly features are forward-filled to daily
+   frequency. During forward-fill, normalized values should be filled, not
+   raw values (to avoid introducing scale artifacts when a monthly bar spans
+   ~21 daily rows).
+
+3. SEQUENCE CONSTRUCTION: Each input token to the Transformer is a concatenated
+   vector of [MKT features, Daily features, Weekly features, Monthly features]
+   for a given date. The weekly/monthly portions are forward-filled from the
+   most recent weekly/monthly bar.
+
+4. MISSING DATA: Early bars in weekly/monthly datasets may have fewer features
+   (e.g., no long-period MAs). These should be masked (set to 0 and flagged
+   with an attention mask) rather than imputed.
+
+5. PRINCIPLE COMPLIANCE:
+   - Features marked "structural" (Trend_PV, Trend_S_3Bar, DayH/L, HA candles)
+     preserve market microstructure (Principle #4).
+   - SPY counterparts for most features provide market context (Principle #5).
+   - No pre-digested trading rules are present as raw features — the BottomTop
+     labels are the closest, and they are encoded as multi-hot binary flags
+     rather than a single "buy/sell" signal (Principle #2).
+   - Redundant moving averages (13 SMAs) may benefit from dimensionality
+     reduction (PCA or learned projection) if the Transformer input dimension
+     becomes a bottleneck (Principle #1).
+
+================================================================================
+END OF DOCUMENT
+================================================================================

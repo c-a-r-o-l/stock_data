@@ -1,0 +1,1459 @@
+================================================================================
+MACROECONOMIC INDICATORS RESEARCH REPORT
+For US Stock Market Regime Detection (Market Language Token System)
+================================================================================
+Date: 2026-06-17
+Project: Stock_Event1_Macro — StockGPT Market Language
+Status: Phase 1 Research — Broad Indicator Universe
+================================================================================
+
+TABLE OF CONTENTS
+  1. Purpose & Methodology
+  2. Indicator Catalog (Categories A-M, ~100+ FRED series)
+  3. Money Flow Framework Deep Dive
+  4. Historical Ranges & Calibration Thresholds
+  5. Change Velocity Analysis
+  6. Indicator Relationships & Sequencing
+  7. Market Language Token Design
+  8. Non-FRED Data Gap Analysis
+  9. Priority Tiers
+  10. References
+
+================================================================================
+1. PURPOSE & METHODOLOGY
+================================================================================
+
+This report identifies the most relevant macroeconomic indicators from the
+Federal Reserve Economic Data (FRED) database for predicting US stock market
+regimes. The end goal is to feed these indicators into the StockGPT "Market
+Language" token system, where each indicator's state is converted into discrete
+tokens (e.g., PMI_CONTRACTION, YIELD_CURVE_INVERTED, NET_LIQ_CONTRACTING).
+
+Selection Criteria:
+- LEADING > lagging: indicators that turn BEFORE the economy/market turn
+- Multi-decade data: minimum 20+ years, most have 50-80+ years
+- Market relevance: empirically linked to S&P 500 direction or volatility
+- Non-redundant: avoids duplication with existing 22 series in ATM_ID.py
+- Broad coverage: employment, inflation, PMI, money flow, FX, commodities,
+  bonds, credit, sentiment, carry trade, international flows
+
+Methodology:
+1. Reviewed The Conference Board Leading Economic Index (LEI) 10 components
+2. Reviewed Federal Reserve research (Estrella & Mishkin yield curve studies,
+   Chicago Fed NFCI, St. Louis Fed Financial Stress Index)
+3. Reviewed academic literature on S&P 500 predictability (Cernohorsky 2016,
+   Lindenau & Demetrescu 2025, Shi et al. 2025)
+4. Reviewed macro trader frameworks (Net Liquidity = WALCL - TGA - RRP)
+5. Cross-referenced with existing ATM_ID.py to avoid duplication
+
+================================================================================
+2. INDICATOR CATALOG
+================================================================================
+
+-------------------------------
+CATEGORY A: MONEY FLOW / LIQUIDITY / FED BALANCE SHEET (~25 series)
+-------------------------------
+
+A1. FED BALANCE SHEET & NET LIQUIDITY (8 series)
+
+A1  WALCL              Fed Total Assets (Wednesday Level, W, 2002+)
+    THE liquidity gauge. Total size of Fed balance sheet. Expanding during QE
+    (bullish for risk assets), shrinking during QT (bearish). Peaked ~$9T
+    post-COVID March 2020.
+    URL: https://fred.stlouisfed.org/series/WALCL
+
+A2  WTREGEN            Treasury General Account - TGA (Week Avg, W, 2002+)
+    Treasury's checking account at the Fed. TGA RISES when taxes are collected
+    and debt is issued = liquidity DRAIN from banking system. TGA FALLS when
+    Treasury spends = liquidity INJECTION. Tax season surges (Apr/Jun/Sep/Dec)
+    create temporary liquidity squeezes. Debt ceiling debates draw TGA to ~$0
+    injecting massive liquidity. One of the most overlooked macro indicators.
+    URL: https://fred.stlouisfed.org/series/WTREGEN
+
+A3  RRPONTSYD          Overnight Reverse Repo - ON RRP (Daily, D, 2003+)
+    Money market funds parking cash at the Fed earning interest instead of
+    lending it out. Rising RRP = money LEAVING the financial system = liquidity
+    drain. Peaked $2.5T in mid-2022. Drained to near $0 by early 2024 as MMFs
+    rotated into T-bills. RRP declining = cash re-entering markets.
+    URL: https://fred.stlouisfed.org/series/RRPONTSYD
+
+    ** NET LIQUIDITY = WALCL - WTREGEN - RRPONTSYD **
+    This is the single most important macro metric for risk assets according to
+    many CT (crypto/trading) macro analysts. Rising = bullish, falling =
+    bearish. SPX and BTC have historically tracked Net Liquidity closely.
+
+A4  WSHOTSA            Treasury Securities Held Outright (Week Avg, W, 2002+)
+    The Fed's Treasury holdings in its SOMA portfolio. Increasing during QE
+    (buying bonds), decreasing during QT (letting bonds mature without
+    reinvesting). Tracks the speed of QE/QT in Treasuries specifically.
+    URL: https://fred.stlouisfed.org/series/WSHOTSA
+
+A5  WSHOMCB            MBS Held Outright (Wednesday Level, W, 2002+)
+    Fed's mortgage-backed securities holdings. Same QE/QT tracking as WSHOTSA
+    but for the mortgage market. MBS QT has been controversial because housing
+    market sensitivity.
+    URL: https://fred.stlouisfed.org/series/WSHOMCB
+
+A6  WRESBAL            Reserve Balances with Federal Reserve (Week Avg, W, 1984+)
+    Total reserves held by banks at the Fed. As QT progresses, reserves shrink.
+    Below ~$3T = potential "reserve scarcity" that caused the Sep 2019 repo
+    market spike. Critical for predicting the next liquidity crisis.
+    URL: https://fred.stlouisfed.org/series/WRESBAL
+
+A7  WORAL              Repurchase Agreements (Week Avg, W, 2002+)
+    Fed's repo lending to banks. Spikes when banks need emergency cash (Sep
+    2019 repo crisis, March 2020 COVID). Rising = stress in funding markets.
+    URL: https://fred.stlouisfed.org/series/WORAL
+
+A8  WDTGAL             Treasury General Account (Wednesday Level, W, 2002+)
+    Same as WTREGEN but Wednesday snapshot instead of weekly average. More
+    useful for week-over-week change analysis.
+    URL: https://fred.stlouisfed.org/series/WDTGAL
+
+A2. MONEY ON THE SIDELINES (7 series)
+
+A9  RMFSL              Retail Money Market Funds (SA, Monthly, M, 1974+)
+    THE "cash on the sidelines" metric. Retail MMF balances. Hit record ~$2.4T
+    in 2024 as investors earned 5%+ risk-free. When RMFSL starts declining
+    while equity markets are rising = money rotating FROM safety INTO risk
+    assets (bullish). When RMFSL surging during equity correction = money
+    fleeing to safety but creating "dry powder" for the next rally.
+    URL: https://fred.stlouisfed.org/series/RMFSL
+
+A10 WRMFNS             Retail Money Market Funds (NSA, Weekly, W, 1974+)
+    Same as RMFSL but weekly frequency and not seasonally adjusted. Faster
+    signal for real-time money flow tracking.
+    URL: https://fred.stlouisfed.org/series/WRMFNS
+
+A11 MMMFFAQ027S        Money Market Mutual Fund Total Financial Assets (Q, 1985+)
+    Quarterly total MMF assets covering both retail AND institutional money
+    market funds. Broader coverage than RMFSL alone. Includes prime, government,
+    and tax-exempt funds.
+    URL: https://fred.stlouisfed.org/series/MMMFFAQ027S
+
+A12 MZMNS              Money Zero Maturity (NSA, Monthly, M, 1959+)
+    M2 minus small time deposits plus institutional MMFs. The broadest measure
+    of immediately deployable liquid money. "Ultimate sidelines" metric because
+    it captures ALL money that can be deployed instantly without penalty.
+    URL: https://fred.stlouisfed.org/series/MZMNS
+
+A13 SAVINGSL           Savings Deposits at Commercial Banks (SA, Monthly, M, 1959+)
+    Bank savings account balances including money market deposit accounts
+    (MMDAs). Surged during COVID stimulus. When savings draw down = money being
+    deployed into markets or spent in the real economy.
+    URL: https://fred.stlouisfed.org/series/SAVINGSL
+
+A14 TCDSL              Total Checkable Deposits (SA, Monthly, M, 1959+)
+    Checking account balances. The most immediate deployable cash. Rising =
+    more "at the ready" capital. Declining = money being deployed.
+    URL: https://fred.stlouisfed.org/series/TCDSL
+
+A15 DSPIC96            Real Disposable Personal Income (SA, Monthly, M, 1959+)
+    Consumer purchasing power after taxes and inflation. Rising real income =
+    more potential investment capital flowing into 401(k)s, brokerages, etc.
+    URL: https://fred.stlouisfed.org/series/DSPIC96
+
+A3. INTERNATIONAL MONEY FLOWS — TIC DATA (5 series)
+
+A16 FORLTTOTALNET69995 Foreign Net Purchases: All US Long-Term Securities (M, 1978+)
+    Monthly aggregate of foreign buying minus selling of all US long-term
+    securities (Treasuries, agencies, corporates, equities). Negative values =
+    foreign investors are net sellers of US assets = bearish signal.
+    URL: https://fred.stlouisfed.org/series/FORLTTOTALNET69995
+
+A17 FORLTEQTYNET99996  Foreign Net Purchases: US Equities (M, 1978+)
+    THE international equity flow indicator. Monthly foreign net buying of US
+    stocks. Track alongside USLTEQTYNET69995 (US buying of foreign stocks) for
+    a complete picture of cross-border equity rotation. Consistently negative =
+    capital flight from US equities.
+    URL: https://fred.stlouisfed.org/series/FORLTEQTYNET99996
+
+A18 FORLTCORPNET69995  Foreign Net Purchases: US Corporate Bonds (M, 1978+)
+    Foreign appetite for US corporate credit. Declining = diminishing foreign
+    demand for US corporate debt, which can pressure credit spreads wider.
+    URL: https://fred.stlouisfed.org/series/FORLTCORPNET69995
+
+A19 FORLTTREANET69995  Foreign Net Purchases: US Treasury Bonds & Notes (M, 1978+)
+    Critical for understanding Treasury market demand. Japan and China are the
+    largest foreign holders. Sustained net selling by foreign official entities
+    = upward pressure on US yields, independent of Fed policy.
+    URL: https://fred.stlouisfed.org/series/FORLTTREANET69995
+
+A20 USLTEQTYNET69995   US Net Purchases: Foreign Equities (M, 1978+)
+    US money flowing OUT of domestic markets INTO foreign stocks. When this
+    rises while FORLTEQTYNET99996 is negative = domestic AND foreign investors
+    both avoiding US equities = strong bearish signal.
+    URL: https://fred.stlouisfed.org/series/USLTEQTYNET69995
+
+A4. CREDIT / LENDING (5 series)
+
+A21 TOTCI              Commercial & Industrial Loans, All Banks (SA, M, 1947+)
+    Bank lending to businesses. Core measure of credit creation. Declining C&I
+    loans = businesses not investing/expanding = recession signal. One of the
+    most reliable coincident-to-slightly-lagging indicators.
+    URL: https://fred.stlouisfed.org/series/TOTCI
+
+A22 TOTALSL            Total Consumer Credit Outstanding (SA, M, 1943+)
+    Total consumer borrowing: credit cards, auto loans, student loans. Surging
+    consumer credit = spending fueled by debt (unsustainable) or confidence
+    (bullish). Context matters.
+    URL: https://fred.stlouisfed.org/series/TOTALSL
+
+A23 CCLBS              Consumer Loans: Credit Cards & Revolving Plans (SA, M, 1968+)
+    Revolving consumer credit (primarily credit card balances). Rapid increase
+    while saving rate (PSAVERT) is declining = consumer stress / inflation
+    pressure = future spending collapse risk.
+    URL: https://fred.stlouisfed.org/series/CCLBS
+
+A24 BUSLOANS           Commercial & Industrial Loans, All Banks (NSA, M, 1947+)
+    Non-seasonally-adjusted version of TOTCI. Useful for raw trend analysis.
+    URL: https://fred.stlouisfed.org/series/BUSLOANS
+
+A25 TOTBKCR            Bank Credit: Total Loans & Leases + Securities (SA, M, 1973+)
+    Total credit extended by the US banking system. Broadest bank lending
+    measure. Includes C&I loans, real estate loans, consumer loans, and
+    securities holdings. Peaking bank credit = credit cycle top.
+    URL: https://fred.stlouisfed.org/series/TOTBKCR
+
+-------------------------------
+CATEGORY B: EMPLOYMENT / LABOR MARKET (~15 series)
+-------------------------------
+
+B1  PAYEMS             Total Nonfarm Payrolls (SA, Monthly, M, 1939+)
+    The single most important monthly economic release. Released first Friday
+    of every month. Typically the biggest market-moving data point. Normal
+    growth: +150K to +250K/month. Below +100K = slowdown. Negative = likely
+    recession. COVID: -20.5M in April 2020 (single worst month ever).
+    URL: https://fred.stlouisfed.org/series/PAYEMS
+
+B2  UNRATE             Unemployment Rate (SA, Monthly, M, 1948+)
+    Most politically visible labor market indicator. Range: 2.5% (1953) to
+    14.8% (Apr 2020). Pre-COVID record: 10.8% (1982). Typically changes
+    ±0.1-0.3pp per month. Rises FAST in crisis, falls SLOW in recovery.
+    Sahm Rule: 3-month avg UNRATE rising 0.5pp above prior 12-month low has
+    ALWAYS coincided with recession (zero false positives since 1970).
+    URL: https://fred.stlouisfed.org/series/UNRATE
+
+B3  ICSA               Initial Jobless Claims (NSA, Weekly, W, 1967+)
+    THE earliest labor market warning signal. Available WEEKLY. Part of the
+    Conference Board LEI (inverted). Normal range: 200K-400K. Key signal:
+    sustained 23%+ rise from cycle trough = recession historically follows in
+    ~15 months. 400K+ sustained = recession-level stress. COVID peak: 6.1M.
+    URL: https://fred.stlouisfed.org/series/ICSA
+
+B4  JTSJOL             JOLTS Job Openings: Total Nonfarm (SA, Monthly, M, 2000+)
+    Measures labor demand. Job Openings and Labor Turnover Survey. Declining
+    openings while unemployment stable = softening labor market before it shows
+    in UNRATE (leading). Peaked 12M+ in 2022.
+    URL: https://fred.stlouisfed.org/series/JTSJOL
+
+B5  CES0500000003      Avg Hourly Earnings: Total Private (SA, Monthly, M, 2006+)
+    Wage growth. Above 4-5% YoY = wage-price spiral risk (Fed hawkish). Below
+    3% = wage growth consistent with 2% inflation target. Key Fed input.
+    URL: https://fred.stlouisfed.org/series/CES0500000003
+
+B6  LNS11300000        Labor Force Participation Rate (SA, Monthly, M, 1948+)
+    Percentage of working-age population in the labor force. Structural
+    decline since 2000 (aging demographics). Cyclical component: rising in
+    strong labor markets (people re-entering workforce), falling when people
+    give up looking. Pre-COVID peak: 67.3% (2000). COVID low: 60.1%.
+    URL: https://fred.stlouisfed.org/series/LNS11300000
+
+B7  AWHMAN             Avg Weekly Hours: Manufacturing (SA, Monthly, M, 2006+)
+    Conference Board LEI component. Employers cut hours BEFORE cutting jobs.
+    Declining weekly hours = leading indicator of labor market weakening.
+    URL: https://fred.stlouisfed.org/series/AWHMAN
+
+B8  U6RATE             U-6 Broad Unemployment Rate (SA, Monthly, M, 1994+)
+    Includes discouraged workers and part-time workers who want full-time.
+    Typically 1.5-2x higher than U-3 (UNRATE). Better measure of labor market
+    slack. High U6 while U3 is low = hidden slack.
+    URL: https://fred.stlouisfed.org/series/U6RATE
+
+B9  UEMPMEAN           Avg Duration of Unemployment, Weeks (SA, Monthly, M, 1948+)
+    How long the average unemployed person has been looking. Rising = labor
+    market deterioration (harder to find jobs). LAGGING indicator but confirms
+    recession severity. Peaked 40+ weeks in 2010.
+    URL: https://fred.stlouisfed.org/series/UEMPMEAN
+
+B10 EMRATIO            Employment-Population Ratio (SA, Monthly, M, 1948+)
+    Percentage of total population that is employed. Better than UNRATE for
+    structural analysis because it's not affected by labor force participation
+    changes. Pre-COVID peak: 61.2% (2023). COVID low: 51.3%.
+    URL: https://fred.stlouisfed.org/series/EMRATIO
+
+B11 CE16OV             Civilian Labor Force Level (SA, Monthly, M, 1948+)
+    Total number of people working or looking for work. Growing = positive.
+    Shrinking when participation rate is also falling = structural concern.
+    URL: https://fred.stlouisfed.org/series/CE16OV
+
+B12 USGOOD             All Employees: Goods-Producing (SA, Monthly, M, 1939+)
+    Manufacturing, construction, mining employment. Cyclically sensitive.
+    Declines early in slowdowns (LEADING relative to services employment).
+    URL: https://fred.stlouisfed.org/series/USGOOD
+
+B13 USPRIV             All Employees: Private Service-Providing (SA, M, 1939+)
+    Services employment (77% of US jobs). Less cyclical than goods-producing
+    but declining services hiring = broad-based slowdown.
+    URL: https://fred.stlouisfed.org/series/USPRIV
+
+B14 JTSQUR             JOLTS Quits Rate (SA, Monthly, M, 2000+)
+    Percentage of workers voluntarily quitting. High quits = workers confident
+    they can find better jobs (bullish labor market). Declining quits = workers
+    staying put = caution. Often called the "take this job and shove it"
+    indicator. LEADING: quits turn before payrolls.
+    URL: https://fred.stlouisfed.org/series/JTSQUR
+
+B15 CCSA               Continued Claims / Insured Unemployment (NSA, Weekly, W, 1967+)
+    Number of people continuing to claim unemployment benefits (vs initial
+    claims which are first-time filers). Lags ICSA by 1-2 weeks. Rising = people
+    staying unemployed longer.
+    URL: https://fred.stlouisfed.org/series/CCSA
+
+-------------------------------
+CATEGORY C: INFLATION / PRICES (~12 series)
+-------------------------------
+
+C1  CPIAUCSL           CPI All Urban Consumers (SA, Monthly, M, 1947+)
+    Most widely quoted inflation measure. Baskets of goods and services.
+    Academic research (Cernohorsky 2016): CPI leads S&P 500 by ~21 months
+    with inverse correlation (high CPI today = low S&P in 21 months).
+    Range: -3% YoY (deflation) to 14.8% (1980). Fed unofficially watches it
+    but officially targets PCE.
+    URL: https://fred.stlouisfed.org/series/CPIAUCSL
+
+C2  CPILFESL           Core CPI ex Food & Energy (SA, Monthly, M, 1957+)
+    CPI minus volatile food and energy components. Better trend measure.
+    Less "headline" impact but better signal for underlying inflation.
+    URL: https://fred.stlouisfed.org/series/CPILFESL
+
+C3  PCEPI              PCE Price Index (SA, Monthly, M, 1959+)
+    Personal Consumption Expenditures price index. The Fed's OFFICIAL 2%
+    inflation target measure. Differs from CPI: broader coverage, chain-
+    weighted (accounts for substitution), healthcare weight difference.
+    Typically runs 0.3-0.5% below CPI.
+    URL: https://fred.stlouisfed.org/series/PCEPI
+
+C4  PCEPILFE           Core PCE ex Food & Energy (SA, Monthly, M, 1959+)
+    THE number the Fed watches most closely. Core PCE YoY. Target: 2.0%.
+    Above 3% = hawkish pressure. Below 1.5% = dovish pressure / deflation
+    concern. Fed's Summary of Economic Projections (SEP) forecasts this.
+    URL: https://fred.stlouisfed.org/series/PCEPILFE
+
+C5  PPIACO             PPI All Commodities (NSA, Monthly, M, 1913+)
+    Producer Price Index. Pipeline inflation pressure. PPI leads CPI by 1-3
+    months (businesses pass costs to consumers with a lag). Leading indicator
+    for future CPI direction.
+    URL: https://fred.stlouisfed.org/series/PPIACO
+
+C6  T5YIE              5-Year Breakeven Inflation Rate (Daily, D, 2003+)
+    Market-implied inflation expectation: difference between 5Y nominal
+    Treasury yield and 5Y TIPS yield. Forward-looking (LEADING). What the
+    bond market expects inflation to average over the next 5 years.
+    URL: https://fred.stlouisfed.org/series/T5YIE
+
+C7  T10YIE             10-Year Breakeven Inflation Rate (Daily, D, 2003+)
+    Market-implied 10-year inflation expectation. Anchor for long-term
+    inflation outlook. Below 2% = market expects Fed to miss target.
+    Above 2.5% = market expects persistent above-target inflation.
+    URL: https://fred.stlouisfed.org/series/T10YIE
+
+C8  MICH               Michigan 1-Year Inflation Expectations (Monthly, M, 1978+)
+    Consumer survey of expected inflation over next 12 months. Anchored
+    vs unanchored expectations matter. Surging = Fed credibility risk.
+    Range: ~2-6%. Above 5% = de-anchoring concern.
+    URL: https://fred.stlouisfed.org/series/MICH
+
+C9  PPIFGS             PPI Finished Goods (SA, Monthly, M, 1947+)
+    PPI for finished consumer goods (excludes intermediate goods). More
+    directly relevant to consumer prices than headline PPI.
+    URL: https://fred.stlouisfed.org/series/PPIFGS
+
+C10 CPIHOSSL           CPI: Housing / Shelter (SA, Monthly, M, 1967+)
+    Shelter component of CPI (~33% of index). CRITICAL: shelter lags real-time
+    rents by 12-18 months due to BLS methodology (6-month rotation of rental
+    sample). Known as "the lag" in Fed thinking. High shelter CPI while market
+    rents are falling = misleading inflation signal.
+    URL: https://fred.stlouisfed.org/series/CPIHOSSL
+
+C11 MEDCPIM158SFRBCLE  Median CPI (SA, Monthly, M, 1983+)
+    Cleveland Fed's median CPI: each month, sort all CPI component price
+    changes and take the median. Less volatile than core CPI. Better for
+    identifying persistent inflation trends.
+    URL: https://fred.stlouisfed.org/series/MEDCPIM158SFRBCLE
+
+C12 PCE                Personal Consumption Expenditures (SA, Monthly, M, 1959+)
+    Total dollar amount of consumer spending. Not an inflation rate — this is
+    the LEVEL. Rising PCE = consumers spending more (nominal). Useful alongside
+    PCEPI to decompose real vs nominal consumption.
+    URL: https://fred.stlouisfed.org/series/PCE
+
+-------------------------------
+CATEGORY D: PMI / BUSINESS ACTIVITY (~12 series)
+-------------------------------
+
+D1  NAPM               ISM Manufacturing PMI Composite (NSA, Monthly, M, 1948+)
+    THE single most widely followed business cycle indicator. Composite of 5
+    sub-indices: New Orders, Production, Employment, Supplier Deliveries,
+    Inventories. Above 50 = manufacturing expanding, below 50 = contracting.
+    KEY THRESHOLDS:
+      > 55: strong expansion (bullish)
+      50-55: moderate expansion
+      48-50: slight contraction (warning)
+      42-48: contraction (bearish caution)
+      < 42: BROAD ECONOMY RECESSION RISK (historical accuracy)
+    Range: 29.4 (2008) to 77.5. Long-term avg: ~53.0.
+    Can swing ±5-10 points at cyclical inflection points.
+    URL: https://fred.stlouisfed.org/series/NAPM
+
+D2  NAPMNOI            ISM Mfg: New Orders Index (NSA, Monthly, M, 1948+)
+    The MOST predictive ISM sub-index. Conference Board LEI component.
+    12 out of 13 times since 1948: New Orders below 43.5 → recession followed.
+    This is arguably more reliable than the headline PMI. New orders lead
+    production by 1-3 months.
+    URL: https://fred.stlouisfed.org/series/NAPMNOI
+
+D3  NAPMEI             ISM Mfg: Employment Index (NSA, Monthly, M, 1948+)
+    Manufacturing hiring intentions. Below 50 = manufacturers plan to reduce
+    headcount. Leads PAYEMS manufacturing component by 1-2 months.
+    URL: https://fred.stlouisfed.org/series/NAPMEI
+
+D4  NAPMPRI            ISM Mfg: Prices Paid Index (NSA, Monthly, M, 1948+)
+    What manufacturers report paying for inputs. Pipeline inflation gauge.
+    Above 60 = increasing price pressure. Above 80 = severe inflation.
+    Leads PPI and CPI by 1-3 months. During 2021-22: sustained 80+ readings.
+    URL: https://fred.stlouisfed.org/series/NAPMPRI
+
+D5  INDPRO             Industrial Production Index (SA, Monthly, M, 1919+)
+    Output of factories, mines, and utilities. Coincident indicator. Broad
+    production measure. Declining 6+ months = recession likely. One of the
+    four coincident indicators used by NBER to date recessions.
+    URL: https://fred.stlouisfed.org/series/INDPRO
+
+D6  TCU                Capacity Utilization: Total Industry (SA, Monthly, M, 1967+)
+    Percentage of industrial capacity in use. Above 85% = inflationary pressure
+    (bottlenecks, need for capital investment). Below 75% = slack in the
+    economy (disinflationary). COVID low: 64.2%.
+    URL: https://fred.stlouisfed.org/series/TCU
+
+D7  DGORDER            Durable Goods Orders (SA, Monthly, M, 1992+)
+    New orders for long-lasting manufactured goods. Conference Board LEI
+    component. Volatile month-to-month but core orders (ex-transportation)
+    is a cleaner signal. LEADS industrial production by 3-6 months.
+    URL: https://fred.stlouisfed.org/series/DGORDER
+
+D8  BUSINV             Total Business Inventories (SA, Monthly, M, 1992+)
+    Inventory levels across manufacturing, wholesale, and retail. Build-up
+    above sales trend = inventory overhang = future production cuts. Lean
+    inventories = need to restock = future production increase.
+    URL: https://fred.stlouisfed.org/series/BUSINV
+
+D9  RSAFS              Advance Retail Sales (SA, Monthly, M, 1992+)
+    Consumer spending at retail stores (ex-food services). ~30% of total PCE.
+    Real-time consumer health check. Declining 2+ consecutive months = consumer
+    pulling back.
+    URL: https://fred.stlouisfed.org/series/RSAFS
+
+D10 AMDMNO             Mfg New Orders: Durable Goods (SA, Monthly, M, 1992+)
+    Same as DGORDER but adjusted differently. Alternative series for
+    cross-validation.
+    URL: https://fred.stlouisfed.org/series/AMDMNO
+
+D11 AMTMNO             Mfg New Orders: Total Manufacturing (SA, Monthly, M, 1992+)
+    Total manufacturing new orders (durable + nondurable). Broader than
+    durable goods alone. Leading indicator for industrial production.
+    URL: https://fred.stlouisfed.org/series/AMTMNO
+
+D12 ISRATIO            Business Inventories to Sales Ratio (SA, Monthly, M, 1992+)
+    How many months of sales are sitting in inventory. Rising ratio = goods
+    piling up unsold = future production cuts. Falling = demand outpacing
+    supply = need to increase production. Cyclical range: ~1.25-1.45.
+    URL: https://fred.stlouisfed.org/series/ISRATIO
+
+-------------------------------
+CATEGORY E: FINANCIAL CONDITIONS / STRESS (~7 series)
+-------------------------------
+
+E1  NFCI               Chicago Fed National Financial Conditions Index (W, 1971+)
+    105 financial indicators combined. Above 0 = financial conditions tighter
+    than average. Below 0 = looser than average. Weekly frequency. Spikes
+    above +1 = financial crisis territory (2008: +3.5, COVID: +1.5).
+    LEADING for equity markets: tightening conditions precede selloffs.
+    URL: https://fred.stlouisfed.org/series/NFCI
+
+E2  NFCIRISK           NFCI Risk Sub-Index (Weekly, W, 1971+)
+    Risk component of NFCI. Captures volatility and funding risk specifically.
+    More sensitive to acute stress events than overall NFCI.
+    URL: https://fred.stlouisfed.org/series/NFCIRISK
+
+E3  NFCILEVERAGE       NFCI Leverage Sub-Index (Weekly, W, 1971+)
+    Leverage component of NFCI. Captures debt and margin conditions. Rising =
+    increasing leverage in the financial system. Peak leverage often coincides
+    with market tops.
+    URL: https://fred.stlouisfed.org/series/NFCILEVERAGE
+
+E4  STLFSI4            St. Louis Fed Financial Stress Index (Weekly, W, 1993+)
+    18 weekly financial stress indicators. Above 0 = above-average stress.
+    More intuitive than NFCI for many practitioners. COVID peak: +5.8 (highest
+    ever, exceeding 2008's +5.3). Below -0.5 = very low stress (bullish).
+    URL: https://fred.stlouisfed.org/series/STLFSI4
+
+E5  VIXCLS             CBOE Volatility Index: VIX (Daily, D, 1990+)
+    [ALREADY IN EXISTING CODE AS VIX.csv]
+    S&P 500 30-day implied volatility. "Fear gauge." Normal: 12-20. Elevated:
+    20-30. Fear: 30-40. Panic: 40+. Record: 82.69 (Mar 16, 2020).
+
+E6  VXVCLS             CBOE 3-Month VIX (VXV) (Daily, D, 2007+)
+    93-day implied volatility vs VIX's 30-day. VIX/VXV ratio indicates term
+    structure: VIX > VXV = backwardation (near-term fear exceeds long-term
+    fear) = often near market bottoms.
+    URL: https://fred.stlouisfed.org/series/VXVCLS
+
+E7  USEPUINDXD         Economic Policy Uncertainty Index (Daily, D, 1985+)
+    News-based index counting articles with "economic," "policy," "uncertainty"
+    in major US newspapers. Spike to 2500+ = extreme uncertainty (trade war,
+    debt ceiling, COVID). Historical avg: ~100. LEADING: uncertainty spikes
+    precede equity volatility and declining business investment.
+    URL: https://fred.stlouisfed.org/series/USEPUINDXD
+
+E8  USEPUINDXM         Economic Policy Uncertainty, Monthly 3-Component (M, 1985+)
+    Monthly version combining news, tax code provisions, and forecaster
+    disagreement. Broader measure than daily news-only version.
+    URL: https://fred.stlouisfed.org/series/USEPUINDXM
+
+-------------------------------
+CATEGORY F: BOND MARKET / CREDIT SPREADS / YIELD CURVE (~14 series)
+-------------------------------
+
+NOTE: T10Y2Y and T10Y3M will be COMPUTED from existing DGS10, DGS2, DTB3
+series. Not downloaded separately.
+
+F1  T10Y2Y             10Y-2Y Treasury Spread (Daily, D, COMPUTED from DGS10-DGS2)
+    Most widely cited yield curve measure. Negative = inverted curve. Has
+    predicted every US recession since 1970. Typical lead time: 12-24 months
+    from first inversion to recession. Range: -199bp (1980) to +280bp (2010).
+    Average: +75bp. Inverted ~18% of the time historically.
+
+F2  T10Y3M             10Y-3M Treasury Spread (Daily, D, COMPUTED from DGS10-DTB3)
+    Per Estrella & Mishkin (1996) and FRB NY research: even more reliable
+    than 10Y-2Y. ZERO false positives for recession prediction since 1970.
+    The Fed's preferred yield curve measure.
+
+F3  BAMLH0A0HYM2       ICE BofA US High Yield OAS (Daily, D, 1996+)
+    THE credit stress gauge. Option-adjusted spread of below-investment-grade
+    corporate bonds over Treasuries. LEADING: credit spreads widen BEFORE
+    equity markets decline (1-2 months lead). KEY THRESHOLDS:
+      < 350 bp: very tight, risk-on, complacency
+      350-500 bp: normal
+      500-600 bp: elevated caution
+      600-1000 bp: stress / recession risk
+      > 1000 bp: CRISIS (2008 peak: ~2200 bp, COVID: 1087 bp)
+    Speed matters: +730 bp in 33 days (COVID) was unprecedented velocity.
+    URL: https://fred.stlouisfed.org/series/BAMLH0A0HYM2
+
+F4  BAMLC0A0CM         ICE BofA US Corporate Master OAS (Daily, D, 1996+)
+    Investment-grade credit spread. Broader than HY alone. Widening = even
+    safe companies face higher borrowing costs. Historically narrower range
+    than HY but still very informative about credit conditions.
+    URL: https://fred.stlouisfed.org/series/BAMLC0A0CM
+
+F5  BAA10Y             Moody's Baa - 10Y Treasury Spread (Monthly, M, 1953+)
+    Credit spread for lowest-tier investment-grade bonds. Widening = bond
+    market pricing higher default risk for borderline-IG companies. Long
+    history makes this valuable for historical regime comparison.
+    URL: https://fred.stlouisfed.org/series/BAA10Y
+
+F6  AAA10Y             Moody's Aaa - 10Y Treasury Spread (Monthly, M, 1953+)
+    Credit spread for highest-quality corporate bonds. Widening = even the
+    safest companies face rising credit risk premium.
+    URL: https://fred.stlouisfed.org/series/AAA10Y
+
+F7  AAA                Moody's Seasoned Aaa Corporate Bond Yield (Monthly, M, 1919+)
+    Absolute yield on highest-quality US corporate bonds. Useful as the
+    "risk-free-plus" benchmark. Long history since 1919.
+    URL: https://fred.stlouisfed.org/series/AAA
+
+F8  BAA                Moody's Seasoned Baa Corporate Bond Yield (Monthly, M, 1919+)
+    Absolute yield on lowest-tier investment-grade bonds. Same long history.
+    BAA-AAA spread is the classic credit quality differential.
+    URL: https://fred.stlouisfed.org/series/BAA
+
+F9  MORTGAGE30US       30-Year Fixed Rate Mortgage Average (Weekly, W, 1971+)
+    Primary mortgage rate. Housing affordability proxy. Affects consumer
+    spending via mortgage payments. Typically trades ~1.5-2% above 10Y yield.
+    URL: https://fred.stlouisfed.org/series/MORTGAGE30US
+
+F10 TEDRATE            TED Spread: 3M LIBOR - 3M T-Bill (Daily, D, 1986-2022)
+    DISCONTINUED Jan 2022 due to LIBOR phase-out. Historical data still
+    valuable for historical regime comparison. Classic interbank credit risk
+    measure. 2008 peak: 458bp. Normal: 10-50bp. TED spread was the original
+    "canary in the coal mine" for the 2007-08 financial crisis.
+    URL: https://fred.stlouisfed.org/series/TEDRATE
+
+F11 BAMLC0A4CBBBEY     ICE BofA BBB Effective Yield (Daily, D, 1996+)
+    Yield on BBB-rated corporate bonds. BBB is the largest slice of the IG
+    market. Tracking absolute levels (not just spreads) matters when Treasury
+    yields are volatile.
+    URL: https://fred.stlouisfed.org/series/BAMLC0A4CBBBEY
+
+F12 T5YIFR             5-Year, 5-Year Forward Inflation Expectation (Daily, D, 2003+)
+    What markets expect 5-year inflation to be, starting 5 years from now.
+    Fed's FAVORITE long-term inflation expectations gauge. Strips out near-term
+    volatility. Below 2% = Fed credibility concern (de-anchoring risk).
+    URL: https://fred.stlouisfed.org/series/T5YIFR
+
+F13 DFII10             10-Year TIPS Real Yield (Daily, D, 2003+)
+    Inflation-protected Treasury yield. Measures REAL growth expectations.
+    Rising real yields = tighter financial conditions (discount rate up).
+    Negative real yields = extremely accommodative (bullish for risk assets).
+    URL: https://fred.stlouisfed.org/series/DFII10
+
+F14 DFII5              5-Year TIPS Real Yield (Daily, D, 2003+)
+    Shorter real yield. More sensitive to near-term Fed policy expectations.
+    URL: https://fred.stlouisfed.org/series/DFII5
+
+-------------------------------
+CATEGORY G: FX / INTERNATIONAL / CARRY TRADE (~16 series)
+-------------------------------
+
+G1  DEXJPUS            Japanese Yen / USD Spot (Daily, D, 1971+)
+    Quote: JPY per 1 USD. Rising = USD strengthening / JPY weakening (risk-on
+    for carry trade). Falling = JPY strengthening / USD weakening (CARRY
+    UNWIND). The yen carry trade is the world's largest: borrow cheap JPY
+    (near 0% for decades) → invest in higher-yielding USD assets. A sudden
+    JPY surge (DEXJPUS falling rapidly) forces leveraged positions to unwind
+    → global equity selloff. August 2024: DEXJPUS crashed from ~162 to ~142
+    in weeks → Nikkei -12.4% single day → spilled to SPX.
+    Range: ~75 (2011, post-GFC JPY peak) to ~360 (1970s).
+    URL: https://fred.stlouisfed.org/series/DEXJPUS
+
+G2  DEXUSEU            USD / Euro Spot (Daily, D, 1999+)
+    Quote: USD per 1 EUR. Most traded FX pair globally. EUR weakness (falling)
+    often reflects European macro stress and can drive "flight to USD."
+    URL: https://fred.stlouisfed.org/series/DEXUSEU
+
+G3  DEXCHUS            Chinese Yuan / USD Spot (Daily, D, 1981+)
+    Quote: CNY per 1 USD. China manages this rate. Sudden devaluation (rising
+    rapidly) = China stimulus or capital flight = EM stress signal. The Aug
+    2015 surprise devaluation triggered global equity selloff.
+    URL: https://fred.stlouisfed.org/series/DEXCHUS
+
+G4  DEXKOUS            South Korean Won / USD (Daily, D, 1981+)
+    Quote: KRW per 1 USD. Korea is export-dependent (semiconductors, autos,
+    shipping). Won weakness often LEADS broader EM currency weakness. "Canary
+    in the coal mine" for global trade slowdown.
+    URL: https://fred.stlouisfed.org/series/DEXKOUS
+
+G5  DEXUSUK            USD / British Pound (Daily, D, 1971+)
+    Quote: USD per 1 GBP. Major cross. GBP crashes (2016 Brexit, 2022 mini-
+    budget crisis) signal UK-specific macro risk that can spill to global.
+    URL: https://fred.stlouisfed.org/series/DEXUSUK
+
+G6  DEXMXUS            Mexican Peso / USD (Daily, D, 1993+)
+    Quote: MXN per 1 USD. EM proxy currency. Peso weakness often leads broader
+    EM FX selloffs. Highly liquid EM pair.
+    URL: https://fred.stlouisfed.org/series/DEXMXUS
+
+G7  DTWEXBGS           Broad Trade-Weighted Dollar Index (Daily, D, 2006+)
+    THE most important dollar index. 26 currencies weighted by trade volume.
+    Strong dollar (rising) = tightening global financial conditions:
+      → EM currencies weaken
+      → USD-denominated debt becomes more expensive for EM borrowers
+      → Commodities fall (priced in USD)
+      → US multinational earnings pressured (FX translation)
+    Weak dollar = loosening conditions (bullish for EM, commodities, cyclicals).
+    URL: https://fred.stlouisfed.org/series/DTWEXBGS
+
+G8  DTWEXAFEGS         Advanced Foreign Economies Dollar (Daily, D, 2006+)
+    Dollar vs developed markets only (Euro, Canada, Japan, UK, etc.).
+    URL: https://fred.stlouisfed.org/series/DTWEXAFEGS
+
+G9  DTWEXEMEGS         Emerging Market Economies Dollar (Daily, D, 2006+)
+    Dollar vs EM currencies (China, Mexico, Korea, India, Brazil, etc.).
+    EM dollar rising = EM stress. Often leads EM equity selloffs.
+    URL: https://fred.stlouisfed.org/series/DTWEXEMEGS
+
+G10 IRSTCB01JPM156N    BOJ Policy Rate / Central Bank Rate Japan (M, 1960+)
+    Bank of Japan's main policy interest rate. For decades near 0% (ZIRP).
+    If BOJ hikes → carry trade cost rises → carry unwinds → JPY strengthens →
+    global equity selloff. THE carry trade trigger variable.
+    URL: https://fred.stlouisfed.org/series/IRSTCB01JPM156N
+
+G11 IRLTLT01JPM156N    Japan 10Y Government Bond Yield (Monthly, M, 1989+)
+    JGB 10-year yield. BOJ's Yield Curve Control (YCC) caps this. Changes in
+    YCC band signal BOJ policy shift before rate hikes.
+    URL: https://fred.stlouisfed.org/series/IRLTLT01JPM156N
+
+G12 IR3TIB01JPM156N    Japan 3M Interbank Rate (Monthly, M, 1970+)
+    Short-term yen funding rate. The actual cost of borrowing yen for carry
+    trades. More practical than policy rate for carry calculations.
+    URL: https://fred.stlouisfed.org/series/IR3TIB01JPM156N
+
+G13 IRLTLT01DEM156N    Germany 10Y Government Bond Yield (Monthly, M, 1960+)
+    Bund yield — Eurozone risk-free benchmark. Spread to US 10Y (DGS10 -
+    Bund) shows relative monetary policy stance. Bund negative during
+    2019-2022 (ECB negative rates).
+    URL: https://fred.stlouisfed.org/series/IRLTLT01DEM156N
+
+G14 IRLTLT01GBM156N    UK 10Y Government Bond Yield (Monthly, M, 1960+)
+    Gilt yield — UK benchmark. Gilts crisis Sep 2022 (LDI pension fund margin
+    call) sent yields soaring and forced BOE emergency intervention.
+    URL: https://fred.stlouisfed.org/series/IRLTLT01GBM156N
+
+G15 IR3TIB01EZM156N    Euro Area 3M Interbank Rate (Monthly, M, 1994+)
+    [ALREADY IN EXISTING CODE AS LIBOR_3M_EURO.csv]
+    Euribor 3-month — eurozone short-term rate.
+
+G16 RBUSBIS            BIS Real Broad Effective USD Exchange Rate (M, 1994+)
+    Bank for International Settlements real effective exchange rate (CPI-
+    adjusted). More accurate for competitiveness analysis than nominal indices.
+    URL: https://fred.stlouisfed.org/series/RBUSBIS
+
+-------------------------------
+CATEGORY H: COMMODITIES (~8 series)
+-------------------------------
+
+H1  DCOILWTICO         WTI Crude Oil Spot Price, Cushing (Daily, D, 1986+)
+    US crude oil benchmark. Oil above $100 = consumer spending squeeze and
+    inflation pressure. Oil crash (<$40) = energy sector distress and potential
+    credit events. Negative in April 2020 (storage crisis, -$37/bbl).
+    URL: https://fred.stlouisfed.org/series/DCOILWTICO
+
+H2  DCOILBRENTEU       Brent Crude Oil Spot Price, Europe (Daily, D, 1987+)
+    Global oil benchmark. More representative of worldwide oil prices than WTI.
+    URL: https://fred.stlouisfed.org/series/DCOILBRENTEU
+
+H3  GOLDPMGBD228NLBM   Gold Fixing Price PM, London (Daily, D, 1968+)
+    Gold price in USD per troy ounce. Safe haven + real rate proxy. Gold rises
+    when real yields fall and/or uncertainty rises. Gold/TIPS real yield
+    relationship is one of the strongest in macro.
+    URL: https://fred.stlouisfed.org/series/GOLDPMGBD228NLBM
+
+H4  PCOPPUSDM          Copper Global Price, USD/MT (Monthly, M, 1992+)
+    "Dr. Copper" — the metal with a PhD in economics. Industrial demand proxy.
+    Copper declines often lead industrial production downturns by 3-6 months.
+    Watch copper/gold ratio as a real yield proxy.
+    URL: https://fred.stlouisfed.org/series/PCOPPUSDM
+
+H5  PNGASUSUSDM        Natural Gas US Spot Price (Monthly, M, 1990+)
+    US natural gas price. Impacts electricity costs, industrial input costs,
+    and winter heating bills. Volatile. European nat gas (TTF) even more
+    important post-2022 but not on FRED.
+    URL: https://fred.stlouisfed.org/series/PNGASUSUSDM
+
+H6  PALUMUSDM          Aluminum Global Price (Monthly, M, 1990+)
+    Light industrial metal. Construction, packaging, auto, aerospace demand.
+    URL: https://fred.stlouisfed.org/series/PALUMUSDM
+
+H7  PZINCUSDM          Zinc Global Price (Monthly, M, 1990+)
+    Galvanizing steel, batteries, construction. Industrial demand proxy.
+    URL: https://fred.stlouisfed.org/series/PZINCUSDM
+
+H8  PWHEAMTUSDM        Wheat Global Price (Monthly, M, 1990+)
+    Food commodity benchmark. Food price spikes → consumer sentiment drops →
+    political instability risk for EM importers.
+    URL: https://fred.stlouisfed.org/series/PWHEAMTUSDM
+
+NOTE: IMF commodity price series use the PxxxxxUSDM prefix. Some IDs may
+differ from what is listed. Verification during download.
+
+-------------------------------
+CATEGORY I: SENTIMENT / CONSUMER (~7 series)
+-------------------------------
+
+I1  UMCSENT            Michigan Consumer Sentiment (NSA, Monthly, M, 1978+)
+    THE consumer sentiment benchmark. University of Michigan Survey of Consumers.
+    Range: 44.8 (May 2026 record low) to 111.4. Average: ~85.
+    KEY THRESHOLDS:
+      > 90: optimistic (bullish consumer)
+      70-90: moderate
+      < 70: pessimistic (caution)
+      < 60: SEVERE PESSIMISM — historically associated with recession
+      < 50: RECORD PESSIMISM — near all-time lows
+    Conference Board LEI component (consumer expectations sub-index).
+    Changes ±3-5 pts/mo normally, ±15 pts in extreme months. Gas price
+    spikes cause the fastest sentiment drops.
+    URL: https://fred.stlouisfed.org/series/UMCSENT
+
+I2  CSCICP03USM665S    OECD Consumer Confidence, Amplitude-Adjusted (M, 1960+)
+    OECD's harmonized consumer confidence for US. Normalized to 100 = long-term
+    average. Cross-country comparable (can compare with Germany, Japan, etc.).
+    URL: https://fred.stlouisfed.org/series/CSCICP03USM665S
+
+I3  PSAVERT            Personal Saving Rate (SA, Monthly, M, 1959+)
+    Percentage of disposable income saved. High saving rate = consumers cautious
+    / building buffer. Low saving rate = consumers confident / spending freely.
+    COVID peak: 33.8% (Apr 2020, stimulus + lockdown). 2022-24: ~3-5% (low,
+    spending down savings). Below 3% = unsustainable, future retrenchment risk.
+    URL: https://fred.stlouisfed.org/series/PSAVERT
+
+I4  DSPIC96            Real Disposable Personal Income (SA, Monthly, M, 1959+)
+    [Also listed in Category A15]
+    Consumer purchasing power after taxes AND inflation. Stagnant real income
+    + rising spending = drawing down savings = warning.
+    URL: https://fred.stlouisfed.org/series/DSPIC96
+
+I5  PCE                Personal Consumption Expenditures (SA, Monthly, M, 1959+)
+    [Also listed in Category C12]
+    Nominal consumer spending. 70% of US GDP. Critically important for regime
+    detection: PCE growth deceleration while savings rate is low = recession
+    risk.
+    URL: https://fred.stlouisfed.org/series/PCE
+
+I6  RETAILSMNSA        Advance Retail Sales (NSA, Monthly, M, 1992+)
+    Retail and food services sales. Non-seasonally-adjusted version of RSAFS.
+    Useful for year-over-year comparisons without seasonal distortions.
+    URL: https://fred.stlouisfed.org/series/RETAILSMNSA
+
+I7  MICH               Michigan 1-Yr Inflation Expectations (Monthly, M, 1978+)
+    [Also listed in Category C8]
+    Consumer inflation sentiment. Unanchored expectations = Fed credibility
+    risk. Above 5% = concerning.
+    URL: https://fred.stlouisfed.org/series/MICH
+
+-------------------------------
+CATEGORY J: HOUSING / REAL ESTATE (~3 new series)
+-------------------------------
+[Existing code already has: PERMIT, CSUSHPISA, ASPUS, MSPUS, HOUST, HSN1F, USSTHPI]
+
+J1  UNDCONTSA          Housing Units Under Construction (SA, Monthly, M, 1970+)
+    Pipeline for future completions. High levels = supply coming = rent
+    moderation. Declining = future supply shortage = potential price pressure.
+    URL: https://fred.stlouisfed.org/series/UNDCONTSA
+
+J2  COMPUTSA           New Housing Units Completed (SA, Monthly, M, 1968+)
+    Supply actually hitting the market. Completions vs starts: gap widening =
+    construction delays/labor shortage.
+    URL: https://fred.stlouisfed.org/series/COMPUTSA
+
+J3  MSACSR             Monthly Supply of New Houses (SA, Monthly, M, 1963+)
+    Months of inventory at current sales pace. Above 6 months = buyer's
+    market (housing weakness). Below 3 months = seller's market (tight supply).
+    URL: https://fred.stlouisfed.org/series/MSACSR
+
+-------------------------------
+CATEGORY K: GOVERNMENT / FISCAL (~3 series)
+-------------------------------
+
+K1  GFDEBTN            Federal Debt: Total Public Debt (Quarterly, Q, 1966+)
+    US government total debt outstanding. $34T+ as of 2024. Debt/GDP ratio is
+    key macro variable. Debt ceiling debates cause periodic crisis risk.
+    URL: https://fred.stlouisfed.org/series/GFDEBTN
+
+K2  FYFSD              Federal Surplus or Deficit (Annual, A, 1901+)
+    Annual fiscal deficit. COVID: -$3.1T (2020), -$2.8T (2021). Large deficits
+    = fiscal stimulus = economic support = eventual debt concern.
+    URL: https://fred.stlouisfed.org/series/FYFSD
+
+K3  FYONET             Federal Net Outlays (Annual, A, 1901+)
+    Total federal government spending. Surged in COVID (stimulus checks, PPP).
+    URL: https://fred.stlouisfed.org/series/FYONET
+
+-------------------------------
+CATEGORY L: STOCK MARKET / RISK (~3 series)
+-------------------------------
+[Existing code already has: VIXCLS]
+
+L1  WILL5000IND        Wilshire 5000 Total Market Index (Daily, D, 1970+)
+    Broadest US equity market index. ~3,500+ stocks. Better than S&P 500 for
+    total market cap analysis. Used for "Buffett Indicator" (Market Cap/GDP).
+    URL: https://fred.stlouisfed.org/series/WILL5000IND
+
+L2  SP500              S&P 500 Index (Daily, D)
+    Standard benchmark. FRED's version may have limited history compared to
+    other sources. Use for easy correlation with other FRED data.
+    URL: https://fred.stlouisfed.org/series/SP500
+
+L3  VXVCLS             CBOE 3-Month VIX (VXV) (Daily, D, 2007+)
+    [Also listed in Category E6]
+    93-day implied vol term structure vs 30-day VIX.
+
+================================================================================
+3. MONEY FLOW FRAMEWORK DEEP DIVE
+================================================================================
+
+The single most important framework for predicting medium-term equity market
+direction is the Net Liquidity / Money Flow framework:
+
+PRIMARY FRAMEWORK: Net Liquidity = WALCL - TGA - RRP
+
+  WALCL (Fed Balance Sheet): The "source" of liquidity.
+    - QE (WALCL rising) = Fed creates reserves to buy bonds = banks have more
+      reserves = more capacity to lend and invest = BULLISH for risk assets
+    - QT (WALCL falling) = Fed shrinks balance sheet = reserves drained =
+      BEARISH headwind
+
+  TGA (Treasury General Account): The "drain" #1.
+    - When Treasury collects taxes or issues debt: TGA RISES → money moves
+      FROM bank reserves TO Treasury's Fed account → less money in system
+    - When Treasury spends: TGA FALLS → money flows to households/businesses →
+      more money in system
+    - Tax seasons (Apr, Jun, Sep, Dec 15): TGA surges $100-300B → temporary
+      liquidity drain → often coincides with short-term market weakness
+    - Debt ceiling: TGA drained to near $0 → massive liquidity injection →
+      often coincides with strong market rallies
+
+  RRP (Overnight Reverse Repo): The "drain" #2.
+    - Money Market Funds park cash at Fed instead of lending in repo market
+      or buying T-bills
+    - RRP peaked $2.5T in June 2022 (everyone chasing 5%+ risk-free at Fed)
+    - RRP drained to near $0 by early 2024 as MMFs rotated into T-bills
+      (T-bill yields exceeded RRP rate)
+    - RRP declining = money LEAVING Fed and ENTERING financial markets =
+      BULLISH for risk assets
+    - RRP rising = money LEAVING markets and parking at Fed = BEARISH
+
+THE SEQUENCE (How money flows into/out of markets):
+  1. Fed Net Liquidity (WALCL - TGA - RRP) starts rising
+  2. Money market fund balances (RMFSL) peak and start declining
+  3. Equity fund flows turn positive (ICI weekly data)
+  4. Margin debt starts expanding (FINRA data)
+  5. S&P 500 rises
+
+REVERSAL SEQUENCE:
+  1. Fed Net Liquidity starts falling (QT + TGA surge + RRP surge)
+  2. Money market fund balances start rising again (RMFSL increasing)
+  3. Equity fund flows turn negative
+  4. Margin debt contracts
+  5. S&P 500 declines
+
+THE CASH ROTATION CYCLE:
+  "Sidelines" cash (RMFSL + SAVINGSL + MZMNS) at all-time highs
+    → Fear subsides → cash earns less than risk assets
+    → Cash rotates into equities → SPX rises
+    → Eventually all cash deployed → no more "fuel"
+    → Market tops → Correction → Cash flees back to MMFs (RMFSL surges)
+    → Cycle repeats
+
+Key money flow signals:
+  - RMFSL at ATH while SPX at ATH = late cycle (cash fully deployed)
+  - RMFSL at ATH while SPX correcting = mid-correction (dry powder building)
+  - RMFSL declining while SPX rising = early-to-mid cycle (rotation in)
+  - TIC data negative (foreign selling US equities) while SPX going up =
+    domestic buyers absorbing = fragile rally
+
+================================================================================
+4. HISTORICAL RANGES & CALIBRATION THRESHOLDS
+================================================================================
+
+Table: All-Time Range, Typical Range, and Key Thresholds for Major Indicators
+
+INDICATOR          ALL-TIME LOW    ALL-TIME HIGH   TYPICAL RANGE    RECESSION SIGNAL      EXTREME
+─────────────────────────────────────────────────────────────────────────────────────────────────
+NAPM (ISM PMI)     29.4 (2008)     77.5            48-58 (avg 53)   < 42                  < 40
+NAPMNOI (Orders)   23.0 (2008)     ~80             48-58            < 43.5                < 40
+PAYEMS (ΔM)        -20.5M (COVID)  +4.8M (rebound) +100K to +300K   0 or negative          -500K+
+UNRATE             2.5% (1953)     14.8% (Apr 20)  3.5%-6%          > 4.5% rising         > 6% + accel
+ICSA (claims)      175K (2022)     6.1M (COVID)    200K-400K        +23% from cycle low   > 400K sustained
+JOLTS Openings     2.2M (2009)     12.0M (2022)    5M-8M            < 5M declining fast   < 4M
+Quits Rate         1.2% (2009)     3.0% (2022)     2.0-2.8%         < 2.0%                < 1.5%
+AWHMAN (hours)     33.7 (2020)     42.5 (multiple) 40.0-42.0        < 39.0 sustained      < 38.0
+CPIAUCSL (YoY)     -3.0% (defl)    14.8% (1980)    1.5%-3.5%        > 5% or < 0%          > 8%
+Core CPI (YoY)     0.6% (2010)     13.6% (1980)    1.5%-3.0%        > 4%                  > 6%
+Core PCE (YoY)     ~0.9%            ~10%+ (1970s)   1.5%-2.5%        > 3% (above target)   > 4%
+PPIACO (YoY)       -17% (defl)     25%+ (1970s)    0%-5%            > 8%                  > 15%
+T5YIE (breakeven)  -1.5% (2020)    3.8% (2022)     1.5%-2.5%        < 1.5% or > 3.0%      > 3.5%
+T10YIE             0.5% (2020)     3.0% (2022)     1.8%-2.5%        < 1.5% (defl fear)    > 3.0%
+FEDFUNDS           0.0% (2020)     20.0% (1981)    0%-5.5%          Hikes peaking         300bp+ hike/yr
+WALCL (Fed BS)     $0.7T (2002)    $9.0T (2022)    $4T-$9T          QT shrinking          Emergency surge
+TGA (Treasury acct) ~$0 (debt ceil) $900B+          $200B-$600B      Tax surge $100B+/wk   Debt ceiling ~$0
+RRPONTSYD           ~$0            $2.5T (Jun 2022) $0-$2T           Surge +$500B/mo       > $2T
+RMFSL (MMF Retail)  ~$0.5T         $2.4T (2024)    $1.0T-$2.5T      Surge to ATH          ATH
+T10Y2Y (spread)    -199bp (1980)   +280bp (2010)   +20 to +250bp    Negative (inverted)   < -50bp
+BAMLH0A0HYM2 (HY)  ~250bp          ~2200bp (2008)  300-600bp (avg ~500) > 600bp widening   > 1000bp
+BAA10Y (spread)    ~150bp (tight)  ~600bp+ (2008)  200-400bp         > 400bp               > 500bp
+TEDRATE (spread)   ~5bp            ~458bp (2008)   10-50bp           > 100bp               > 200bp
+NFCI               -1.0 (loose)    +3.5 (2008)     -0.7 to +0.5     > 0 (tightening)      > +1.0
+STLFSI4            -1.5 (loose)    +5.8 (COVID)    -1.0 to +1.0     > 0 (stress)          > +2.0
+USEPUINDXD         20 (calm)       2800+ (2020)    ~100 (avg)        > 300                 > 500
+VIXCLS             9.1 (2017)      82.7 (Mar 2020) 12-25             30-40 (fear)          > 40 (panic)
+UMCSENT            44.8 (2026)     111.4           70-95 (avg 85)    < 60 (severe)         < 50 (record)
+PSAVERT            2.1% (2005)     33.8% (Apr 20)  3%-8%             > 8% (hoarding)       > 15% (crisis)
+DCOILWTICO         -$37 (Apr 2020) $145 (2008)     $60-$100          > $120 (demand hit)   < $40
+Gold (PM fix)      $35 (1968)      >$3000 (2025)   $1200-$2000       Surge (fear)          ATH
+DEXJPUS (Yen/USD)  ~75 (2011)      ~360 (1970s)    ~100-150          Rapid fall >5%/week   Crashing >10%/week
+DTWEXBGS (Dollar)  ~90 (2011)      ~130 (2022)     ~105-125          > 125 (strong)        > 130 (extreme)
+
+================================================================================
+5. CHANGE VELOCITY ANALYSIS
+================================================================================
+
+How fast do indicators typically move? This is CRITICAL for token design:
+"rising fast" vs "rising slowly" must be calibrated to each indicator's
+historical behavior patterns.
+
+INDICATOR           TYPICAL CHANGE   "FAST" CHANGE   "EXTREME" CHANGE   NOTES
+─────────────────────────────────────────────────────────────────────────────────
+NAPM (ISM PMI)      ±1-2 pts/mo     ±5 pts/mo       ±10 pts/mo         Can swing violently at turns
+PAYEMS (payrolls)   ±150-250K/mo    ±500K/mo        ±1M+/mo            -20.5M in Apr 2020
+UNRATE              ±0.1-0.3pp/mo   ±0.5pp/mo       +10.4pp/mo (COVID) ASYMMETRIC: rises fast, falls slow
+ICSA (claims)       ±10-20K/week    ±50K/week       +3M/week (COVID)   Weekly = earliest signal
+JOLTS Openings      ±50-200K/mo     ±500K/mo        ±1M+/mo            Surged 3M+ in 2021 single month
+AWHMAN (hours)      ±0.1-0.2/mo     ±0.5/mo         ±1.0/mo            COVID: -1.5 hours/month
+CPIAUCSL (MoM)      ±0.1-0.3pp      ±0.5pp          ±1.0pp             Seasonal sensitivity high
+PCEPI (MoM)         ±0.1-0.2pp      ±0.4pp          ±0.8pp             Less volatile than CPI
+T5YIE / T10YIE      ±2-5bp/day      ±10bp/day       ±20bp/day          Market-implied → moves fast
+FEDFUNDS            0 (btwn mtgs)   25bp/FOMC         75-100bp emergency   Moves at 6-wk intervals
+WALCL               ±$10-20B/week   ±$50B/week      $1T+/yr QE          Change speed = QE/QT pace
+TGA                 ±$5-20B/week    ±$50B/week      ±$150B/week (tax)   Debt ceiling: -$500B rapidly
+RRPONTSYD           ±$5-10B/day     ±$50B/day       -$2.5T over 2 yrs   Drained slowly, can surge fast
+RMFSL               ±$5-20B/month   ±$50B/month     ±$200B/month        COVID: +$600B in 2 months
+T10Y2Y (spread)     ±2-5bp/day      ±15bp/day       ±50bp/week          Rapid steepening = recession
+BAMLH0A0HYM2        ±10-30bp/month  ±100bp/month    +730bp in 33d (COVID) SPEED > LEVEL
+NFCI                ±0.02-0.05/wk   ±0.10/wk        +3.0 in months      2008: sustained + readings
+USEPUINDXD          ±5-20/day       ±50/day         +500+ in days       COVID: 75 → 500+ in weeks
+VIXCLS              ±0.5-2/day      ±5/day          +30 in 3 days       COVID: +40 in 3 weeks
+UMCSENT             ±3-5 pts/mo     ±10 pts/mo      ±15 pts/mo          Gas shocks = fastest drops
+PSAVERT             ±0.3-0.5pp/mo   ±1.0pp/mo       +15pp/mo (COVID)    Stimulus = spike
+DCOILWTICO          ±$2-5/week      ±$10/week       -$60/week (COVID)   Negative in Apr 2020
+DEXJPUS (Yen/USD)   ±0.5-1%/week    ±3%/week        ±10%+/week (carry)  Aug 2024: -5% in a week
+DTWEXBGS (Dollar)   ±0.2-0.5%/week  ±1.5%/week      ±3%+/week (crisis)  Moves slowly normally
+
+================================================================================
+6. INDICATOR RELATIONSHIPS & SEQUENCING
+================================================================================
+
+Money Flow → Market Direction (PRIMARY FRAMEWORK):
+  Fed Net Liquidity (WALCL - TGA - RRP) rising
+    → Money leaves MMFs (RMFSL declining)
+    → Equity fund flows turn positive (ICI data)
+    → Margin debt expands (FINRA data)
+    → SPX rises
+
+Recession Sequence (12-24 month lead time):
+  T10Y2Y inverts (negative ≥ 30 days)
+    → (12-24 months lag)
+  Credit spreads widen (BAMLH0A0HYM2 > 600bp)
+    → NFCI turns positive
+    → (0-3 months)
+  NAPM drops below 50 → NAPMNOI below 43.5
+    → (1-3 months)
+  Durable Goods Orders (DGORDER) decline
+    → Average weekly hours (AWHMAN) cut
+    → (1-3 months)
+  PAYEMS growth slows to < 100K/month
+    → ICSA rises 23%+ from cycle trough
+    → (3-9 months)
+  UNRATE rises (Sahm Rule triggered)
+    → NBER declares recession
+    → FEDFUNDS cut aggressively
+    → WALCL expands (QE)
+
+Credit Stress → Equity Decline:
+  BAMLH0A0HYM2 widening > 600bp → (1-2 months) → SPX drawdown begins
+  NFCI > 0 → confirming credit stress
+  BAA10Y widening → confirming broader credit deterioration
+
+Dollar → Everything Chain:
+  DTWEXBGS strengthening → Global financial conditions tighten
+    → EM currencies weaken (DEXCHUS↑, DEXKOUS↑, DEXMXUS↑)
+    → Commodities fall (DCOILWTICO↓, PCOPPUSDM↓)
+    → US multinational earnings headwind
+    → TIC flows: foreign selling of US (FORLTEQTYNET99996 negative)
+    → EM equities underperform US
+
+Carry Trade Dynamics:
+  IRSTCB01JPM156N << FEDFUNDS (spread > 300bp) = large carry incentive
+    → DEXJPUS steadily rising (JPY weakening, risk-on)
+    → Leveraged carry positions accumulate (borrow JPY, buy USD assets)
+    → TRIGGER: BOJ hike or US recession scare
+    → DEXJPUS crashes (JPY strengthens 5-10% in days)
+    → Forced carry unwind → Nikkei -5% to -12% single day
+    → Spills to US futures → VIX spike → EM FX selloff
+
+Inflation → Fed → Economy Chain:
+  CPIAUCSL (or Core PCE) rises above target
+    → (3-6 months) FEDFUNDS hikes begin
+    → (12-24 months LONG AND VARIABLE LAG)
+    → Economy slows → NAPM drops
+    → Labor market weakens → CPI moderates
+    → FEDFUNDS cuts begin
+
+Consumer → Spending → Economy Chain:
+  UMCSENT drops below 60
+    → (1-3 months) Retail sales growth slows
+    → (3-6 months) GDP growth decelerates
+    → Personal saving rate (PSAVERT) rises (precautionary saving)
+    → Investment spending contracts
+    → Recession
+
+================================================================================
+7. MARKET LANGUAGE TOKEN DESIGN
+================================================================================
+
+Based on historical ranges and change velocities, here are concrete token
+definitions with calibrated thresholds. Each token is a discrete state that
+becomes part of the global macro regime paragraph.
+
+----- MONEY FLOW TOKENS -----
+
+NET_LIQ_EXPANDING:
+  Net Liquidity (WALCL - WTREGEN - RRPONTSYD) 3-month change > +$200B
+NET_LIQ_STABLE:
+  Net Liquidity 3-month change between -$200B and +$200B
+NET_LIQ_CONTRACTING:
+  Net Liquidity 3-month change < -$200B
+
+QE_ACTIVE_AGGRESSIVE:
+  WALCL monthly increase > $100B (Fed actively buying)
+QE_TAPER:
+  WALCL monthly increase between $0 and $30B (tapering)
+QT_ACTIVE:
+  WALCL monthly decrease > $30B (balance sheet shrinking)
+
+TGA_DRAINING:
+  WTREGEN declining > $50B in a week (Treasury spending = liquidity injection)
+TGA_SURGE:
+  WTREGEN increasing > $100B in a week (tax season = liquidity drain)
+TGA_DEBT_CEILING:
+  WTREGEN < $50B (debt ceiling constraint = massive injection coming)
+
+RRP_DRAINING_BULLISH:
+  RRPONTSYD declining for 4+ consecutive weeks (cash leaving Fed → markets)
+RRP_SURGE_BEARISH:
+  RRPONTSYD increasing > $100B in a month (cash fleeing to Fed)
+
+MMF_BUILDING:
+  RMFSL at 12-month high (cash fleeing to safety)
+MMF_DRAINING:
+  RMFSL declining for 8+ consecutive weeks (cash rotating to risk)
+MMF_RECORD:
+  RMFSL at all-time high
+
+FOREIGN_BUYING_US:
+  FORLTEQTYNET99996 3-month sum > +$20B
+FOREIGN_SELLING_US:
+  FORLTEQTYNET99996 3-month sum < -$20B
+CAPITAL_FLIGHT:
+  FORLTEQTYNET99996 negative AND USLTEQTYNET69995 positive (both avoiding US)
+
+BANK_LENDING_EXPANDING:
+  TOTCI YoY growth > 5%
+BANK_LENDING_CONTRACTING:
+  TOTCI YoY growth < 0% (absolute decline)
+CREDIT_CARD_SURGE:
+  CCLBS YoY growth > 10% (consumer borrowing stress)
+
+----- YIELD CURVE TOKENS -----
+
+YIELD_CURVE_NORMAL:
+  T10Y2Y > +50bp
+YIELD_CURVE_FLAT:
+  T10Y2Y between 0 and +50bp
+YIELD_CURVE_INVERTED:
+  T10Y2Y < 0 for 30+ calendar days
+YIELD_CURVE_DEEP_INVERSION:
+  T10Y2Y < -50bp
+YIELD_CURVE_STEEPENING_RAPIDLY:
+  T10Y2Y 30-day change > +50bp (often signals recession approaching)
+YIELD_CURVE_DISINVERTING:
+  T10Y2Y crossing from negative to positive
+
+----- CREDIT STRESS TOKENS -----
+
+CREDIT_CALM:
+  BAMLH0A0HYM2 < 400bp
+CREDIT_ELEVATED:
+  BAMLH0A0HYM2 between 400-600bp
+CREDIT_STRESS:
+  BAMLH0A0HYM2 > 600bp AND widening > 50bp in 30 days
+CREDIT_CRISIS:
+  BAMLH0A0HYM2 > 1000bp
+CREDIT_SPIKE:
+  BAMLH0A0HYM2 30-day increase > 200bp (rapid deterioration)
+
+----- PMI / BUSINESS CYCLE TOKENS -----
+
+PMI_EXPANDING_STRONG:
+  NAPM > 55 for 3+ consecutive months
+PMI_EXPANDING_MODERATE:
+  NAPM 50-55
+PMI_CONTRACTION_WARNING:
+  NAPM 43-50
+PMI_CONTRACTION_DEEP:
+  NAPM < 43 (broader recession risk)
+PMI_RECOVERY:
+  NAPM crossing above 50 after 3+ months below
+
+PMI_NEW_ORDERS_LEADING_UP:
+  NAPMNOI > 55 AND increasing for 2+ months
+PMI_NEW_ORDERS_RECESSION_SIGNAL:
+  NAPMNOI < 43.5 (12/13 historical recession accuracy)
+
+PMI_PRICES_SURGING:
+  NAPMPRI > 70 for 2+ months (pipeline inflation)
+PMI_PRICES_COLLAPSING:
+  NAPMPRI < 40 (deflationary pressure)
+
+----- EMPLOYMENT TOKENS -----
+
+PAYROLLS_STRONG:
+  PAYEMS MoM > +250K
+PAYROLLS_MODERATE:
+  PAYEMS MoM +100K to +250K
+PAYROLLS_WEAK:
+  PAYEMS MoM 0 to +100K
+PAYROLLS_CONTRACTING:
+  PAYEMS MoM < 0 (job losses)
+
+UNEMPLOYMENT_LOW:
+  UNRATE < 4.0%
+UNEMPLOYMENT_NORMAL:
+  UNRATE 4.0-5.0%
+UNEMPLOYMENT_ELEVATED:
+  UNRATE 5.0-6.5%
+UNEMPLOYMENT_RECESSION:
+  UNRATE > 6.5%
+
+SAHM_RULE_TRIGGERED:
+  UNRATE 3-month avg - 12-month low > 0.5pp (100% recession accuracy since 1970)
+
+JOBLESS_CLAIMS_HEALTHY:
+  ICSA 4-week MA < 250K
+JOBLESS_CLAIMS_ELEVATED:
+  ICSA 4-week MA 250K-350K
+JOBLESS_CLAIMS_SURGING:
+  ICSA 4-week MA > 350K AND > 23% above 12-month trough
+
+JOLTS_QUITS_HIGH:
+  JTSQUR > 2.8% (confident workers)
+JOLTS_QUITS_LOW:
+  JTSQUR < 2.0% (workers staying put)
+
+----- INFLATION TOKENS -----
+
+INFLATION_BELOW_TARGET:
+  Core PCE YoY < 1.5%
+INFLATION_AT_TARGET:
+  Core PCE YoY 1.5-2.5%
+INFLATION_ABOVE_TARGET:
+  Core PCE YoY 2.5-4.0%
+INFLATION_HIGH:
+  Core PCE YoY > 4.0%
+INFLATION_DEFLATION:
+  Core PCE YoY < 0% (deflation risk)
+
+BREAKEVEN_RISING_FAST:
+  T5YIE 30-day change > +30bp (inflation expectations unanchoring)
+BREAKEVEN_FALLING_FAST:
+  T5YIE 30-day change < -30bp (disinflation rapidly priced in)
+
+----- FED / MONETARY POLICY TOKENS -----
+
+FED_HIKING_AGGRESSIVE:
+  FEDFUNDS 6-month change > +150bp
+FED_HIKING_MODERATE:
+  FEDFUNDS 6-month change +25bp to +150bp
+FED_ON_HOLD:
+  FEDFUNDS unchanged for 3+ months
+FED_CUTTING_MODERATE:
+  FEDFUNDS 6-month change -25bp to -150bp
+FED_CUTTING_AGGRESSIVE:
+  FEDFUNDS 6-month change < -150bp (panic cutting)
+FED_EMERGENCY:
+  FEDFUNDS inter-meeting change < -50bp (emergency cut)
+
+----- FX / CARRY TRADE TOKENS -----
+
+CARRY_TRADE_ACTIVE:
+  FEDFUNDS - IRSTCB01JPM156N > 300bp AND DEXJPUS > 140
+CARRY_TRADE_UNWINDING:
+  DEXJPUS 5-day decline > 4% (JPY strengthening rapidly)
+CARRY_UNWIND_EXTREME:
+  DEXJPUS 5-day decline > 8% (forced liquidation cascading)
+
+DOLLAR_STABLE:
+  DTWEXBGS 30-day change between -1% and +1%
+DOLLAR_STRENGTHENING:
+  DTWEXBGS 30-day change > 2%
+DOLLAR_SURGE:
+  DTWEXBGS at 2-year high AND 30-day change > 3%
+DOLLAR_WEAKENING:
+  DTWEXBGS 30-day change < -2%
+
+EM_FX_STRESS:
+  DTWEXEMEGS 30-day change > 3% (EM currencies falling vs USD)
+
+----- FINANCIAL STRESS / VIX TOKENS -----
+
+STRESS_CALM:
+  STLFSI4 < -0.5 AND NFCI < -0.5
+STRESS_NORMAL:
+  STLFSI4 between -0.5 and +0.5
+STRESS_ELEVATED:
+  STLFSI4 > 0.5 AND NFCI > 0
+STRESS_CRISIS:
+  STLFSI4 > 2.0 OR NFCI > 1.5
+
+VIX_COMPLACENCY:
+  VIXCLS < 13
+VIX_NORMAL:
+  VIXCLS 13-20
+VIX_ELEVATED:
+  VIXCLS 20-30
+VIX_FEAR:
+  VIXCLS 30-40
+VIX_PANIC:
+  VIXCLS > 40
+
+POLICY_UNCERTAINTY_NORMAL:
+  USEPUINDXD < 200
+POLICY_UNCERTAINTY_ELEVATED:
+  USEPUINDXD 200-400
+POLICY_UNCERTAINTY_CRISIS:
+  USEPUINDXD > 400 (trade wars, debt ceiling, pandemic)
+
+----- SENTIMENT TOKENS -----
+
+SENTIMENT_OPTIMISTIC:
+  UMCSENT > 90
+SENTIMENT_MODERATE:
+  UMCSENT 70-90
+SENTIMENT_PESSIMISTIC:
+  UMCSENT 60-70
+SENTIMENT_RECESSION_FEAR:
+  UMCSENT < 60
+SENTIMENT_PANIC:
+  UMCSENT < 50 (record-low territory)
+
+SAVING_RATE_LOW:
+  PSAVERT < 3% (consumers spending down savings)
+SAVING_RATE_NORMAL:
+  PSAVERT 3-8%
+SAVING_RATE_HIGH:
+  PSAVERT > 8% (precautionary saving)
+
+----- COMMODITY TOKENS -----
+
+OIL_BEARISH:
+  DCOILWTICO < $50
+OIL_NORMAL:
+  DCOILWTICO $50-90
+OIL_ELEVATED:
+  DCOILWTICO $90-120
+OIL_DEMAND_DESTRUCTION:
+  DCOILWTICO > $120
+
+GOLD_SAFE_HAVEN_BID:
+  GOLDPMGBD228NLBM at 12-month high AND VIXCLS > 25
+GOLD_REAL_YIELD_PROXY:
+  GOLDPMGBD228NLBM inverse to DFII10 (10Y TIPS yield)
+
+COPPER_GROWTH_SIGNAL:
+  PCOPPUSDM YoY > +10% (strong industrial demand)
+COPPER_RECESSION_SIGNAL:
+  PCOPPUSDM YoY < -15% (industrial demand collapsing)
+
+================================================================================
+8. NON-FRED DATA GAP ANALYSIS
+================================================================================
+
+Critical indicators NOT available via FRED API that require alternative sources:
+
+1. FINRA MARGIN DEBT (Monthly)
+   THE leverage indicator. Margin debt peaks near market tops and troughs near
+   market bottoms. Oct 2021 peak: $936B. Jun 2022 trough: $600B.
+   Source: https://www.finra.org/investors/margin-statistics
+   Download format: CSV/XLS directly from FINRA website.
+
+2. ICI MUTUAL FUND / ETF WEEKLY FLOWS
+   THE money flow signal. Weekly estimated flows into equity vs bond mutual
+   funds and ETFs. Shows exactly where retail/institutional money is rotating.
+   Source: https://www.ici.org/research/stats/combined_flows
+   Format: Excel/PDF. Auto-download may require parsing.
+
+3. ISM SERVICES PMI (NMI)
+   Services sector PMI — 77% of US economy. Manufacturing PMI (NAPM) is
+   available on FRED, but Services PMI requires direct ISM subscription.
+   Source: https://www.ismworld.org/supply-management-news-and-reports/reports/ism-report-on-business/services/
+   Cost: ISM charges for data access.
+
+4. CONFERENCE BOARD CONSUMER CONFIDENCE INDEX
+   Alternative consumer sentiment measure to Michigan (UMCSENT which IS on
+   FRED). Different methodology, sometimes diverges significantly.
+   Source: https://www.conference-board.org/topics/consumer-confidence
+
+5. CFTC COMMITMENT OF TRADERS (COT)
+   Weekly futures positioning data. Shows speculative vs commercial positioning
+   in equity index futures, Treasury futures, FX, commodities.
+   Source: https://www.cftc.gov/MarketReports/CommitmentsofTraders/index.htm
+   Extremely valuable for contrarian signals (extreme speculative positioning).
+
+6. ICE DOLLAR INDEX (DXY)
+   The most widely quoted dollar index in financial media. NOT on FRED.
+   FRED alternative: DTWEXBGS (broader, trade-weighted, better for macro).
+   Source: Bloomberg, Reuters, ICE (proprietary).
+
+================================================================================
+9. PRIORITY TIERS
+================================================================================
+
+TIER 1 — MUST HAVE (Daily/Weekly frequency, leading signals):
+  WALCL, WTREGEN, RRPONTSYD, WRESBAL
+  DEXJPUS, DTWEXBGS
+  BAMLH0A0HYM2, BAMLC0A0CM
+  NFCI, STLFSI4
+  T5YIE, T10YIE, DFII10, T5YIFR
+  ICSA, CCSA
+  DCOILWTICO, GOLDPMGBD228NLBM
+  USEPUINDXD
+  VIXCLS (already have), VXVCLS
+  WILL5000IND, SP500 (benchmarks)
+
+TIER 2 — PRIMARY MONTHLY (Key monthly releases):
+  NAPM, NAPMNOI, NAPMEI, NAPMPRI
+  PAYEMS, UNRATE, JTSJOL, JTSQUR, U6RATE
+  CPIAUCSL, CPILFESL, PCEPI, PCEPILFE, PPIACO
+  RMFSL, SAVINGSL, TCDSL, MZMNS
+  UMCSENT, PSAVERT
+  FEDFUNDS
+  FORLTEQTYNET99996 (TIC flows)
+  TOTCI, TOTALSL, TOTBKCR
+  MORTGAGE30US, AAA, BAA, BAA10Y
+  INDPRO, TCU, DGORDER, RSAFS
+  PCOPPUSDM
+
+TIER 3 — CONTEXT / SECONDARY (Longer frequency or supplementary):
+  GFDEBTN, FYFSD, FYONET (annual/quarterly)
+  CSCICP03USM665S (OECD confidence — already have Michigan)
+  TEDRATE (historical only)
+  Other commodities (PALUMUSDM, PZINCUSDM, PWHEAMTUSDM)
+  IRSTCB01JPM156N, IRLTLT01JPM156N (monthly foreign rates)
+  IRLTLT01DEM156N, IRLTLT01GBM156N
+  UNDCONTSA, COMPUTSA, MSACSR (housing — most already covered)
+  RBUSBIS (BIS dollar — have DTWEXBGS)
+  CCLBS, BUSLOANS (supplementary to TOTCI)
+
+================================================================================
+10. REFERENCES
+================================================================================
+
+Academic:
+- Estrella, A. & Mishkin, F.S. (1996). "The Yield Curve as a Predictor of
+  U.S. Recessions." Federal Reserve Bank of New York.
+- Cernohorsky (2016). "Predictive Content of Leading Economic Indicators for
+  Stock Prices." ACC Journal.
+- Lindenau & Demetrescu (2025). "When Do Persistent Predictors Predict Stock
+  Returns Directionally?" TU Dortmund.
+- Baker, Bloom & Davis (2012). "Measuring Economic Policy Uncertainty."
+  policyuncertainty.com
+
+Institutional:
+- The Conference Board. "Leading Economic Index (LEI) Methodology."
+  conference-board.org
+- Federal Reserve H.4.1 Release. "Factors Affecting Reserve Balances."
+  federalreserve.gov
+- Federal Reserve Bank of Chicago. "National Financial Conditions Index (NFCI)."
+  chicagofed.org
+- Federal Reserve Bank of St. Louis. "Financial Stress Index (STLFSI)."
+  stlouisfed.org
+- US Treasury. "Treasury International Capital (TIC) Data."
+  treasury.gov
+
+Data Sources:
+- All FRED series available at: https://fred.stlouisfed.org
+- Each series URL documented in the catalog above.
+
+================================================================================
+END OF REPORT
+================================================================================

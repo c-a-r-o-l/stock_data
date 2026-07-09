@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Market-state retrieval system — project breakdown</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F5F2EB;
+    --paper-2:#FBF9F4;
+    --ink:#272320;
+    --ink-soft:#4A443D;
+    --ink-faint:#736C62;
+    --rule:#DAD3C6;
+    --rule-soft:#E7E1D5;
+    --wine:#8A3C3C;
+    --wine-soft:#F0DED8;
+    --wine-deep:#702E2E;
+    --gold:#9A6B17;
+    --gold-soft:#F2E6C9;
+    --pine:#2F5A4E;
+    --pine-soft:#DCE7E2;
+    --sage:#48663F;
+    --sage-soft:#E0E8D8;
+    --slate:#3A5360;
+    --slate-soft:#DCE5E9;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:"Newsreader",Georgia,serif;
+    font-size:18px;
+    line-height:1.62;
+    -webkit-font-smoothing:antialiased;
+    font-optical-sizing:auto;
+  }
+  .wrap{display:flex;align-items:flex-start;max-width:1180px;margin:0 auto;}
+
+  /* ---------- sidebar nav ---------- */
+  .nav{
+    position:sticky;top:0;height:100vh;width:248px;flex:0 0 248px;
+    padding:34px 22px 34px 30px;border-right:1px solid var(--rule);
+    overflow-y:auto;background:var(--paper);
+  }
+  .nav-brand{font-family:"Fraunces",serif;font-weight:600;font-size:15px;letter-spacing:.01em;line-height:1.3;margin-bottom:4px;}
+  .nav-sub{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:24px;}
+  .nav a{
+    display:block;text-decoration:none;color:var(--ink-soft);
+    font-size:14px;line-height:1.35;padding:6px 0 6px 30px;position:relative;
+    border-left:2px solid transparent;transition:color .15s,border-color .15s;
+  }
+  .nav a .n{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--ink-faint);position:absolute;left:6px;top:7px;}
+  .nav a:hover{color:var(--wine);}
+  .nav a.active{color:var(--wine-deep);border-left-color:var(--wine);font-weight:500;}
+  .nav a.active .n{color:var(--wine);}
+  .nav-rule{height:1px;background:var(--rule-soft);margin:14px 0;}
+
+  /* ---------- main ---------- */
+  .main{flex:1 1 auto;min-width:0;padding:60px 64px 120px;max-width:840px;}
+
+  /* hero */
+  .eyebrow{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--wine);margin-bottom:18px;}
+  h1{font-family:"Fraunces",serif;font-weight:600;font-size:46px;line-height:1.05;letter-spacing:-.015em;margin-bottom:22px;}
+  h1 em{font-style:italic;color:var(--wine);}
+  .lede{font-size:21px;line-height:1.5;color:var(--ink-soft);max-width:62ch;margin-bottom:14px;}
+  .lede strong{color:var(--ink);font-weight:600;}
+  .thesis{
+    border-left:3px solid var(--wine);background:var(--paper-2);
+    padding:20px 24px;margin:30px 0 12px;border-radius:0 8px 8px 0;
+    font-size:18px;line-height:1.55;
+  }
+  .thesis b{font-weight:600;}
+
+  /* legend */
+  .legend{
+    margin:42px 0 8px;padding:24px 26px;background:var(--paper-2);
+    border:1px solid var(--rule);border-radius:10px;
+  }
+  .legend h4{font-family:"IBM Plex Mono",monospace;font-weight:500;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:14px;}
+  .legend-row{display:flex;gap:12px;align-items:baseline;margin-bottom:9px;font-size:15px;line-height:1.45;color:var(--ink-soft);}
+  .legend-row:last-child{margin-bottom:0;}
+  .legend .tag{flex:0 0 auto;}
+
+  /* tags */
+  .tag{
+    display:inline-block;font-family:"IBM Plex Mono",monospace;font-size:10.5px;
+    font-weight:500;letter-spacing:.06em;text-transform:uppercase;
+    padding:3px 9px;border-radius:5px;vertical-align:middle;white-space:nowrap;
+  }
+  .tag-nec{background:var(--wine-soft);color:var(--wine-deep);}
+  .tag-diff{background:var(--gold-soft);color:var(--gold);}
+  .tag-bet{background:var(--slate-soft);color:var(--slate);}
+  .tag-craft{background:var(--sage-soft);color:var(--sage);}
+
+  /* concept marker */
+  .concept{
+    border-bottom:1.5px dotted var(--gold);color:var(--ink);
+    cursor:help;font-weight:500;white-space:nowrap;
+  }
+
+  /* sections */
+  .sec{padding-top:54px;margin-top:10px;border-top:1px solid var(--rule);}
+  .sec:first-of-type{border-top:none;}
+  .sec-num{font-family:"IBM Plex Mono",monospace;font-size:13px;letter-spacing:.1em;color:var(--wine);margin-bottom:6px;}
+  h2{font-family:"Fraunces",serif;font-weight:600;font-size:32px;line-height:1.12;letter-spacing:-.01em;margin-bottom:10px;}
+  .sec-intro{font-size:18.5px;color:var(--ink-soft);max-width:60ch;margin-bottom:8px;}
+
+  h3{font-family:"Fraunces",serif;font-weight:600;font-size:21px;line-height:1.25;margin:34px 0 4px;display:flex;align-items:center;gap:11px;flex-wrap:wrap;}
+  h3 .h3-tags{display:inline-flex;gap:6px;}
+  p{margin:12px 0;}
+  p.tight{margin:8px 0;}
+  strong{font-weight:600;}
+  em{font-style:italic;}
+
+  .why{
+    margin:14px 0;padding:2px 0 2px 18px;border-left:2px solid var(--rule);
+    color:var(--ink-soft);font-size:17px;
+  }
+  .why b{color:var(--wine-deep);font-weight:600;font-style:normal;}
+
+  /* decision block */
+  .decision{margin:22px 0;border:1px solid var(--rule);border-radius:10px;overflow:hidden;background:var(--paper-2);}
+  .decision-head{padding:13px 20px;background:#EFEADF;border-bottom:1px solid var(--rule);font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);}
+  .option{padding:15px 20px;border-bottom:1px solid var(--rule-soft);}
+  .option:last-child{border-bottom:none;}
+  .option-name{font-weight:600;font-size:16.5px;margin-bottom:3px;display:flex;align-items:center;gap:10px;}
+  .option-body{font-size:16px;color:var(--ink-soft);line-height:1.5;}
+  .pick{font-family:"IBM Plex Mono",monospace;font-size:9.5px;font-weight:500;letter-spacing:.05em;padding:2px 7px;border-radius:4px;text-transform:uppercase;}
+  .pick-yes{background:var(--pine);color:#fff;}
+  .pick-base{background:var(--slate);color:#fff;}
+  .pick-no{background:#D8D2C6;color:var(--ink-faint);}
+  .verdict{padding:14px 20px;background:var(--pine-soft);border-top:1px solid var(--rule);font-size:16px;line-height:1.5;}
+  .verdict b{color:var(--pine);font-weight:600;}
+
+  /* note callouts */
+  .note{margin:18px 0;padding:14px 20px;border-radius:9px;font-size:16.5px;line-height:1.52;}
+  .note-trap{background:#FBEEE9;border:1px solid #E9C7BC;}
+  .note-trap b{color:var(--wine-deep);}
+  .note-key{background:var(--gold-soft);border:1px solid #E3D2A6;}
+  .note-key b{color:var(--gold);}
+  .note .label{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;display:block;margin-bottom:5px;font-weight:500;}
+  .note-trap .label{color:var(--wine);}
+  .note-key .label{color:var(--gold);}
+
+  ul.clean{list-style:none;margin:12px 0;}
+  ul.clean li{position:relative;padding-left:22px;margin:7px 0;font-size:16.5px;line-height:1.5;color:var(--ink-soft);}
+  ul.clean li::before{content:"";position:absolute;left:4px;top:11px;width:5px;height:5px;background:var(--wine);border-radius:50%;}
+  ul.clean li b{color:var(--ink);}
+
+  code{font-family:"IBM Plex Mono",monospace;font-size:14px;background:#EBE6DA;padding:1px 6px;border-radius:4px;color:var(--ink);}
+
+  /* build order */
+  .gate{display:flex;gap:18px;margin:16px 0;align-items:flex-start;}
+  .gate-num{flex:0 0 38px;height:38px;border-radius:50%;background:var(--wine);color:#fff;font-family:"Fraunces",serif;font-weight:600;font-size:18px;display:flex;align-items:center;justify-content:center;margin-top:2px;}
+  .gate-body{flex:1;}
+  .gate-title{font-weight:600;font-size:17.5px;margin-bottom:2px;}
+  .gate-desc{font-size:16px;color:var(--ink-soft);line-height:1.48;}
+  .gate-done{font-family:"IBM Plex Mono",monospace;font-size:13px;color:var(--pine);margin-top:5px;}
+  .gate-done::before{content:"gate ▸ ";color:var(--ink-faint);}
+
+  /* concept checklist */
+  .ck-group{margin:20px 0;}
+  .ck-group h4{font-family:"Fraunces",serif;font-weight:600;font-size:18px;margin-bottom:8px;color:var(--wine-deep);}
+  .ck-list{display:flex;flex-wrap:wrap;gap:8px;}
+  .ck{font-family:"IBM Plex Mono",monospace;font-size:13px;padding:5px 11px;background:var(--paper-2);border:1px solid var(--rule);border-radius:6px;color:var(--ink-soft);}
+
+  .closing{margin-top:54px;padding:26px 28px;background:var(--ink);color:#EDE7DC;border-radius:12px;}
+  .closing h2{color:#fff;font-size:25px;margin-bottom:10px;}
+  .closing p{color:#D6CFC2;font-size:17px;}
+  .closing b{color:#fff;}
+
+  .foot{margin-top:40px;padding-top:20px;border-top:1px solid var(--rule);font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--ink-faint);letter-spacing:.04em;}
+
+  @media (max-width:880px){
+    .nav{display:none;}
+    .main{padding:40px 26px 80px;max-width:100%;}
+    h1{font-size:34px;}
+    .lede{font-size:18.5px;}
+    body{font-size:17px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ===================== SIDEBAR ===================== -->
+  <nav class="nav" aria-label="Contents">
+    <div class="nav-brand">Market-state retrieval &amp; prediction system</div>
+    <div class="nav-sub">Project breakdown</div>
+    <a href="#framing"><span class="n">00</span>Framing &amp; the real question</a>
+    <a href="#data"><span class="n">01</span>Data foundation</a>
+    <a href="#signals"><span class="n">02</span>Signals</a>
+    <a href="#labels"><span class="n">03</span>Labels</a>
+    <a href="#representation"><span class="n">04</span>Representation</a>
+    <a href="#retrieval"><span class="n">05</span>Storage &amp; retrieval</a>
+    <a href="#prediction"><span class="n">06</span>Prediction layer</a>
+    <a href="#validation"><span class="n">07</span>Validation &amp; overfitting</a>
+    <a href="#backtest"><span class="n">08</span>Backtesting</a>
+    <a href="#engineering"><span class="n">09</span>Engineering &amp; craft</a>
+    <a href="#narrative"><span class="n">10</span>Narrative</a>
+    <div class="nav-rule"></div>
+    <a href="#buildorder"><span class="n">▸</span>Build order</a>
+    <a href="#concepts"><span class="n">▸</span>Concepts to learn</a>
+  </nav>
+
+  <!-- ===================== MAIN ===================== -->
+  <main class="main">
+
+    <div class="eyebrow">Quant / ML portfolio project · reference map</div>
+    <h1>A market-state <em>retrieval</em> and prediction system</h1>
+    <p class="lede">Every part of this project is one of two things: a step you can't skip, or a fork where you pick a path. This document lays out both — the steps, the forks, the option chosen at each fork, and <strong>why</strong>. It also marks the concepts worth learning as you go.</p>
+
+    <div class="thesis">
+      Strip away the vocabulary and the whole system is <b>k-nearest-neighbors on vectors</b>: turn each historical market window into a list of numbers, store them, and when today arrives find the closest past windows and look at what happened next. Everything sophisticated — encoders, FAISS, embeddings — is just an argument about <b>where the vectors come from</b> and whether the complexity earns its place. The project's real subject is that argument.
+    </div>
+
+    <div class="note note-key">
+      <span class="label">Operating principle</span>
+      <b>Rigor beats architecture.</b> The thing that makes a quant interviewer take this seriously is not the fanciest model — it is visible, ruthless skepticism about your own results. Build the simple version first; force every complex addition to <em>prove</em> it beats the simple one on data it has never seen. A project that says "I built the deep model, tested it honestly, and it didn't justify its cost" is stronger than one claiming a suspicious Sharpe of 2.5.
+    </div>
+
+    <div class="legend">
+      <h4>How to read the tags</h4>
+      <div class="legend-row"><span class="tag tag-nec">Necessary</span><span>Table stakes. Its absence is disqualifying — an interviewer's first questions land here.</span></div>
+      <div class="legend-row"><span class="tag tag-diff">Differentiator</span><span>Rare in student projects. This is what moves you from "did an ML project" to "thinks like a quant."</span></div>
+      <div class="legend-row"><span class="tag tag-bet">Optional bet</span><span>Sophisticated but unproven for this problem. Keep it only if it beats the baseline.</span></div>
+      <div class="legend-row"><span class="tag tag-craft">Craft</span><span>Engineering signal — says you can ship, not just notebook.</span></div>
+      <div class="legend-row"><span class="concept">dotted underline</span><span>A concept worth learning. All of them are compiled at the end.</span></div>
+    </div>
+
+    <!-- ============ 00 FRAMING ============ -->
+    <section class="sec" id="framing">
+      <div class="sec-num">00</div>
+      <h2>Framing &amp; the real question</h2>
+      <p class="sec-intro">Before any code, decide what question the project answers. The framing is itself the most valuable design choice.</p>
+
+      <p>Don't frame this as "I built a stock predictor." Frame it as a <span class="concept">research hypothesis</span>: <em>does a learned sequence representation beat hand-built factors for medium-horizon equity prediction?</em> That single reframing converts a show-and-tell into a controlled experiment — which is exactly what real quant research <em>is</em>: form a hypothesis, test it without fooling yourself, report what's true even when it's disappointing.</p>
+
+      <div class="note note-trap">
+        <span class="label">The trap this avoids</span>
+        <b>The "ooo I used ML" project.</b> Bolting a Transformer onto a problem that hand-built features already solve is the single most common way these projects ring hollow. If you frame the project as a comparison, a negative result ("the encoder didn't help") becomes a finding rather than a failure — and demonstrated self-skepticism is the trait quant desks screen hardest for.
+      </div>
+
+      <p>Everything below serves that comparison. The pipeline produces predictions two ways — a simple way and a sophisticated way — and the project's spine is measuring whether the sophistication was worth it.</p>
+
+      <div class="note note-key">
+        <span class="label">Architecture decision — locked</span>
+        The unit of analysis is the <b>(stock, date) cross-sectional factor vector, standardized against that day's peers.</b> The alternative — per-stock time-sequences collapsed to one embedding per stock — is rejected because the label is cross-sectional (top 10% of stocks <em>that day</em>) and a representation that never saw the peers cannot reconstruct a cross-sectional rank. This is not a preference; it's a structural mismatch. The per-stock sequence architecture is the root cause of nearly every other problem in Plan 2, so the merge adopts the cross-sectional design wholesale.
+      </div>
+    </section>
+
+    <!-- ============ 01 DATA ============ -->
+    <section class="sec" id="data">
+      <div class="sec-num">01</div>
+      <h2>Data foundation</h2>
+      <p class="sec-intro">The least glamorous section and the one most likely to silently invalidate everything else. Get this wrong and every downstream number is fiction.</p>
+
+      <h3>Build a point-in-time universe <span class="h3-tags"><span class="tag tag-nec">Necessary</span></span></h3>
+      <p>Your "200 stocks" must mean <em>which 200 were in your universe on each historical date</em> — including ones that later went bankrupt or were delisted — not "200 companies that exist today."</p>
+      <div class="why"><b>Why it matters:</b> if you pick today's survivors, you've excluded every company that died, and survivors went up by definition. This is <span class="concept">survivorship bias</span>, and it produces a gorgeous backtest that means nothing. You need <span class="concept">point-in-time data</span> with historical <span class="concept">universe construction</span>.</p>
+
+      <h3>Adjust prices correctly <span class="h3-tags"><span class="tag tag-nec">Necessary</span></span></h3>
+      <p>Handle <span class="concept">corporate actions</span> — splits, dividends, spinoffs. A 2-for-1 split halves the raw price overnight; if unadjusted, your model sees a fake −50% return.</p>
+      <div class="why"><b>Why it matters:</b> unadjusted data injects enormous phantom moves that have nothing to do with anything tradeable.</div>
+
+      <h3>Guarantee no future information leaks <span class="h3-tags"><span class="tag tag-nec">Necessary</span></span></h3>
+      <p>Every feature computed for date <em>t</em> may use only data available <em>at the close of t</em>. Nothing from <em>t+1</em> onward.</p>
+      <div class="why"><b>Why it matters:</b> <span class="concept">look-ahead bias</span> (a form of <span class="concept">data leakage</span>) is the cardinal sin of backtesting. It's so easy to commit accidentally that you should write a test that actively hunts for it (see §09).</div>
+
+      <h3>Align multi-frequency data to a daily calendar <span class="h3-tags"><span class="tag tag-nec">Necessary</span> <span class="tag tag-craft">Craft</span></span></h3>
+      <p>Data arrives at different frequencies — daily (OHLC, VIX), weekly (MACD, jobless claims), monthly (CPI), quarterly (EPS, revenue). Every day in your dataset must have the same number of columns, so slower frequencies are <span class="concept">forward-filled</span> to daily: the last known value is carried forward until the next release. This is exactly how a real-time system works.</p>
+      <div class="why"><b>Why it matters:</b> a unified daily grid is the prerequisite for every downstream operation — vector construction, normalization, retrieval. The forward-fill plumbing is reusable across the entire pipeline, and Plan 2's data-alignment section gets this right.</div>
+
+      <h3>Align macro data to release dates, not period dates <span class="h3-tags"><span class="tag tag-diff">Differentiator</span></span></h3>
+      <p>GDP for Q1 (Jan–Mar) is not available on April 1 — it's published at the end of April. Align every macro series to its <em>release date</em>, not to the start or end of the measurement period. This is <span class="concept">release-date alignment</span>.</p>
+      <div class="why"><b>Why it matters:</b> aligning Q1 GDP to January 1 injects three months of future information and produces a backtest that looks amazing and means nothing. This is the single most common look-ahead in macro-aware quant projects — and Plan 2 explicitly gets it right, so it carries forward into the merge.</div>
+
+      <h3>Make forward-fill staleness visible, not trusted <span class="h3-tags"><span class="tag tag-diff">Differentiator</span></span></h3>
+      <p>Quarterly features forward-filled to daily are constant ~98% of the time. In a distance metric a stale constant can dominate "closeness" or be over-represented by column count. Don't trust the encoder or the distance function to handle this silently.</p>
+      <div class="why"><b>Fix:</b> check each factor's constancy/variance share; down-weight or drop near-constant features in the distance calculation; optionally add a <b>"days-since-last-update"</b> feature per factor so staleness is modeled explicitly. This is inspectable in Vector A; a learned embedding hides it — another reason the hand-built vector is the core.</div>
+    </section>
+
+    <!-- ============ 02 SIGNALS ============ -->
+    <section class="sec" id="signals">
+      <div class="sec-num">02</div>
+      <h2>Signals (feature engineering)</h2>
+      <p class="sec-intro">The "Level 1" of the original design. For each stock each day, compute the numbers that describe its state. This is where domain knowledge lives.</p>
+
+      <h3>Choose your factors <span class="h3-tags"><span class="tag tag-nec">Necessary</span></span></h3>
+      <p>Design a set of <span class="concept">factors</span> grounded in <span class="concept">factor investing</span> — momentum (relative strength), trend (distance above a moving average), value (valuation ratios), quality, and fundamentals (EPS revisions), plus volatility. This is <span class="concept">feature engineering</span>.</p>
+      <div class="why"><b>Why this is the right starting representation:</b> finance has decades of knowledge about what carries signal. The fact that you <em>can</em> write these features down by hand is exactly why an encoder (§04) has so little to add here — and why hand-built features are the baseline everything must beat.</div>
+
+      <h3>Normalize before anything compares them <span class="h3-tags"><span class="tag tag-nec">Necessary</span></span></h3>
+      <p>Put factors on a comparable scale — <span class="concept">standardization</span> (z-score to mean 0, standard deviation 1), typically <span class="concept">cross-sectional</span> (rank each stock against the others <em>that day</em>). Also handle outliers via <span class="concept">winsorization</span>.</p>
+      <div class="note note-trap">
+        <span class="label">Silent killer</span>
+        Nearest-neighbor search measures "closeness." If one factor ranges 0–1 and another ranges 0–10,000, the big-scale factor dominates the distance and drowns out the rest — your neighbors become garbage, chosen by whichever number happens to be largest. Skip normalization and the whole retrieval layer quietly breaks.
+      </div>
+
+      <h3>Decide whether to discretize <span class="h3-tags"><span class="tag tag-bet">Optional bet</span></span></h3>
+      <div class="decision">
+        <div class="decision-head">Decision · keep factors continuous, or bin them into tokens?</div>
+        <div class="option">
+          <div class="option-name">Keep continuous vectors <span class="pick pick-yes">Lean here</span></div>
+          <div class="option-body">A day is a vector of real-valued factors. Simpler, loses no information, feeds retrieval directly.</div>
+        </div>
+        <div class="option">
+          <div class="option-name">Discretize into tokens <span class="pick pick-no">Only if needed</span></div>
+          <div class="option-body"><span class="concept">Discretization</span> / binning (e.g. <code>RS_90=95.4 → [RS_90_HIGH]</code>) — the "tokenization" framing from the original plan. Required only if you commit to the Transformer path, which expects token sequences.</div>
+        </div>
+        <div class="verdict"><b>Verdict:</b> the language analogy is mostly decorative — within a single day the "tokens" are an unordered bag of flags, not a sentence. Discretizing throws away precision for no inherent gain. Keep factors continuous unless an encoder forces tokens on you.</div>
+      </div>
+
+      <h3>Don't over-supply signals <span class="h3-tags"><span class="tag tag-diff">Differentiator</span></span></h3>
+      <p>With ~2,520 days × 200 stocks ≈ 500k rows, your <em>statistical</em> limit is far tighter than your hardware limit. Hardware holds a thousand signals in a few GB; your data can only justify roughly the low tens, maybe up to ~100 if genuinely informative.</p>
+      <div class="why"><b>Why:</b> too many features on too few rows is an invitation to <span class="concept">overfitting</span> — the <span class="concept">curse of dimensionality</span>. Knowing the binding constraint is statistical, not computational, is itself a signal of maturity.</div>
+
+      <h3>Add explicit regime features — don't let standardization decide for you <span class="h3-tags"><span class="tag tag-diff">Differentiator</span></span></h3>
+      <p>Cross-sectional z-scoring within each day removes the market's <em>absolute</em> level: "+2σ momentum in calm 2017" and "+2σ in the 2020 crash" land at the same coordinate. For a market-state system you've normalized away regime signal you may want neighbors to share. This is not a bug — it's an inherent tradeoff of the standardization you need elsewhere — but it must be handled deliberately rather than accidentally.</p>
+      <div class="why"><b>Fix:</b> add explicit <b>regime features</b> that are the same for every stock on a given day — VIX / realized vol, index vs 200-day MA, market breadth, cross-sectional dispersion, yield-curve slope, credit spreads. Enter them as raw magnitudes (not binarized). Then <b>decide</b> whether retrieval should match within-regime or across-regime, rather than letting standardization decide by accident. This also feeds the regime-breakdown in §08.</div>
+    </section>
+
+    <!-- ============ 03 LABELS ============ -->
+    <section class="sec" id="labels">
+      <div class="sec-num">03</div>
+      <h2>Labels (the prediction target)</h2>
+      <p class="sec-intro">What is the model actually predicting? Two sub-decisions — the horizon, and how to bucket the outcome.</p>
+
+      <h3>Set the horizon <span class="h3-tags"><span class="tag tag-nec">Necessary</span></span></h3>
+      <p>Predict <span class="concept">forward returns</span> over ~126 trading days (≈ 6 months), not tomorrow.</p>
+      <div class="why"><b>Why 126 and not 1:</b> daily returns are almost pure noise — that's high-frequency territory where you have no edge against colocated servers. The factor-style signals you built only pay off over multi-month horizons, where trends and fundamental repricing play out and noise averages down. The horizon that <em>looks</em> weird is actually the soundest decision in the design — it's the only horizon at which your features are coherent.</div>
+
+      <h3>Choose the label granularity <span class="h3-tags"><span class="tag tag-bet">Optional bet</span></span></h3>
+      <div class="decision">
+        <div class="decision-head">Decision · how many classes? (current plan: top 10% / middle 80% / bottom 10%)</div>
+        <div class="option">
+          <div class="option-name">Binary — top decile vs not <span class="pick pick-base">Try as variant</span></div>
+          <div class="option-body">Easiest to learn, easiest to evaluate (AUC, precision/recall), easiest to explain. A clean detection problem.</div>
+        </div>
+        <div class="option">
+          <div class="option-name">Three classes — 10 / 80 / 10 <span class="pick pick-yes">Keep</span></div>
+          <div class="option-body">Already well-designed: it encodes the truth that only the tails carry signal and lumps the indistinguishable middle into one bucket. This is <span class="concept">cross-sectional ranking</span> via <span class="concept">percentile labeling</span>.</div>
+        </div>
+        <div class="option">
+          <div class="option-name">Ten deciles <span class="pick pick-no">Avoid</span></div>
+          <div class="option-body">Forces the model to separate the 40–50th from the 50–60th percentile — a boundary that is almost entirely noise. Splits scarce data ten ways and invites overfitting.</div>
+        </div>
+        <div class="option">
+          <div class="option-name">Continuous rank (regression) <span class="pick pick-base">Try as variant</span></div>
+          <div class="option-body">Predict the percentile directly (0–1), no arbitrary buckets — <span class="concept">classification vs regression</span> as a deliberate test. Harder to train stably.</div>
+        </div>
+        <div class="verdict"><b>Verdict:</b> more classes is <em>not</em> better here. Adjacent middle buckets differ only by noise. Treat class count as a hyperparameter — ship 10/80/10, also try binary and continuous-rank, and let held-out performance decide. If you ever want ordered buckets, learn <span class="concept">ordinal classification</span> (plain multiclass wastes the ordering).</div>
+      </div>
+
+      <div class="note note-trap">
+        <span class="label">Subtlety that bites later</span>
+        Because each label looks 126 days ahead, windows near a train/test boundary have labels that bleed across it. Watch for <span class="concept">class imbalance</span> too — the tails are rare by construction. The boundary-bleed problem forces the purging step in §07.
+      </div>
+    </section>
+
+    <!-- ============ 04 REPRESENTATION ============ -->
+    <section class="sec" id="representation">
+      <div class="sec-num">04</div>
+      <h2>Representation (the optional encoder)</h2>
+      <p class="sec-intro">The most impressive-sounding part and the most skippable part, at the same time. This is the central fork of the whole project.</p>
+
+      <p>There are <strong>two different vectors</strong> in play, and conflating them is the source of most confusion:</p>
+      <ul class="clean">
+        <li><b>Vector A — hand-built.</b> Your normalized factors, stacked. Small, interpretable, you know what every slot means. Ready to search <em>today</em>.</li>
+        <li><b>Vector B — learned.</b> 64–128 numbers that come <em>out of a neural network</em>. They correspond to nothing nameable — slot 47 is not "EPS revision," it's an abstract coordinate training invented. Sized to the problem, not cargo-culted from BERT.</li>
+      </ul>
+
+      <div class="decision">
+        <div class="decision-head">Decision · which vector feeds retrieval?</div>
+        <div class="option">
+          <div class="option-name">Vector A — hand-built factors <span class="pick pick-base">Baseline · build first</span></div>
+          <div class="option-body">No encoder. Interpretable, cheap, immediately searchable. The honest core of the project.</div>
+        </div>
+        <div class="option">
+          <div class="option-name">Vector B — learned <span class="concept">embeddings</span> <span class="pick pick-no">Prove it or cut it</span></div>
+          <div class="option-body">Train a <span class="concept">Transformer encoder</span> (<span class="concept">BERT</span>-style) over the 60-day sequence; take its output as the vector. Requires <span class="concept">self-attention</span>, <span class="concept">positional encoding</span>, and a training objective.</div>
+        </div>
+        <div class="verdict"><b>Verdict:</b> build A first. Treat B as the hypothesis under test, not the foundation.</div>
+      </div>
+
+      <div class="note note-trap">
+        <span class="label">The label-contamination trap with contrastive learning</span>
+        Training the encoder with <b>contrastive learning on the label</b> (positive pairs = same-outcome windows) bends the representation toward the target before anything predicts the target — so "these historical states are similar to today" partly means "they had similar outcomes," which is what you're trying to predict. Circular. With hand-built Vector A this dissolves by construction — the label touches the pipeline exactly once, at prediction.
+      </div>
+
+      <div class="note note-key">
+        <span class="label">If an encoder is tested (gate 6), the constraints are strict</span>
+        <b>Non-label objective only:</b> reconstruction, masked-feature prediction, or next-step — never the forward-return label. <b>64–128 dim, not 768:</b> sized to ~50 factors and few effective samples, not cargo-culted from BERT's 768. <b>Point-in-time inputs:</b> a self-supervised objective still leaks if the reconstruction target contains forward-looking data. <b>Same pipeline, different vector source:</b> swap Vector B into the identical DB and backtest — that's what makes it a controlled experiment rather than "I also tried a neural net."
+      </div>
+
+      <h3>Understand why it probably won't help <em>here</em> <span class="h3-tags"><span class="tag tag-diff">Differentiator</span></span></h3>
+      <p>Encoders earn their keep when the raw input is high-dimensional and <em>impossible to hand-engineer</em> — text, images, audio, order-book ticks. That's <span class="concept">representation learning</span>'s home turf. Your input is a handful of factors you already chose. You are applying an encoder at the very edge of its useful range, so the burden of proof sits squarely on it.</p>
+      <div class="why"><b>Where it</b> <em>would</em> <b>earn its place in finance:</b> raw tick / order-book data, news text and earnings-call transcripts, or alt-data like satellite imagery — cases where human feature-engineering breaks down. Knowing <span class="concept">encoder vs decoder</span> (why BERT, not GPT) and <span class="concept">Sentence Transformers</span> is worth being able to articulate even if you don't ship the encoder.</div>
+
+      <div class="note note-trap">
+        <span class="label">Honest cost</span>
+        Vector B is a black box. The original plan waves this away by noting the <em>output</em> is still a list of named historical analogues you can eyeball — a fair partial defense — but the embedding itself remains uninterpretable, which for a lot of quant work is disqualifying on its own.
+      </div>
+    </section>
+
+    <!-- ============ 05 RETRIEVAL ============ -->
+    <section class="sec" id="retrieval">
+      <div class="sec-num">05</div>
+      <h2>Storage &amp; retrieval</h2>
+      <p class="sec-intro">Demystified: a "vector database" is a table of number-lists optimized for one operation — given a new list, find the closest stored ones. That's all.</p>
+
+      <h3>Stand up the index <span class="h3-tags"><span class="tag tag-nec">Necessary</span></span></h3>
+      <p>Put every historical window's vector (tagged with its forward outcome) into a <span class="concept">vector database</span> and search it with <span class="concept">FAISS</span> — the engine that makes <span class="concept">approximate nearest neighbor search</span> fast at scale (learn its index types, e.g. <span class="concept">IVF / HNSW</span>).</p>
+      <div class="why"><b>Why it's not exotic:</b> a normal database answers "where id = 4" (equality); a vector DB answers "what's nearest this" (closeness). The "database" framing is largely convenience wrapped around <span class="concept">k-nearest neighbors</span>. For a personal project, raw FAISS + a file is plenty — you don't need a hosted product.</div>
+
+      <div class="note note-key">
+        <span class="label">The key independence</span>
+        <b>The database doesn't care where the vectors come from.</b> Encoder and vector DB are <em>independent</em> choices — you can (and should) run the DB on hand-built Vector A with no encoder at all. Pick your <span class="concept">distance metric</span> deliberately (cosine vs Euclidean) since it defines "closeness."
+      </div>
+    </section>
+
+    <!-- ============ 06 PREDICTION ============ -->
+    <section class="sec" id="prediction">
+      <div class="sec-num">06</div>
+      <h2>Prediction layer</h2>
+      <p class="sec-intro">After retrieval returns the nearest windows, turn them into a forecast. The tools have native jobs — don't make one do another's.</p>
+
+      <div class="note note-trap">
+        <span class="label">Clear up the tool confusion</span>
+        <b>FAISS finds instances; XGBoost predicts outcomes.</b> FAISS already <em>ranks</em> neighbors by closeness, so you never need a model to "find the closest one." And XGBoost is not a search engine — it doesn't return rows from your database. They are not parallel paths — XGBoost's stage-1 features come <em>from</em> the FAISS neighborhood. Keep each in its lane.
+      </div>
+
+      <h3>Build the simple predictor first <span class="h3-tags"><span class="tag tag-bet">Baseline</span></span></h3>
+      <p>Distance-weighted <span class="concept">k-NN regression</span>: take the ~100 nearest windows, weight closer ones more, average their forward outcomes. Interpretable, fast, and the bar everything else must clear.</p>
+
+      <h3>Then the two-stage upgrade <span class="h3-tags"><span class="tag tag-bet">Optional bet</span></span></h3>
+      <p><b>Stage 1 — summarize the neighborhood into features.</b> Don't just average outcomes; compute descriptive numbers about the 100 neighbors: mean outcome, <em>spread</em> (did they agree or disagree?), how <em>close</em> they actually were (dense cluster vs lone window with distant matches), fraction positive. "100 neighbors that strongly agreed" is a different signal from "100 scattered neighbors that disagreed."</p>
+      <p><b>Stage 2 — feed those neighborhood features plus today's static factors into <span class="concept">gradient boosting</span> (<span class="concept">XGBoost</span> / LightGBM).</b> Now the model does its native job: learning the nonlinear mapping to a <span class="concept">calibrated probability</span>, capturing interactions like "agreement matters, but only when volatility is low."</p>
+      <div class="why"><b>Why this beats a plain average:</b> the average throws away everything but the mean — it can't tell a confident neighborhood from a confused one. The two-stage version feeds the <em>quality of the match</em> into the final call.</div>
+
+      <div class="verdict" style="border-radius:9px;border:1px solid var(--rule);">
+        <b>Order:</b> ship weighted k-NN first; keep the XGBoost layer only if it beats k-NN on held-out data. The comparison <em>is</em> the project. Concepts to know for credibility: <span class="concept">probability calibration</span>, <span class="concept">ensembling / stacking</span>, and <span class="concept">feature importance / SHAP</span> for the boosting layer.
+      </div>
+
+      <div class="note note-trap">
+        <span class="label">Neighbor-pool leakage — a second purge, separate from the train/test split</span>
+        <b>Stage-1 features summarize neighbors' forward outcomes.</b> If a neighbor's label period extends past the query date <em>t</em>, that feature leaks post-<em>t</em> info. Standard train/test purging does NOT catch this — the leak is at <em>query construction</em>, not at the split boundary. <b>Admissibility rule:</b> a historical point may enter the neighbor set for query <em>t</em> only if its <em>entire label period ended strictly before t</em>. With a 126-day horizon, the neighbor must be dated ≥ 126 days before <em>t</em>. Enforce this at every retrieval. <b>Purge in two places: the split AND the neighbor pool.</b>
+      </div>
+
+      <p class="tight">There's one genuine alternative: skip explicit retrieval and let the network output the probability <em>directly</em> (the classifier head from §04). More accurate in principle, but you lose the "here are the 100 analogues" story — which is exactly what makes a retrieval system explainable to a PM and easy to talk about in an interview. For your purposes the retrieval version is more defensible <em>because</em> you can show your work.</p>
+    </section>
+
+    <!-- ============ 07 VALIDATION ============ -->
+    <section class="sec" id="validation">
+      <div class="sec-num">07</div>
+      <h2>Validation &amp; preventing overfitting</h2>
+      <p class="sec-intro">Where amateur quant projects quietly die. The question "how can you test on historical data?" is healthy — the answer is: never train on all of it.</p>
+
+      <h3>Split by time, never randomly <span class="h3-tags"><span class="tag tag-nec">Necessary</span></span></h3>
+      <p>Train on the earliest dates, validate on a later slice, test on the latest — and never let the model touch the test slice during training. Use <span class="concept">walk-forward / time-series cross-validation</span>, not a random shuffle.</p>
+      <div class="why"><b>Why not shuffle:</b> a random 80/20 split puts future dates into training and past dates into test — the future leaks into the past. In normal ML you can shuffle; in markets every sample is dated and ordering is information.</div>
+
+      <h3>Purge and embargo around the label window <span class="h3-tags"><span class="tag tag-diff">Differentiator</span></span></h3>
+      <p>Leave a 126-day gap between train and test so a window's forward-looking label can't bleed across the boundary. This is <span class="concept">purging and embargoing</span>.</p>
+      <div class="why"><b>Why:</b> without the gap, training data literally contains information about the test period and your backtest is a leak dressed as a result. This is rare in student work and exactly what an interviewer probes.</div>
+
+      <h3>Report against effective N, not raw window count <span class="h3-tags"><span class="tag tag-diff">Differentiator</span></span></h3>
+      <p>Overlapping windows with long forward-return labels mean thousands of "samples" contain only a few hundred <em>independent</em> observations. The embargo protects the train/test <em>boundary</em> but not independence <em>within</em> a set — adjacent windows share most of their label period, so metrics inflate from sample re-use, not from signal.</p>
+      <div class="why"><b>The honest approach — train on everything, report on effective N:</b> keep overlapping windows for training (more samples still help fitting), but attach every headline metric to its true independent-sample count: <b>effective N ≈ calendar span ÷ label horizon</b> (e.g. "AUC 0.71, effective N ≈ 20 periods/stock, not 8,000 windows"). Measure test metrics only on held-out outcomes that share no label period with training. Bootstrap confidence intervals over <b>non-overlapping blocks</b>, not individual days — and combine with the deflated Sharpe for the number of variants tried. Report honest CIs: "Sharpe 0.8, 95% CI [0.2, 1.4] on ~20 independent periods."</div>
+
+      <h3>Respect the multiple-testing problem <span class="h3-tags"><span class="tag tag-diff">Differentiator</span></span></h3>
+      <div class="note note-trap">
+        <span class="label">The silent killer almost nobody admits to</span>
+        Try twenty strategy variants, keep the best, and you've <b>overfit to your own backtest</b> by hand — you used the test set as a slow training set. This is <span class="concept">multiple testing</span> / <span class="concept">data snooping</span>. The brutal fix: iterate only on the <em>validation</em> slice, and touch the true <em>test</em> slice exactly once, at the very end. Learn the <span class="concept">deflated Sharpe ratio</span> to quantify the inflation.
+      </div>
+
+      <h3>Apply standard regularization <span class="h3-tags"><span class="tag tag-craft">Craft</span></span></h3>
+      <p>The model-level tools — <span class="concept">regularization</span> (dropout, weight decay), early stopping — matter but are table stakes; they're not where projects fail. Understand the <span class="concept">bias-variance tradeoff</span> underneath them.</p>
+    </section>
+
+    <!-- ============ 08 BACKTEST ============ -->
+    <section class="sec" id="backtest">
+      <div class="sec-num">08</div>
+      <h2>Backtesting</h2>
+      <p class="sec-intro">A simulation that replays history as if trading live, using only information that existed at each moment. A clean backtest can still lie — but a dirty one always does.</p>
+
+      <h3>Simulate with realistic frictions <span class="h3-tags"><span class="tag tag-nec">Necessary</span></span></h3>
+      <p>Walk forward through the held-out period; at each date act only on information available then; when a signal fires, simulate the trade and hold 126 days. Subtract <span class="concept">transaction costs</span> — <span class="concept">bid-ask spread</span>, commissions, <span class="concept">slippage</span>.</p>
+      <div class="why"><b>Why costs are non-negotiable:</b> many strategies that look profitable gross are negative net of costs. "Did you include costs?" is an opening question; "no" ends the conversation. Show how Sharpe degrades as costs rise.</div>
+
+      <h3>Report risk-adjusted metrics, not just return <span class="h3-tags"><span class="tag tag-diff">Differentiator</span></span></h3>
+      <p>Compute the <span class="concept">equity curve</span> and then <span class="concept">Sharpe ratio</span>, <span class="concept">Sortino</span> (downside-only volatility), <span class="concept">Calmar</span>, <span class="concept">maximum drawdown</span>, hit rate, and <span class="concept">turnover</span>.</p>
+      <div class="why"><b>Why:</b> "22% annualized" sounds naive; "Sharpe 0.9, max drawdown 18%, high turnover so cost-sensitive" sounds like someone who's sat on a desk. Risk-adjusted thinking is the entire language of the field.</div>
+
+      <h3>Beat the dumb baselines <span class="h3-tags"><span class="tag tag-nec">Necessary</span></span></h3>
+      <p>Compare against <span class="concept">benchmarks</span>: buy-and-hold the index, a moving-average crossover, logistic regression on raw factors.</p>
+      <div class="why"><b>Why:</b> the project's entire claim is "the sophisticated thing beats the dumb thing." Without the comparison, no number means anything. If you can't beat "buy the index and nap," there's no value — and saying that honestly is a strength.</div>
+
+      <h3>Break results down by regime <span class="h3-tags"><span class="tag tag-diff">Differentiator</span></span></h3>
+      <p>Show performance across <span class="concept">regimes</span> — bull vs bear, high- vs low-volatility, stress periods (2020, 2022).</p>
+      <div class="why"><b>Why:</b> strategies aren't uniformly good; a serious quant knows <em>when</em> their edge exists. Even returns bucketed by VIX level shows this.</div>
+
+      <h3>Ask whether the result is luck <span class="h3-tags"><span class="tag tag-diff">Differentiator</span></span></h3>
+      <p>Is your Sharpe distinguishable from chance? Use <span class="concept">bootstrap confidence intervals</span> over <b>non-overlapping blocks</b> (not individual days — they share label periods and inflate the effective sample), and combine with the deflated Sharpe from §07.</p>
+      <div class="why"><b>Why:</b> a single history is one sample; a good-looking backtest can be pure noise. Demonstrating you know this is a genuinely advanced signal. Note the residual humility: the past is one sample, so even a clean backtest is fallible — out-of-sample paper-trading is the only real proof.</div>
+    </section>
+
+    <!-- ============ 09 ENGINEERING ============ -->
+    <section class="sec" id="engineering">
+      <div class="sec-num">09</div>
+      <h2>Engineering &amp; craft</h2>
+      <p class="sec-intro">Says "I can ship, not just notebook." This directly answers the feedback that vibe-coded projects fail because you can't speak to the code. Here, be able to speak to every line.</p>
+
+      <h3>Make it modular and reproducible <span class="h3-tags"><span class="tag tag-craft">Craft</span></span></h3>
+      <p>Separate modules for data, features, model, backtest. A config file instead of hardcoded values. A fixed seed so results reproduce. A README that lets someone run it.</p>
+      <div class="why"><b>Why:</b> <span class="concept">modular pipeline design</span> and <span class="concept">reproducibility</span> (seeds, config) are the contrast between "engineered" and "vibe-coded" — exactly what an interviewer probes when they ask you to walk through the repo.</div>
+
+      <h3>Version control with intent <span class="h3-tags"><span class="tag tag-craft">Craft</span></span></h3>
+      <p>Meaningful commits in <span class="concept">git</span>, and ideally light <span class="concept">experiment tracking</span> — even a logged table of <code>config → out-of-sample Sharpe</code> across your runs.</p>
+      <div class="why"><b>Why:</b> signals you treat ML as disciplined empirical practice, not a pile of one-off scripts.</div>
+
+      <h3>Write the leakage test <span class="h3-tags"><span class="tag tag-diff">Differentiator</span></span></h3>
+      <p>Even a few <span class="concept">unit tests</span> — and the most quant-relevant one asserts that no feature on date <em>t</em> uses data from <em>t+1</em>.</p>
+      <div class="why"><b>Why:</b> look-ahead is the cardinal sin, so a test that actively hunts for it is a flex. It proves you understand the failure mode well enough to automate catching it.</div>
+
+      <h3>Make the pipeline reasonably fast <span class="h3-tags"><span class="tag tag-craft">Craft</span></span></h3>
+      <p>A <span class="concept">vectorized</span> pipeline; show you can profile and fix a bottleneck (<span class="concept">performance profiling</span>).</p>
+      <div class="why"><b>Why:</b> especially for US / Chicago desks, this connects to the C++/performance dimension they care about.</div>
+    </section>
+
+    <!-- ============ 10 NARRATIVE ============ -->
+    <section class="sec" id="narrative">
+      <div class="sec-num">10</div>
+      <h2>Narrative &amp; writeup</h2>
+      <p class="sec-intro">Underrated, often decisive. The difference between a school project and a piece of research is the framing around it.</p>
+
+      <h3>Write it up as a question, not a product <span class="h3-tags"><span class="tag tag-diff">Differentiator</span></span></h3>
+      <p>Methodology, results, and an honest conclusion — including a negative result if that's what you got. "Does a learned representation beat hand-built factors at this horizon?" with a real answer.</p>
+      <div class="why"><b>Why:</b> this <em>is</em> what quant research looks like. A demonstrable web app or clean repo plus this writeup turns the project into your interview "main narrative" — the thing you can talk about for fifteen minutes.</div>
+
+      <h3>Name your own limitations first <span class="h3-tags"><span class="tag tag-diff">Differentiator</span></span></h3>
+      <p>A section on what would break this in production: <span class="concept">capacity constraints</span>, <span class="concept">regime change</span>, the fact that you used daily closes you can't actually trade at.</p>
+      <div class="why"><b>Why:</b> naming your project's weaknesses before the interviewer does is one of the strongest possible signals — it's precisely the self-skepticism the field runs on.</div>
+
+      <div class="note note-trap">
+        <span class="label">What NOT to add</span>
+        <b>Resist piling on more models and data sources.</b> The amateur failure mode is breadth without depth — five half-built models, none evaluated. One strategy, evaluated to death with everything above, is far stronger. This is the same scope lesson from the "our journey" app: finished, rigorous, and modest beats sprawling and unfinished, every time.
+      </div>
+    </section>
+
+    <!-- ============ BUILD ORDER ============ -->
+    <section class="sec" id="buildorder">
+      <div class="sec-num">▸</div>
+      <h2>Build order</h2>
+      <p class="sec-intro">A sequence, so the numbering is real. Each gate has a "done when" bar. Don't advance until the gate is met.</p>
+
+      <div class="gate"><div class="gate-num">1</div><div class="gate-body"><div class="gate-title">Clean data foundation + multi-frequency alignment</div><div class="gate-desc">Point-in-time universe, adjusted prices, forward-fill alignment of all frequencies to daily, release-date alignment of macro data, staleness-aware feature checks.</div><div class="gate-done">a leakage unit test passes on the feature pipeline; every factor's constancy/variance is profiled.</div></div></div>
+      <div class="gate"><div class="gate-num">2</div><div class="gate-body"><div class="gate-title">Hand-built factors + regime features → normalized Vector A</div><div class="gate-desc">A modest factor set plus explicit market-regime features (VIX, breadth, yield curve, credit spreads), cross-sectionally standardized. Staleness modeled where relevant.</div><div class="gate-done">every factor is on a comparable scale; no scale dominates distance; regime signal is explicit, not lost to standardization.</div></div></div>
+      <div class="gate"><div class="gate-num">3</div><div class="gate-body"><div class="gate-title">Vector DB + weighted k-NN predictor with neighbor-pool purge</div><div class="gate-desc">FAISS index over Vector A; distance-weighted neighbor average as the forecast. Neighbor admissibility rule enforced at every retrieval.</div><div class="gate-done">end-to-end prediction runs on held-out dates; no neighbor's label period overlaps the query date.</div></div></div>
+      <div class="gate"><div class="gate-num">4</div><div class="gate-body"><div class="gate-title">Purged backtest + baselines + risk metrics + effective-N reporting</div><div class="gate-desc">Walk-forward with embargo, transaction costs, Sharpe/Sortino/drawdown, vs buy-and-hold and a simple rule. All metrics reported against effective independent-sample count.</div><div class="gate-done">you can state whether the simple system beats the index, net of costs, with honest confidence intervals.</div></div></div>
+      <div class="gate"><div class="gate-num">5</div><div class="gate-body"><div class="gate-title">Two-stage XGBoost layer with neighbor-pool leakage guard</div><div class="gate-desc">Neighborhood-summary features + static factors + regime features → calibrated probability. Neighbor-pool admissibility enforced at query construction.</div><div class="gate-done">measured against the k-NN baseline on the validation slice — kept only if it wins.</div></div></div>
+      <div class="gate"><div class="gate-num">6</div><div class="gate-body"><div class="gate-title">The encoder — only now, with strict constraints</div><div class="gate-desc">Non-label objective (reconstruction / masked-feature), 64–128 dim, point-in-time inputs. Swap Vector B into the identical pipeline and re-run the identical backtest.</div><div class="gate-done">does it beat hand-built Vector A on unseen data? Either answer is a publishable finding — the experiment, not the model, is the deliverable.</div></div></div>
+      <div class="gate"><div class="gate-num">7</div><div class="gate-body"><div class="gate-title">Significance + regime analysis + writeup</div><div class="gate-desc">Bootstrap over non-overlapping blocks, deflated Sharpe, breakdown by regime, research-style report with limitations named first. Test slice touched exactly once.</div><div class="gate-done">the report answers one question honestly: did the sophisticated thing beat the simple thing?</div></div></div>
+    </section>
+
+    <!-- ============ CONCEPTS ============ -->
+    <section class="sec" id="concepts">
+      <div class="sec-num">▸</div>
+      <h2>Concepts to learn</h2>
+      <p class="sec-intro">Every marked term, compiled by area. You don't need all of them before starting — learn each as its gate arrives. The ones tied to data integrity and validation are the highest-yield for interviews.</p>
+
+      <div class="ck-group">
+        <h4>Data integrity</h4>
+        <div class="ck-list">
+          <span class="ck">survivorship bias</span><span class="ck">point-in-time data</span><span class="ck">universe construction</span><span class="ck">corporate actions / adjustment</span><span class="ck">look-ahead bias</span><span class="ck">data leakage</span><span class="ck">forward-fill / data alignment</span><span class="ck">release-date alignment</span><span class="ck">staleness / constancy profiling</span>
+        </div>
+      </div>
+
+      <div class="ck-group">
+        <h4>Features &amp; factors</h4>
+        <div class="ck-list">
+          <span class="ck">factor investing</span><span class="ck">feature engineering</span><span class="ck">momentum / value / quality factors</span><span class="ck">standardization (z-score)</span><span class="ck">cross-sectional ranking</span><span class="ck">winsorization</span><span class="ck">discretization / binning</span><span class="ck">curse of dimensionality</span><span class="ck">regime features</span>
+        </div>
+      </div>
+
+      <div class="ck-group">
+        <h4>Labels &amp; targets</h4>
+        <div class="ck-list">
+          <span class="ck">forward returns</span><span class="ck">prediction horizon</span><span class="ck">percentile labeling</span><span class="ck">classification vs regression</span><span class="ck">class imbalance</span><span class="ck">ordinal classification</span>
+        </div>
+      </div>
+
+      <div class="ck-group">
+        <h4>Representation learning</h4>
+        <div class="ck-list">
+          <span class="ck">embeddings</span><span class="ck">representation learning</span><span class="ck">Transformer encoder</span><span class="ck">self-attention</span><span class="ck">positional encoding</span><span class="ck">BERT</span><span class="ck">encoder vs decoder (BERT vs GPT)</span><span class="ck">contrastive learning</span><span class="ck">masked language modeling</span><span class="ck">Sentence Transformers</span>
+        </div>
+      </div>
+
+      <div class="ck-group">
+        <h4>Retrieval</h4>
+        <div class="ck-list">
+          <span class="ck">vector database</span><span class="ck">k-nearest neighbors</span><span class="ck">approximate nearest neighbor search</span><span class="ck">FAISS</span><span class="ck">index types (IVF / HNSW)</span><span class="ck">distance metrics (cosine / Euclidean)</span>
+        </div>
+      </div>
+
+      <div class="ck-group">
+        <h4>Prediction</h4>
+        <div class="ck-list">
+          <span class="ck">k-NN regression (distance-weighted)</span><span class="ck">gradient boosting (XGBoost / LightGBM)</span><span class="ck">probability calibration</span><span class="ck">ensembling / stacking</span><span class="ck">feature importance / SHAP</span>
+        </div>
+      </div>
+
+      <div class="ck-group">
+        <h4>Validation &amp; overfitting</h4>
+        <div class="ck-list">
+          <span class="ck">walk-forward / time-series CV</span><span class="ck">purging &amp; embargoing</span><span class="ck">neighbor-pool purging</span><span class="ck">multiple testing / data snooping</span><span class="ck">deflated Sharpe ratio</span><span class="ck">effective N / overlapping-window autocorrelation</span><span class="ck">regularization (dropout, weight decay)</span><span class="ck">bias-variance tradeoff</span><span class="ck">overfitting</span>
+        </div>
+      </div>
+
+      <div class="ck-group">
+        <h4>Backtesting &amp; risk</h4>
+        <div class="ck-list">
+          <span class="ck">backtesting</span><span class="ck">transaction costs</span><span class="ck">slippage</span><span class="ck">bid-ask spread</span><span class="ck">equity curve</span><span class="ck">Sharpe ratio</span><span class="ck">Sortino ratio</span><span class="ck">Calmar ratio</span><span class="ck">maximum drawdown</span><span class="ck">turnover</span><span class="ck">benchmark / baseline</span><span class="ck">regime analysis</span><span class="ck">bootstrap confidence intervals</span><span class="ck">non-overlapping block bootstrap</span>
+        </div>
+      </div>
+
+      <div class="ck-group">
+        <h4>Engineering &amp; framing</h4>
+        <div class="ck-list">
+          <span class="ck">modular pipeline design</span><span class="ck">reproducibility (seeds, config)</span><span class="ck">version control (git)</span><span class="ck">experiment tracking</span><span class="ck">unit testing (leakage tests)</span><span class="ck">vectorization / profiling</span><span class="ck">research hypothesis framing</span><span class="ck">capacity constraints</span><span class="ck">regime change</span>
+        </div>
+      </div>
+    </section>
+
+    <div class="closing">
+      <h2>The one thing to hold onto</h2>
+      <p>The version of this project that helps your applications most is almost the <b>opposite</b> of the version that sounds most impressive. Plan 2 sells maximal architecture — Transformer encoders, contrastive learning, 768-dim embeddings. What Jane Street, QRT, and GSA actually screen for is maximal <b>rigor</b> — the baselines, the leakage controls, the cost modeling, the willingness to report that the cool model lost.</p>
+      <p style="margin-top:16px;">The merge resolves the conflict by adopting the breakdown's cross-sectional (stock, date) spine and treating Plan 2 as reusable data plumbing plus a single late-stage experiment. The encoder is <b>not</b> a co-equal path — it's a challenger that must beat hand-built Vector A on unseen data, using a non-label objective and dimensions sized to the problem (64–128, not 768). That sequencing — build A, freeze the pipeline, swap B in, re-run the identical backtest — is what turns "I have two methods" into "I ran a controlled experiment." Which, per this document's own thesis, <b>is</b> the project.</p>
+    </div>
+
+    <div class="foot">Generated as a working reference · pair with the Green Book and LeetCode — this project complements them, it doesn't replace them.</div>
+
+  </main>
+</div>
+
+<script>
+  (function(){
+    var links = Array.prototype.slice.call(document.querySelectorAll('.nav a'));
+    var sections = links.map(function(a){
+      var id = a.getAttribute('href').slice(1);
+      return document.getElementById(id);
+    });
+    function onScroll(){
+      var y = window.scrollY + 120;
+      var current = -1;
+      for (var i=0;i<sections.length;i++){
+        if (sections[i] && sections[i].offsetTop <= y) current = i;
+      }
+      links.forEach(function(l){ l.classList.remove('active'); });
+      if (current >= 0) links[current].classList.add('active');
+    }
+    window.addEventListener('scroll', onScroll, {passive:true});
+    onScroll();
+  })();
+</script>
+</body>
+</html>
