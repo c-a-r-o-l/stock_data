@@ -2,6 +2,7 @@
 __pycache__/
 *.pyc
 .venv/
+.pytest_cache/
 
 # Data files (too large for git)
 data/History_1_D/
@@ -15,6 +16,9 @@ data/History_4_F_clean/
 data/History_6_merge/
 data/History_4_E_Alfred/
 data/History_4_E_Alfred_Release/
+data/History_4_F_2/
+data/History_4_F_Dividend/
+data/History_4_F_Dividend_Correct/
 
 # Market data
 data/History_0_MKT/
@@ -24,6 +28,9 @@ data/History_0_MKT/
 
 # Environment
 .env
+
+# Backups
+*.bak
 
 # OS
 .DS_Store

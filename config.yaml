@@ -1,0 +1,46 @@
+# config.yaml — analysis pipeline constants
+# Phase 0 scaffolding.  All constants live here; no magic numbers in code.
+
+# ── Universe (D3 amendment 2026-07-26, decision_log) ────────────────────────
+# The universe is implicitly defined by betas.parquet / all_merged.parquet.
+# As rebuilt 2026-07-26: 280 symbols (244 stocks + 36 ETFs).
+#   206 dividend-corrected (close_unadj from History_4_F_Dividend/)
+#    38 negligible-exposure retained (post-2021 IPOs, immaterial bug impact)
+#    33 AFFECTED dropped (materially corrupt CLOSE, no dividend schedule)
+#    36 ETFs (price data clean, no fundamentals)
+# See: docs/decision_log.md (2026-07-26), docs/coverage_amendment_analysis.md
+
+# ── Beta estimation ──────────────────────────────────────────────────────
+beta_window: 252           # trading days for OLS beta estimation
+beta_min_valid: 126        # minimum valid observations per estimation window
+beta_shrink_weight: 0.67   # Blume shrinkage weight toward cross-sectional mean
+
+# ── Return horizon ───────────────────────────────────────────────────────
+horizon_days: 63           # forward return horizon in trading days (~1 quarter)
+
+# ── Clustering ───────────────────────────────────────────────────────────
+regime_k_range: [4, 5, 6]       # k-means k for market regimes
+finstate_k_range: [3, 4, 5]     # k-means k for financial states
+unclassified_pctile: 95          # distance percentile threshold for unclassified
+
+# ── Episode segmentation ─────────────────────────────────────────────────
+episode_min_days: 10        # minimum trading days for a valid episode
+min_episodes: 4             # minimum episodes per symbol for inclusion
+min_span_years: 3           # minimum calendar span for a symbol's history
+
+# ── Bootstrap ────────────────────────────────────────────────────────────
+bootstrap_resamples: 500    # joint pipeline block-bootstrap resamples
+bootstrap_block_days: 126   # block length in trading days (~6 months)
+
+# ── Cross-section ────────────────────────────────────────────────────────
+min_cross_section: 100      # minimum stocks per day for cross-sectional regression
+
+# ── Fold boundaries (YYYY-MM) ────────────────────────────────────────────
+folds:
+  train_start: "2000-07"
+  train_end: "2011-12"
+  validation: ["2012", "2019"]
+  sealed_start: "2020-01"
+
+# ── Reproducibility ──────────────────────────────────────────────────────
+seed: 42

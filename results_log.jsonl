@@ -1,0 +1,2 @@
+{"timestamp": "2026-07-26T21:25:00.218605", "config_hash": "2ab154deffd5", "git_commit": "ab66596556a485269c57764069ac58bd379fbd46", "phase": "T3.2a", "key_outputs": {"features": 11, "train_rows": 2393, "ari_k4": 0.6019, "ari_k5": 0.6505, "ari_k6": 0.669}}
+{"timestamp": "2026-07-26T21:48:42.019225+00:00", "config_hash": "2ab154deffd5", "git_commit": "ab66596556a485269c57764069ac58bd379fbd46", "phase": "T3.2b", "key_outputs": {"K": 4, "unclassified_pct": 7.3, "uncl_2020": 16.2, "uncl_2022": 62.9, "train_hash": "9df92883d982"}}

@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Conditional Structure in Stock Returns · Canonical Implementation Guide</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#ECEFF2; --panel:#FFFFFF;
+    --ink:#1A2B3A; --soft:#55697A; --line:#D3DBE2;
+    --frame:#1D4E6B; --frame-tint:#E2EAF1;
+    --eg:#1C7A67; --eg-tint:#E3F1ED;
+    --pit:#B4670A; --pit-tint:#F6EDDD;
+    --req:#1D4E6B; --req-tint:#E2EAF1;
+    --rec:#1C7A67; --rec-tint:#E3F1ED;
+    --opt:#55697A; --opt-tint:#E6EAEE;
+    --oq:#8A4B9E;  --oq-tint:#F0E7F4;
+    --display:"Newsreader","PingFang SC","Hiragino Sans GB",serif;
+    --body:"Inter","PingFang SC","Hiragino Sans GB",sans-serif;
+    --mono:"JetBrains Mono","SF Mono",ui-monospace,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html{scroll-behavior:smooth;}
+  body{background:var(--bg);color:var(--ink);font-family:var(--body);line-height:1.7;-webkit-font-smoothing:antialiased;padding:0 22px;}
+  .wrap{max-width:860px;margin:0 auto;}
+
+  header{padding:80px 0 36px;}
+  .kicker{font-family:var(--mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--frame);margin-bottom:24px;}
+  h1{font-family:var(--display);font-weight:600;font-size:clamp(30px,5vw,48px);line-height:1.12;letter-spacing:-.01em;margin-bottom:16px;}
+  .sub{font-size:17px;color:var(--soft);max-width:640px;}
+
+  nav.toc{margin:32px 0;padding:20px 26px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);}
+  nav.toc ol{list-style:none;columns:2;column-gap:36px;}
+  nav.toc li{padding:4px 0;font-size:14px;}
+  nav.toc a{color:var(--ink);text-decoration:none;}
+  nav.toc a:hover{color:var(--frame);}
+  nav.toc .n{font-family:var(--mono);color:var(--frame);font-size:12px;margin-right:8px;}
+  @media(max-width:620px){nav.toc ol{columns:1;}}
+
+  section{padding:48px 0;border-top:1px solid var(--line);}
+  .sec-num{font-family:var(--mono);font-size:12px;letter-spacing:.14em;color:var(--frame);display:inline-flex;align-items:center;gap:12px;margin-bottom:12px;}
+  .sec-num .badge{width:30px;height:30px;border-radius:8px;background:var(--frame);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-family:var(--display);font-weight:600;}
+  h2{font-family:var(--display);font-weight:600;font-size:clamp(23px,3.4vw,30px);line-height:1.16;margin-bottom:18px;letter-spacing:-.01em;}
+  h3{font-family:var(--display);font-weight:600;font-size:19.5px;margin:30px 0 6px;}
+  h4{font-family:var(--display);font-weight:600;font-size:16.5px;margin:20px 0 4px;}
+  p{margin:11px 0;font-size:15px;}
+  .lead{font-size:16.5px;}
+  strong{font-weight:600;}
+  em{font-style:italic;}
+  .q{font-size:18px;font-family:var(--display);color:var(--frame);border-left:3px solid var(--frame);padding:4px 0 4px 18px;margin:18px 0;font-style:italic;}
+  code,.k{font-family:var(--mono);font-size:.85em;background:#E0E6EC;padding:1px 6px;border-radius:4px;}
+  pre{font-family:var(--mono);font-size:12.5px;line-height:1.6;background:#20303D;color:#DCE6EE;border-radius:10px;padding:16px 18px;overflow-x:auto;margin:14px 0;}
+  pre .c{color:#7E97A8;}
+  table{border-collapse:collapse;width:100%;margin:14px 0;font-size:13.5px;}
+  th,td{border:1px solid var(--line);padding:7px 10px;text-align:left;vertical-align:top;}
+  th{background:var(--frame-tint);font-weight:600;font-size:12.5px;}
+  ul.clean{list-style:none;margin:10px 0;}
+  ul.clean li{padding:5px 0 5px 20px;position:relative;font-size:14.5px;}
+  ul.clean li::before{content:"—";position:absolute;left:0;color:var(--frame);}
+  ol.steps{margin:10px 0 10px 22px;}
+  ol.steps li{padding:4px 0;font-size:14.5px;}
+
+  /* decision ledger box */
+  .decision{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--frame);border-radius:12px;padding:18px 22px;margin:18px 0;}
+  .decision .did{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--frame);margin-bottom:8px;}
+  .decision .drow{display:flex;gap:12px;padding:6px 0;border-top:1px dashed var(--line);font-size:14px;}
+  .decision .drow:first-of-type{border-top:none;}
+  .decision .dlabel{flex:none;width:96px;font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;padding-top:3px;}
+  .l-prev{color:var(--soft);} .l-prob{color:var(--pit);} .l-now{color:var(--eg);} .l-why{color:var(--frame);}
+  .decision p{margin:4px 0;font-size:14px;}
+
+  /* task cards */
+  .task{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 18px;margin:12px 0;}
+  .task .thead{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:4px;}
+  .task .tid{font-family:var(--mono);font-size:12px;color:var(--frame);font-weight:500;}
+  .task .tname{font-weight:600;font-size:15px;}
+  .task p{font-size:13.8px;margin:6px 0;}
+  .task ul.clean li{font-size:13.8px;}
+  .done{font-size:12.5px;font-family:var(--mono);color:var(--eg);background:var(--eg-tint);border-radius:6px;padding:5px 10px;margin-top:8px;display:inline-block;}
+  .chip{font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;padding:2px 9px;border-radius:6px;white-space:nowrap;}
+  .chip-req{background:var(--req-tint);color:var(--req);}
+  .chip-rec{background:var(--rec-tint);color:var(--rec);}
+  .chip-opt{background:var(--opt-tint);color:var(--opt);}
+  .chip-d{background:#20303D;color:#fff;}
+
+  /* open question */
+  .oq{background:var(--oq-tint);border-radius:12px;padding:18px 22px;margin:18px 0;}
+  .oq .tag{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--oq);margin-bottom:8px;display:flex;align-items:center;gap:8px;}
+  .oq .tag::before{content:"?";font-family:var(--display);font-weight:600;font-size:14px;}
+  .oq p{margin:6px 0;font-size:14px;}
+  .oq ul.clean li::before{color:var(--oq);}
+
+  /* pitfall / example (kept from Plan 4 family) */
+  .pit{background:var(--pit-tint);border-radius:12px;padding:16px 20px;margin:16px 0;}
+  .pit .tag{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--pit);margin-bottom:8px;display:flex;align-items:center;gap:8px;}
+  .pit .tag::before{content:"▲";font-size:9px;}
+  .pit p{margin:5px 0;font-size:14px;}
+  .eg{background:var(--eg-tint);border-radius:12px;padding:16px 20px;margin:16px 0;}
+  .eg .tag{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--eg);margin-bottom:8px;display:flex;align-items:center;gap:8px;}
+  .eg .tag::before{content:"◆";font-size:9px;}
+  .eg p{margin:5px 0;font-size:14px;}
+
+  /* interview Q&A */
+  .iq{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 18px;margin:12px 0;}
+  .iq .quest{font-family:var(--display);font-style:italic;font-size:15.5px;color:var(--frame);margin-bottom:6px;}
+  .iq p{font-size:14px;margin:5px 0;}
+
+  footer{padding:52px 0 88px;font-family:var(--mono);font-size:12px;color:var(--soft);letter-spacing:.03em;text-align:center;}
+  .xref{font-family:var(--mono);font-size:11.5px;color:var(--soft);}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="kicker">Canonical implementation guide · v1.1 · 2026-07-24 · supersedes prior notes where they conflict</div>
+  <h1>Conditional Structure in Stock&nbsp;Returns</h1>
+  <p class="sub">The complete manual: what the project is, every design decision with the reasoning that produced it, and a step-by-step build order. Priorities: <strong>finish the project</strong> and <strong>survive a hostile interview</strong>, ahead of theoretical perfection. Decisions still open are marked <span class="chip" style="background:var(--oq-tint);color:var(--oq)">Open question</span> — nothing is silently chosen.</p>
+
+<p class="sub" style="margin-top:10px;font-size:14px;">v1.1 · plan and reasoning are canonical here; current build state lives in <code>CLAUDE.md</code> and the phase reports under <code>docs/</code>.</p>
+</header>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- STATUS BLOCK — where we actually are as of 2026-07-29                 -->
+<!-- This updates, not rewrites, the guide.  Decisions are unchanged;      -->
+<!-- state and open questions have moved.                                  -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<div class="decision" style="margin:28px 0;border-left-color:var(--eg);">
+<div class="did" style="color:var(--eg);">STATUS BLOCK · 2026-07-29</div>
+<p><strong>Phases complete:</strong> 0 (scaffold), 1 (data sanity, coverage, adjustment check), T2.1 (PIT betas rebuilt on reconstructed prices, COST β 2.00→0.73), T2.2 (beta-residualized rank labels, 1.19M rows, 243 stocks), T3.1 (11 regime features, leakage-passed), T3.2 (k=4 frozen, forward labels, unclassified threshold at p95). Phase 4 (financial-state clustering) is next.</p>
+
+<p><strong>What changed since v1.0 (2026-07-19):</strong></p>
+<ul class="clean" style="margin-left:0;">
+<li><strong>Dividend adjustment fully resolved.</strong> Guide's OQ5 treated this as "verify split dates." Phase&nbsp;1 found 66 symbols with <em>subtracted</em> dividends. Fix: <code>close_unadj</code> from <code>History_4_F_Dividend/</code> + <code>History_4_F_Dividend_Correct/</code> (569/624 symbols). Applied 2026-07-26: 206 symbols corrected, 38 negligible (post-2021 IPOs) retained, 33 AFFECTED dropped per D3 amendment (universe: 280 symbols = 206 + 38 + 36 ETFs). Betas, all_merged CLOSE, and labels all rebuilt on corrected prices. <strong>Issue closed.</strong></li>
+
+<li><strong>11 regime features (not 15).</strong> Guide assumed ~14 core features. Built and screened 15, finalized at 11: breadth and VIX term-structure features dropped after discovering their source columns are vendor dead-started (NYSE breadth dead until 2007-09-10, SP/ND above-MA until 2010-03-08, VIX_9D until 2011-01-04, VIX_6M until 2013-11-29). Price, macro, and GVR columns are clean from day&nbsp;1. BAA10Y (Moody's, 1986→) replaced truncated BAML* HY OAS (ICE-licensed, 2023+). Full dead-start audit and feature lineage at <code>docs/data_issues_log.md</code> items 2–6.</li>
+
+<li><strong>Regime clustering frozen at k=4.</strong> k-selection diagnostics (T3.2a): block-bootstrap stability ARI=0.60 (k=4), 0.65 (k=5), 0.67 (k=6). Chose k=4 on episode-usability grounds: panic cluster has 9 independent episodes over 9.2 years (well above the D6 bar of ≥4 episodes over ≥3 years). All 4 clusters pass D6. Frozen model, per-cluster p95 unclassified thresholds, and forward-applied labels (2002-07→2026-07) saved. 2022 fires 62.9% unclassified — the frozen model correctly reports "I don't know" on the rates-driven bear market that has no training-window analogue. COVID (2020) fires 16.2% unclassified; most COVID days land in the panic cluster honestly (VIX/credit features resembled GFC). D9 working as designed.</li>
+
+<li><strong>Macro series replaced or flagged:</strong> BAML* → BAA10Y (full history). TEDRATE zombie (LIBOR, 2022). Caught by 140-series staleness audit (<code>docs/macro_coverage_audit.csv</code>).</li>
+
+<li><strong>New data folders</strong> (<code>History_4_F_2</code>, <code>History_4_F_Dividend</code>, <code>History_4_F_Dividend_Correct</code>) exist; the guide's §2 data table predates them. Described in <code>DATA_INVENTORY.md</code> §7b–7d.</li>
+
+<li><strong>OQ6 tension surfaced:</strong> breadth and VIX features are dead-started until 2007–2013, so the 2000→2011 training window is thin on those dimensions. Documented in <code>docs/decision_log.md</code> — NOT settled, partner decision tied to OQ2/OQ6.</li>
+</ul>
+
+<p><strong>What has NOT changed:</strong> all 15 design decisions (D1–D15). The approach, label definition, validation protocol, and build order from §3 are unchanged. Open questions OQ1–OQ4 and OQ7 remain unresolved. The sealed folds are untouched.</p>
+
+<p style="font-size:13px;color:var(--soft);">This block is a living update on state and open questions, not a rewrite. The guide's decisions and reasoning are canonical; CLAUDE.md and the phase reports are canonical on build status. When this block and the guide disagree on a decision, the guide wins; when they disagree on status, this block wins.</p>
+</div>
+
+<nav class="toc">
+  <ol>
+    <li><a href="#s0"><span class="n">00</span>Main idea</a></li>
+    <li><a href="#s1"><span class="n">01</span>Decision ledger (D1–D15)</a></li>
+    <li><a href="#s2"><span class="n">02</span>Data layer</a></li>
+    <li><a href="#s3"><span class="n">03</span>Implementation manual</a></li>
+    <li><a href="#s4"><span class="n">04</span>Metrics — what counts as good</a></li>
+    <li><a href="#s5"><span class="n">05</span>Open questions (OQ1–OQ7)</a></li>
+    <li><a href="#s6"><span class="n">06</span>Interview readiness</a></li>
+    <li><a href="#s7"><span class="n">07</span>Runtime &amp; effort budget</a></li>
+    <li><a href="#s8"><span class="n">08</span>Deliverables &amp; signed limitations</a></li>
+  </ol>
+</nav>
+
+<!-- ================= 00 MAIN IDEA ================= -->
+<section id="s0">
+  <div class="sec-num"><span class="badge">0</span>MAIN IDEA</div>
+  <h2>What this project is</h2>
+
+  <p class="lead">This is <strong>exploratory, interpretable research</strong> — not a trading system, not a prediction machine, and not a claim of found alpha. The question:</p>
+  <p class="q">Under which market regimes, for companies in which financial states, showing which price structures, do stocks tend to perform well relative to their peers — and is that regularity real, measurable, and stable enough to be trusted out of sample?</p>
+
+  <p>"Conditional structure" means: the relationship between a stock's characteristics and its future returns is not fixed — it changes with the market environment — and that change can be quantified. Not "I can predict returns," but "the <em>rules</em> governing returns shift with regime, and I can show when and by how much."</p>
+
+  <h3>The three axes and the pipeline</h3>
+  <p>Three <strong>independent, crossed</strong> condition axes (crossed, not nested — they take values independently, and the statistics cross them; merging or nesting them would destroy the interaction being studied):</p>
+  <pre>price series  → personal indicator → structure state  ┐   (stock, day)      two-layer
+market data   → clustering         → regime state      ├─→   table      →   Fama-MacBeth
+fundamentals  → clustering         → financial state   ┘   + rank label     B0→B1→B2→B3</pre>
+  <p>One row per (stock, day). Example row: <code>(AAPL, 2018-03-15) → regime #2 "calm growth" · financial cluster #1 "profitable compounder" · structure intact, leg 3, +12% above leg origin · label 0.83</code> — meaning AAPL's beta-residualized forward 3-month return beat 83% of the universe that day.</p>
+  <p><strong>Why two axes are clustered and one is hand-encoded:</strong> clustering is what you do when you have <em>no theory</em> and want the data to sort itself (no strong prior on what the market's "seasons" are). For price structure you <em>do</em> have a theory — the indicator — so you impose it rather than letting an algorithm grope for it. The price data is <strong>never clustered</strong>; the indicator <em>is</em> the third axis. There is no fourth ingredient. Raw price paths are never fed in directly: they aren't comparable across stocks and eras, and learning a representation from them is the path this project deliberately killed — effective sample size can't support it. Everything enters pre-digested into a small number of nameable states.</p>
+
+  <h3>The governing constraint: effective sample size</h3>
+  <p><strong>Row counts lie.</strong> Forward label windows overlap (~62 of 63 days shared between adjacent days) and the regime is shared market-wide, so the number of genuinely independent observations is tiny. A regime that occurred ~4 times in history offers ~4 independent pieces of evidence about itself, no matter how many trading days or stocks it spans. Like restaurant reviews: 1,000 reviews from your own 3 visits are 3 opinions, not 1,000. Every major design choice below — coarse discrete buckets, a 3-month horizon, two-way interactions as primary, episode-level counting — is sized to this ceiling. It is a physical limit; nothing can conjure more recessions.</p>
+
+  <h3>What success and failure look like</h3>
+  <p><strong>A positive finding:</strong> "High-leverage cyclicals earn top-quartile cross-sectional ranks in expansion regimes but bottom-quartile in risk-off regimes; the effect held in the 2000s and 2010s slices, survived multiple-testing correction, and confirmed on held-out data. Structure states added incremental conditioning power beyond regime and fundamentals."</p>
+  <p><strong>A null finding is also a finding:</strong> "Once effective sample size and multiple testing were accounted for, no conditional pattern survived confirmation; the apparent regime-dependence was noise." That is a defensible research result. For a prediction machine, a null result is just a machine that doesn't work. This asymmetry is the design's real cleverness — it is why the exploratory framing was chosen (D1) and why the project cannot be dismissed as "fancy models hiding that nothing was found."</p>
+  <div class="eg">
+    <div class="tag">Framing analogy</div>
+    <p>Nutrition research, not diet pills. The pill seller promises weight loss; the researcher says "among people who don't exercise much, cutting refined sugar is associated with weight loss, and this held in three separate cohorts." More cautious, harder to knock down — and it's the latter that interviewers trust.</p>
+  </div>
+
+  <h3>Positioning: what is and isn't novel</h3>
+  <p>The skeleton is <strong>not novel, and an interviewer will recognize it immediately</strong>: conditional factor models go back to Ferson–Harvey (early 1990s); regime-switching return models to Hamilton (1989); "value works in some environments and not others" has a whole practitioner literature (AQR, Man Group publish regime-conditioned factor performance); several funds have publicly blogged clustering macro data into 4–6 regimes. Fama-MacBeth is the workhorse of half of empirical asset pricing. That is fine, arguably good: nobody expects a student summer project to discover alpha; they expect <strong>craft</strong>, and a well-trodden framework lets the methodology be judged against a known standard.</p>
+  <p>Two things <em>are</em> yours: <strong>the path-dependent structure indicator</strong> (nobody has tested that specific state variable in this framework, and it is treated as a hypothesis to falsify, not a premise) and <strong>the rigor discipline</strong>. The one-line positioning: <em>the framework is standard; the indicator and the honesty about effective sample size are mine.</em> Don't sell novelty.</p>
+  <p><strong>Resolving "isn't this obvious?":</strong> the <em>hypothesis</em> ("relationships depend on regime") is obvious; the <em>answer</em> is not. Which combinations flip? By how many percentile points? Did the flip survive 2008? How many apparent patterns die after correction? (Empirically: most.) "Exercise is good for you" is obvious; a dose-response study with confidence intervals is science. The quantified, correction-surviving, out-of-sample-confirmed map is the non-obvious deliverable.</p>
+
+  <h3>Why the rigor is the point: the replication crisis</h3>
+  <p>The central controversy of empirical finance's last decade. Academics published a <strong>"zoo" of 300+ anomalies</strong>. Hou, Xue &amp; Zhang replicated 447 with consistent methods: <strong>64% insignificant at the 5% level; 85% insignificant</strong> at the stricter t≈3 bar recommended by Harvey–Liu–Zhu, who concluded "most claimed research findings in financial economics are likely false." Diagnosed causes: p-hacking, publication bias, thousands of researchers testing thousands of characteristics with nobody correcting for the combinations tried across the whole field. The debate isn't settled — Jensen et al. (2023, <em>J. Finance</em>) argue ~75–82% replicate under a Bayesian treatment — but every side agrees the field got burned by multiple testing.</p>
+  <p>Scanning many (regime × financial × structure) cells is <strong>structurally the same activity that produced the zoo</strong>. That is why the guardrails — counting tests, sealed confirmation, effective-N counting — are not polish; they are the machinery separating a real conditional effect from a coin that landed heads eight times because 500 coins were flipped. The fact that obvious-sounding regularities fail this often is exactly why "I tested honestly and here is what survived" has value.</p>
+</section>
+
+<!-- ================= 01 DECISION LEDGER ================= -->
+<section id="s1">
+  <div class="sec-num"><span class="badge">1</span>DECISIONS</div>
+  <h2>Decision ledger — every major choice, with its history</h2>
+  <p class="lead">Each entry: what we previously planned, why it was wrong or fragile, what we do now, and why. Reasoning lives here; the how-to lives in §3 and cross-references these IDs. Entries tagged <span class="chip chip-d">Settled #n</span> correspond to the six explicitly settled decisions from the working discussion.</p>
+
+  <div class="decision" id="d1">
+    <div class="did">D1 · Project framing</div>
+    <div class="drow"><span class="dlabel l-prev">Previously</span><p>A prediction machine: hand-built factor vectors ("Vector A") indexed in FAISS; k-NN over nearest historical analogues, upgraded to XGBoost calibrated probabilities; purged cost-aware walk-forward backtest reporting Sharpe/Sortino/drawdown; a Transformer encoder ("Vector B") as challenger.</p></div>
+    <div class="drow"><span class="dlabel l-prob">Problem</span><p>It ultimately promised a Sharpe ratio — the exact number it admitted rests on ~20 effective independent observations. To top quant firms a "prediction project stacked with trendy components" is a negative: they see hundreds yearly and suspect nothing real inside. And a null result is just a machine that doesn't work.</p></div>
+    <div class="drow"><span class="dlabel l-now">Now</span><p>An exploratory study of conditional structure: two-layer Fama-MacBeth on regime × financial-state × structure interactions against forward cross-sectional rank. No backtest, no accuracy metrics, no tradability claim (explicitly out of scope). Retrieval demoted to optional visualization; encoder to stretch goal; RL rejected.</p></div>
+    <div class="drow"><span class="dlabel l-why">Why</span><p>Continues the old plan's own thesis — "rigor beats architecture" — far enough to delete the architecture. Success ("is the conditional regularity stable?") becomes a claim the data can actually support, and a null result becomes a defensible finding. The traded-away desk story ("did the sophisticated thing beat the simple thing net of costs") is answered in interviews with a deliberate "out of scope" (§6).</p></div>
+  </div>
+
+  <div class="decision" id="d2">
+    <div class="did">D2 · The label <span class="chip chip-d">Settled #1</span></div>
+    <div class="drow"><span class="dlabel l-prev">Previously</span><p>v1: top 10% by total 3-month return. v2 (the old plan's "fix"): excess return relative to the market. v3: cross-sectional rank of raw return.</p></div>
+    <div class="drow"><span class="dlabel l-prob">Problem</span><p>v1: total return contains beta — in a bull market top gainers are just the most market-sensitive names, so "good stock" collapses into "bet on market direction." v2 is a <strong>no-op under a rank label</strong>: subtracting the same market return from every stock changes no ranks — <code>rank(rᵢ) = rank(rᵢ − r_m)</code> identically. v3 strips the common <em>level</em> but not the beta channel, because the beta problem lives in the <em>ordering</em>: high-beta names rank top in up-markets and bottom in down-markets regardless. Without a real fix, "conditional structure" risks rediscovering "beta works in bull regimes." (The v2 error survived in earlier notes; this entry is the corrected canonical version.)</p></div>
+    <div class="drow"><span class="dlabel l-now">Now</span><p><strong>Beta-residualized rank:</strong> label = cross-sectional percentile rank of <code>rᵢ − βᵢ·r_m</code> over the forward 63-trading-day window, ranked within the universe each day. βᵢ estimated point-in-time (trailing 252 days, only data before t), winsorized cross-sectionally at the 1st/99th percentiles, shrunk toward 1 (Blume: β* = 0.67β̂ + 0.33). Additionally, β̂ enters layer-1 as a control regressor as a robustness check (residual beta catch).</p></div>
+    <div class="drow"><span class="dlabel l-why">Why</span><p>Removes the beta ordering channel while keeping the rank label's virtues: naturally relative to the peer universe (in a raging bull market every raw return may be +20%, but ranks still separate winners from losers) and robust to level shifts across eras. Point-in-time estimation avoids look-ahead (a full-sample beta is leakage of the classic full-sample-normalization kind); shrinkage/winsorization stop noisy single-stock betas from dominating the residuals. The 252-day window is an arbitrary constant → it joins the perturbation-check list (D12's principle applied beyond the indicator).</p></div>
+  </div>
+
+  <div class="decision" id="d3">
+    <div class="did">D3 · Universe &amp; survivorship <span class="chip chip-d">Settled #2 · #3</span></div>
+    <div class="drow"><span class="dlabel l-prev">Previously</span><p>Plan text: "universe fixed, including delisted companies" — with the clean version living in CRSP/Compustat-tier subscriptions or student-priced Sharadar/Norgate. A middle path was considered: point-in-time S&amp;P 500 / Nasdaq-100 index membership reconstructed from public constituent-change histories ("in universe on day t iff in the index on day t"), which recovers removed-but-not-delisted names nearly for free.</p></div>
+    <div class="drow"><span class="dlabel l-prob">Problem</span><p>Buying delisted-inclusive data: cost and effort disproportionate to a resume/interview project. Point-in-time membership: judged too much wrangling for the payoff by the project owner. Meanwhile "fixed universe" was underspecified everywhere — a list fixed at any single date is itself selection (today's names = survivorship even with delisted data; a 2000 snapshot excludes later IPOs).</p></div>
+    <div class="drow"><span class="dlabel l-now">Now</span><p><strong>Deliberately accept the bias:</strong> universe = the current ~277 stocks in hand (today's S&amp;P 500 / Nasdaq-100 large caps with fundamentals; 313 clean-tech symbols minus 36 ETFs). Do not buy data; do not reconstruct membership. In the write-up and interviews, <strong>sign the bias, don't just name it</strong>.</p></div>
+    <div class="drow"><span class="dlabel l-why">Why</span><p>Scope realism beats completeness for this project's purpose. The bias is real and non-uniform: it concentrates in exactly the cells studied — firms delisted through bankruptcy are disproportionately high-leverage cyclicals in risk-off regimes, so those cells' returns are <em>upward-biased</em> precisely where conditional structure is most interesting. The rank label mitigates market-level survivorship (everyone is ranked against each other) but not this within-cross-section distortion. Large-cap restriction is itself the standard mitigation (bankruptcy delisting is rarest there). The bias also <em>grows with lookback distance</em>: the 2001 cross-section of today's constituents is disproportionately future winners. The signed statement — "stress-regime and high-leverage cells are upward-biased because the casualties are missing, and the bias worsens in early years" — reads as understanding; an unsigned disclaimer reads as a checkbox. Have the "what would fix it" answer ready (CRSP/Sharadar/Norgate, or point-in-time membership — considered, declined for scope).</p></div>
+  </div>
+
+  <div class="decision" id="d4">
+    <div class="did">D4 · Discrete states, not a continuous model</div>
+    <div class="drow"><span class="dlabel l-prev">Previously</span><p>Two continuous temptations: (a) a continuous interaction surface — coefficients on VIX × leverage × structure-distance, or a boosted tree learning interactions; (b) in the old plan, "discretize" meant tokenizing factors to feed a sequence model (verdict there: don't — a different question, and the old warning "enter regime features as raw magnitudes, not binarized" was about <em>distance metrics for retrieval</em>, not conditioning; superficially contradictory, actually consistent).</p></div>
+    <div class="drow"><span class="dlabel l-prob">Problem</span><p>The research object is an <em>interaction</em>: "does the effect of X flip across regimes?" With ~4–6 truly independent episodes per rare regime, a continuous surface has essentially nothing pinning it down. It also tests implicitly infinitely many hypotheses (no countable correction) and has no clean stability check.</p></div>
+    <div class="drow"><span class="dlabel l-now">Now</span><p>Coarse discrete buckets as the primary design: 4–6 regimes, ~3–4 financial states, ~3 structure states. "Controlled fuzziness" — the honest name for deliberate variance reduction sized to the data. Continuous Fama-MacBeth interaction terms kept as a <em>secondary robustness check</em>: if an effect shows up in discrete cells but the continuous interaction coefficient is zero, suspect an artifact of an arbitrary bin boundary.</p></div>
+    <div class="drow"><span class="dlabel l-why">Why</span><p>Discreteness buys three rigor properties: a countable hypothesis set ("we tested N cells, here's the correction"), a well-defined stability check (bootstrap the clustering, see if the partition survives), and nameable conditions you can count independent episodes of. Honest costs, stated openly: boundaries are arbitrary, edge observations flip clusters, results can be sensitive to cluster count — which is exactly why the stability bootstrap and perturbation checks exist. Also keep two "not enough data" problems distinct: <strong>too many features per row</strong> (curse of dimensionality — fewer features helps) vs. <strong>too few independent observations</strong> (effective N — nothing helps). Coarse bucketing does not manufacture recessions; it <em>rations</em> scarce evidence into a few well-populated claims instead of fragmenting it into hundreds of near-empty cells. The defensible line: "discrete as primary because effective N demands it and interpretability is the deliverable; continuous as a check" — never "continuous is impossible."</p></div>
+  </div>
+
+  <div class="decision" id="d5">
+    <div class="did">D5 · The measurement: two-layer Fama-MacBeth, correctly specified</div>
+    <div class="drow"><span class="dlabel l-prev">Previously</span><p>Stage C wording: layer one estimates the effect of a full "(regime × financial × structure) combination" <em>within each single day</em>. Alternative also considered: one giant pooled regression over all rows.</p></div>
+    <div class="drow"><span class="dlabel l-prob">Problem</span><p>The regime is constant within a day (shared market-wide), so a within-day cross-sectional regression <strong>cannot</strong> estimate a regime effect — it is absorbed into the day's intercept. The wording described an impossible regression. The pooled alternative is worse: on 2020-03-16 all 200 stocks moved together — 200 rows, roughly <em>one</em> piece of evidence about crash days. A <strong>day, not a row, is the unit of evidence</strong>.</p></div>
+    <div class="drow"><span class="dlabel l-now">Now</span><p><strong>Layer 1</strong> — within each day t, regress the label rank on financial-state × structure-state cell dummies (equivalently: cell mean minus grand mean), plus β̂ as control (D2). Output: one small vector of effect estimates per day. Everything shared market-wide that day (direction, sentiment, the regime itself) cancels because every stock experienced it equally. <strong>Layer 2</strong> — treat the daily estimates as a time series: overall mean and consistency; then <em>group the days by the regime prevailing at t</em> and compare average effects across regimes. That cross-regime difference <em>is</em> the conditional structure. The regime is never a stock feature; it is the grouping variable for daily estimates.</p></div>
+    <div class="drow"><span class="dlabel l-why">Why</span><p>Respects the cross-sectional label, respects the unit of evidence, and puts the regime where it is estimable. Conditioning is on the regime <em>at formation date t</em> — if the regime changes during the 63-day label window, that is part of what "regime at t predicts what follows" means, and episode-level aggregation (D6) handles the dependence. Layer 2 is where "stable enough to trust" stops being a vibe and becomes a number.</p></div>
+  </div>
+
+  <div class="decision" id="d6">
+    <div class="did">D6 · Inference that matches the effective sample</div>
+    <div class="drow"><span class="dlabel l-prev">Previously</span><p>Naive layer-2 statistics: mean of daily estimates, standard error with N = number of days. The old plan had the overlap-correction instinct (Newey-West / non-overlapping / block bootstrap); the newer plan kept the effective-N <em>concept</em> but dropped it from the <em>procedure</em>.</p></div>
+    <div class="drow"><span class="dlabel l-prob">Problem</span><p>With a 63-day horizon sampled daily, β(Monday) and β(Tuesday) share ~62 of 63 label days — nearly the same measurement twice. Naive SEs overstate significance by a large factor. Effective N ≈ calendar span ÷ horizon, not day count.</p></div>
+    <div class="drow"><span class="dlabel l-now">Now</span><p>Newey-West standard errors with ~63 lags on all layer-2 series (alternatives: sample every 63rd day; block-bootstrap the coefficient series — the joint bootstrap of D10 provides this anyway). Regime-conditional claims counted in <strong>independent episodes</strong>, not days: an episode = a maximal contiguous run of one regime label (runs &lt; 10 trading days flagged as "transition" and excluded from episode counts). Minimum-evidence rule fixed in advance: no conclusion for any cell/contrast with fewer than 4 episodes spanning fewer than 3 calendar years — below threshold is reported as "insufficient data," never forced. Horizon fixed at a single H = 63 trading days (~3 months): a decade holds ~40 non-overlapping 3-month windows vs. ~10 annual ones, and independent evidence is the scarcest resource. Multiple horizons are an optional extension only.</p></div>
+    <div class="drow"><span class="dlabel l-why">Why</span><p>The same effective-N number from the concept section must reappear inside the machinery, or the machinery is lying. Refusing to conclude below threshold is the project's honesty rule; it is enforced by code, not intention.</p></div>
+  </div>
+
+  <div class="decision" id="d7">
+    <div class="did">D7 · The cell-count collision: two-way primary, three-way exploratory</div>
+    <div class="drow"><span class="dlabel l-prev">Previously</span><p>Headline object: the full three-way map — every (regime × financial × structure) cell characterized. 4–6 × ~4 × ~3–4 ≈ <strong>50–100 cells</strong>.</p></div>
+    <div class="drow"><span class="dlabel l-prob">Problem</span><p>Total independent evidence across the entire regime axis is maybe 20–30 episodes; a rare regime ("panic": 2008, March 2020, maybe 2011, late 2018) offers ~4 episodes — and more stocks don't help, because every stock shares the same episode. Spread 20–30 episodes over 50–100 cells and most cells get well under one episode of clean evidence, so the project's own minimum-episode rule (D6) stamps the majority of the headline object "insufficient data." Two individually-correct safeguards, multiplied, constrain the headline goal — and the cells that would show the most interesting flips (crash cells) are exactly the thinnest. That is the structure of the problem, not a bug. Better known in week one than week nine.</p></div>
+    <div class="drow"><span class="dlabel l-now">Now</span><p>(1) <strong>Two-way interactions are the primary results</strong> — "does the fundamentals→return relationship differ between regimes?", with the option of pooling to two coarse super-regimes (risk-on / risk-off) where episode counts demand it. Two-way beats three-way; coarse beats fine; this is what controlled fuzziness is <em>for</em> — survival, not elegance. (2) The three-way cross is <strong>exploratory</strong>, plus a <strong>pre-registered set of ≤ 5 specific three-way hypotheses</strong> (five, not five hundred) so correction doesn't annihilate everything. (3) The honest catalogue — "we attempted the full map; here are the cells with enough episodes, and the 90+ that did not clear the bar" — is itself a legitimate, even impressive deliverable that directly demonstrates understanding of effective N. Make peace in advance with it feeling different from "I mapped the full conditional structure." (4) Lengthening history to buy episodes was considered and declined: it drags in worse survivorship bias (D3) and more Drift B (D14) — a trade, not a free win. Partial pooling (hierarchical shrinkage of three-way cells toward two-way margins) is an optional extension.</p></div>
+    <div class="drow"><span class="dlabel l-why">Why</span><p>Right-sizes the promise to the physics. The evidence budget funds a few well-populated claims or hundreds of noisy ones; choose the former on purpose.</p></div>
+  </div>
+
+  <div class="decision" id="d8">
+    <div class="did">D8 · Validation: expanding-window hybrid, not a single sealed block</div>
+    <div class="drow"><span class="dlabel l-prev">Previously</span><p>One contiguous never-touched stretch of time as the sealed final exam, opened once.</p></div>
+    <div class="drow"><span class="dlabel l-prob">Problem</span><p>The sealed block contains only the regimes that happened during it — so the project's only hard boundary against overfitting is structurally unable to confirm claims about regimes absent from the holdout (direct collision with the effective-N ceiling). The single block also can't examine most of the syllabus.</p></div>
+    <div class="drow"><span class="dlabel l-now">Now</span><p><strong>Expanding-window walk-forward, hybrid form:</strong> train 2000→X, test X+1; extend; repeat. Iterate freely on early folds (validation years); <strong>seal the later folds as the true final exam</strong>, run once. Four conditions, all mandatory: (1) <em>Preserve "touched once"</em> — if you run sealed folds, look, tweak, rerun, every test year silently became development data; the hybrid split exists precisely so iteration happens on validation folds only. (2) <em>Embargo at every boundary</em> — labels look 63 trading days forward, so purge the last 63 trading days from each training window (train through ~September to test January onward). The same purge gap applies between the exploration period and confirmation folds. (3) <em>Fix the cluster rule up front</em> — freeze regime/financial cluster definitions (feature spec + scaler statistics + centroids) on the first training window and apply forward, so "regime 3" means the same thing in every year. (Refit-per-fold with centroid matching is the inferior alternative; freezing is cleaner and matches exploration/confirmation separation.) (4) <em>The physical ceiling stays</em> — walk-forward stops you wasting episodes but creates none; aggregate across folds by <strong>episode</strong>, not by year or day, and expect early folds to be noisy. Default boundaries (OQ6): initial train 2000-07→2011-12 (dot-com bust, GFC, 2011); validation folds 2012→2019; sealed 2020-01→present (COVID crash, 2022 inflation bear, 2023+ bull — good regime coverage for confirmation). For regimes still absent from sealed folds, fall back to era-sliced consistency (Drift B machinery, D14), explicitly labeled as weaker evidence.</p></div>
+    <div class="drow"><span class="dlabel l-why">Why</span><p>Every year after the initial block becomes an out-of-sample test year, so every regime episode after ~2011 gets tested on data the classifications never saw — the coverage problem largely solved without pretending the ceiling moved.</p></div>
+  </div>
+
+  <div class="decision" id="d9">
+    <div class="did">D9 · Frozen clusters need an escape hatch: the "unclassified" state <span class="chip chip-d">Settled #4</span></div>
+    <div class="drow"><span class="dlabel l-prev">Previously</span><p>Freeze regime definitions on the first training window (D8 condition 3) and force-assign every later day to the nearest centroid.</p></div>
+    <div class="drow"><span class="dlabel l-prob">Problem</span><p>A regime type absent from 2000–2011 — e.g., a 2022-style "fighting inflation" episode has no real analogue in that window — gets silently mapped to whichever old centroid is least wrong. Relative features (D14, Drift A) reduce but don't eliminate genuinely new configurations.</p></div>
+    <div class="drow"><span class="dlabel l-now">Now</span><p>A distance-to-centroid threshold, <strong>frozen in advance</strong> so it isn't a new researcher degree of freedom: take the 95th percentile of within-cluster distances on the first training window; any later day beyond it becomes an explicit <strong>"unclassified"</strong> regime state — reported, never silently assigned. The 95 is an arbitrary constant → perturbation list (90 / 95 / 97.5).</p></div>
+    <div class="drow"><span class="dlabel l-why">Why</span><p>Two side benefits beyond correctness: the firing rate is itself a diagnostic (if 30% of post-2021 days are unclassified, that is a drift <em>finding</em>, not a nuisance), and it gives a clean answer to the interview question "what does your model do when it sees something new?" — it says so, out loud, instead of pretending.</p></div>
+  </div>
+
+  <div class="decision" id="d10">
+    <div class="did">D10 · Uncertainty propagation: one joint bootstrap, not two disconnected ones <span class="chip chip-d">Settled #5</span></div>
+    <div class="drow"><span class="dlabel l-prev">Previously</span><p>Two separate bootstraps: one to certify cluster stability, one for effect confidence intervals — with the regime label treated as known truth in the second.</p></div>
+    <div class="drow"><span class="dlabel l-prob">Problem</span><p>The regime label attached to each day is an <em>estimated</em> quantity. Days near cluster boundaries flipping assignment would move the cross-regime comparisons that are the headline result, and the disconnected design never lets that uncertainty reach the final numbers. Separately: any bootstrap here must be a <strong>block</strong> bootstrap. Market days aren't independent (today ≈ yesterday; labels overlap 62/63), so resampling days i.i.d. produces near-identical pseudo-histories and cheerfully certifies everything as "stable" and "significant" — the restaurant-review problem in disguise.</p></div>
+    <div class="drow"><span class="dlabel l-now">Now</span><p><strong>Joint pipeline block bootstrap</strong>, ~500 resamples: draw contiguous multi-month blocks (default length 126 trading days; alternatives 63 / 252 / whole-episode blocks on the perturbation list) with replacement → refit clusters on the resample → <strong>match resampled clusters to the original partition by centroid similarity</strong> (Hungarian assignment; greedy acceptable) → reassign days → rerun layers 1 and 2 → collect effects. Report CIs from the spread <em>and</em> the assignment-instability rate. Resamples where matching fails badly are informative, not discarded — they are the cluster-instability signal showing up inside the CI machinery, which is the point of doing it jointly. Acceptable simplification, stated honestly if used: hold trailing-feature construction fixed and block-resample the day-level feature/label panel.</p></div>
+    <div class="drow"><span class="dlabel l-why">Why</span><p>Some pseudo-histories omit 2008, others contain it twice — that variety is the honest answer to "what if history had gone differently." Cost: full pipeline × ~500 ≈ hours, embarrassingly parallel (each resample independent); never run inside the development iteration loop.</p></div>
+  </div>
+
+  <div class="decision" id="d11">
+    <div class="did">D11 · Clustering methodology</div>
+    <div class="drow"><span class="dlabel l-prev">Previously</span><p>Let the algorithm fully automatically decide the number of clusters — "most objective." Also, at one point, cluster financials and macro together in one step.</p></div>
+    <div class="drow"><span class="dlabel l-prob">Problem</span><p>Automatic k just hides the subjectivity inside the choice of criterion — different criteria give very different counts. Merging the clusterings destroys the research object: studying "how the effect of financials <em>changes with</em> regime" requires financials and regime to be independent axes that can be crossed; merged, "high leverage" is no longer a fixed coordinate comparable across regimes. Additionally, financial-state clustering on raw ratios will <strong>partly rediscover sectors</strong> (a bank's leverage ≠ an industrial's), so "high-leverage cyclicals underperform in regime X" may be "financials underperform in regime X" in disguise.</p></div>
+    <div class="drow"><span class="dlabel l-now">Now</span><p>Separate clusterings, crossed later in the statistics. k-means (GMM as alternative) with the algorithm <em>suggesting</em> a range — regimes k ∈ {4,5,6}, financial states k ∈ {3,4,5} — settled by <strong>stability + interpretability</strong>: block-bootstrap the clustering and keep only partitions that re-form under resampling (adjusted Rand index across resamples); merge or drop unstable clusters; every kept cluster must be nameable in one line ("panic / flight to safety," "profitable steady compounder"). Deliberately small k (controlled fuzziness, D4/D7). Sector confound: handled per OQ3/OQ4 — sector-relative features if a sector mapping is acquired, otherwise the confound is stated in the write-up.</p></div>
+    <div class="drow"><span class="dlabel l-why">Why</span><p>"Stable under reshuffling and explainable" is a sturdier standard than any single mathematical criterion, and interpretable clusters are themselves a deliverable (the report names them).</p></div>
+  </div>
+
+  <div class="decision" id="d12">
+    <div class="did">D12 · The personal indicator: role, contamination, freeze, deferral <span class="chip chip-d">Settled #6</span></div>
+    <div class="drow"><span class="dlabel l-prev">Previously</span><p>Two earlier ideas: have an autoencoder "discover" the structure the indicator captures; and treat the indicator loosely as a given premise, tuning parameters as needed.</p></div>
+    <div class="drow"><span class="dlabel l-prob">Problem</span><p>Autoencoder: a sequence model <em>can represent</em> a path-dependent rule in principle, but a reconstruction objective gives it no incentive to learn that specific predicate, and on this data volume it essentially never will. The loose treatment is worse: the indicator has <strong>researcher degrees of freedom baked in</strong> — leg definitions, break thresholds, bar frequency were chosen over years of looking at charts where the pattern "worked." It is not merely unvalidated; it is <em>pre-loaded with a bias toward looking good</em>, built to look like it works and now graded on a related exam. The exploration/confirmation machinery only protects against choices made <em>during this project</em>; it does nothing about parameters tuned informally beforehand, including on years inside any holdout. This is genuinely two experiments' worth of validation burden: (1) does regime-conditioning matter (clean; indicator irrelevant), and (2) does this specific indicator carry real out-of-sample information, or was it curve-fit?</p></div>
+    <div class="drow"><span class="dlabel l-now">Now</span><p><strong>Role — Option A, adopted:</strong> the indicator is one additional axis, <em>additive, not load-bearing</em>. The regime × fundamentals study is the spine and stands alone; fundamentals enter un-indicator'd and the label is raw future truth, so a dud indicator cannot corrupt the regime finding — the structure axis would simply add nothing (B3 ≈ B2), which is the experiment returning "no," and fine. Its contribution is reported separately and allowed to be negative. (Option B — validate the indicator as its own clean unconditional experiment first — remains the more-work alternative if untangling is ever wanted.) <strong>Contamination protocol:</strong> (1) freeze the spec <em>in writing before exploration consults forward returns</em> — exactly what a leg is, its origin, the numerical break threshold, the bar frequency; every rule mechanical enough that code, not the eye, makes the call (any rule needing judgment can't be frozen and can't be tested); commit with a timestamp. (2) Run that one frozen version across the entire history and universe with zero per-stock discretion; a genuine mid-project improvement is allowed but demotes its results to exploration-grade. (3) Perturbation check: vary the arbitrary constants (break threshold 0/1/2%, alternate leg definitions) and require the <em>conclusions</em> — sign, which regimes, rough magnitude — to survive; a pattern that exists only at one magic setting is curve-fit. (4) Residual caveat, named in the limitations: the rule was developed over years of charts that can't be un-seen; mitigate with <strong>breadth</strong> (the most convincing evidence is from the hundreds of names never personally charted) and honest labeling. <strong>The forbidden move:</strong> quietly re-tuning parameters mid-exploration because "intact wasn't separating returns, let me adjust the pullback threshold" — that is the indicator eating the test set through the back door, the exact p-hacking mechanism of the replication crisis wearing a proprietary badge. <strong>Deferral (settled):</strong> implementation is postponed; everything else is built and run first. This is architecturally safe — the structure state is just a third column, and Fama-MacBeth doesn't care when it arrives — and arguably the better order: if B1 over B0 is nothing, the spine is dead before any leg-tracking work is sunk. Two things deferral cannot escape: the <em>spec freeze</em> (cheap — one afternoon, do it before exploration starts, because after weeks of seeing the answer landscape no parameter choice can be proven un-nudged even to yourself; cleanliness attaches to when rules were fixed, not when code was written) and the <em>holdout sequencing</em> (the sealed folds can be spent once → OQ1). Bar frequency remains open → OQ2.</p></div>
+    <div class="drow"><span class="dlabel l-why">Why</span><p>Keeps the clean experiment clean, gives the messy one a fair trial, and makes "the indicator failed" a possible result — which is what makes it a real hypothesis rather than a belief.</p></div>
+  </div>
+
+  <div class="decision" id="d13">
+    <div class="did">D13 · Approaches evaluated and rejected (keep these — they earn points)</div>
+    <div class="drow"><span class="dlabel l-now">Now</span><p><strong>Reinforcement learning — rejected, two independent reasons:</strong> (1) RL assumes stable game rules; market non-stationarity is precisely the rules changing, so RL overfits the old regime and fails when things change, and is harder to debug; (2) RL is catastrophically sample-inefficient and effective N here is tiny — an argument even harder to rebut. <strong>Autoencoder discovery of the indicator — rejected</strong> (see D12; feed the theory in directly). <strong>FAISS + k-NN + XGBoost prediction spine — deleted</strong> (D1); simple similarity retrieval survives only as an optional visualization, and if built it must carry the <strong>neighbor-pool admissibility rule</strong>: a historical point may be shown as an analogue for query t only if its entire label period ended before t (dated ≥ 63 trading days before t) — this leak survives every other guardrail. Retrieval similarity uses within-window normalization (each window standardized on its own, otherwise "similar" degenerates into "same price level / same era"). <strong>Transformer encoder</strong> — stretch goal with uncertain payoff, not core. "Evaluated and rejected, with reasons" is itself interview material: knowing what not to do demonstrates judgment.</p></div>
+  </div>
+
+  <div class="decision" id="d14">
+    <div class="did">D14 · Point-in-time discipline and drift</div>
+    <div class="drow"><span class="dlabel l-prev">Previously</span><p>"My data source is clean, so there's no look-ahead problem."</p></div>
+    <div class="drow"><span class="dlabel l-prob">Problem</span><p>Look-ahead comes from <em>usage</em>, not source cleanliness. Three risk locations: (a) visibility dates of financials — settled: the fundamentals export is anchored to announcement dates, T+1/T+2, verified by direct probe; (b) restatements — sources tend to carry latest revised figures, not the originals seen at the time (kept as a limitation; usually second-order; optional sensitivity check on restated samples); (c) full-sample leakage inside analysis steps — normalizing 2015 data with statistics through 2024 lets 2015 see the future. Separately, patterns differ across eras for two different reasons needing opposite responses.</p></div>
+    <div class="drow"><span class="dlabel l-now">Now</span><p>Everything is treated as invisible before its release date; macro uses first-release values with computed release dates; all normalizations are either within-day cross-sectional (uses only that day — inherently point-in-time) or trailing-window (uses only the past). <strong>Drift A</strong> — coordinates moved, not the economy (rates 6% in the 1990s, ~0% in the 2010s): fixed by building regime features as <em>relative</em> quantities — z-scores vs. a trailing window, changes not levels, spreads and curve slopes not raw rates — so "tightening in 1994" and "tightening in 2017" land in the same cluster. Principle: choose features insensitive to what permanently changed but sensitive to what recurs; much apparent "change" is manufactured by wrong coordinates. <strong>Drift B</strong> — the relationship itself changed ("value works in risk-off" held in the 1990s, reversed after 2008): not fixable, only measurable — slice results by era (2000s / 2010s / 2020s) and state where the pattern held and broke; "held until 2008, then broke" is itself a finding, turning non-stationarity from a problem to hide into a result. Telling them apart: switch to relative features first; residual era differences <em>within</em> the same regimes are Drift B. <strong>Corporate actions</strong> matter unusually much here: the indicator's core predicate is whether price broke a specific historical level, and a split or large dividend can flip that answer — so price series must be consistently back-adjusted across the full history, verified against known split dates. <strong>Staleness:</strong> fundamentals are quarterly forward-filled to daily (constant ~98% of days), which distorts clustering and any distance metric if fed naively — handled per OQ3 (cluster on announcement-date snapshots, or carry a days-since-announcement column).</p></div>
+  </div>
+
+  <div class="decision" id="d15">
+    <div class="did">D15 · Engineering hygiene (carried back from the old plan)</div>
+    <div class="drow"><span class="dlabel l-prev">Previously</span><p>Plan 4 said "reproducible codebase" in one line.</p></div>
+    <div class="drow"><span class="dlabel l-prob">Problem</span><p>The concern didn't vanish because the model got simpler. One line is the difference between "engineered" and "vibe-coded."</p></div>
+    <div class="drow"><span class="dlabel l-now">Now</span><p>Restore the old plan's specifics: a <strong>leakage unit test</strong> asserting no feature at t uses data from after t; modular pipeline; config file + fixed seeds; a logged <code>config-hash → out-of-sample result</code> table so every number is reproducible; a <strong>gated build order</strong> (data → clusters → statistics → baselines → guardrails → write-up) where each gate has a "done-when" bar — this is what actually protects a summer timeline. All of §3 is organized around these gates.</p></div>
+  </div>
+</section>
+
+<!-- ================= 02 DATA ================= -->
+<section id="s2">
+  <div class="sec-num"><span class="badge">2</span>DATA</div>
+  <h2>Data layer — what exists, what it means for the design</h2>
+
+  <p class="lead">~3.3 GB, 14 folders. All pipeline outputs regenerated and reconciled; previously-flagged mechanical issues (truncated symbols, stale merged parquet, filter inconsistencies) are resolved — the checklist in Phase 1 re-verifies them after any refresh rather than treating them as open problems.</p>
+
+  <table>
+    <tr><th>Ingredient</th><th>Source</th><th>Role</th><th>Notes that bind the design</th></tr>
+    <tr><td>Daily/weekly/monthly prices &amp; technicals</td><td><code>tech_daily/weekly/monthly.csv</code> — 313 symbols, aligned across frequencies; daily from 1986</td><td>Labels, betas, (later) indicator states</td><td>Adjustment status must be verified before any return is computed (OQ5). Weekly/monthly bars exist for whichever indicator frequency OQ2 settles on.</td></tr>
+    <tr><td>Market internals</td><td><code>MKT.txt</code> / <code>market_merge_daily.csv</code> — SPY/QQQ + breadth, VIX term structure, growth-vs-value; daily from <strong>2000-06-28</strong></td><td>Regime features</td><td>Sets the <strong>effective study window: 2000-07 → present</strong>. Contained episodes: dot-com bust, GFC, 2011, 2018, COVID, 2022 inflation bear — the 4–6 stress episodes the effective-N budget assumed.</td></tr>
+    <tr><td>Fundamentals</td><td><code>fundamentals.csv</code> — 277 symbols, announcement-dated (T+1/T+2, verified), daily forward-filled grid, from 1991</td><td>Financial-state features</td><td>Forward-filled ⇒ staleness handling required (OQ3). Banks (7 symbols) have zero MRQ_Revenue / Gross_Profit / Operating_Income — use Net_Income / EPS; the one bank-meaningful column (Net_Interest) was dropped in cleaning and needs a script tweak to restore (OQ4). No sector metadata exists anywhere in the inventory — acquiring a mapping is a real task if sector-relative features are chosen (OQ3).</td></tr>
+    <tr><td>Macro</td><td>140 FRED/ALFRED series with <em>computed</em> release dates, calendar-daily grid from 1919</td><td>Regime features (spreads, rates, credit)</td><td>Release dates are calculated approximations (obs date + period + documented delay) — a named limitation. Grid extends past today: assert no row carries a value whose release date exceeds the grid date, and truncate the grid at today (Phase 1).</td></tr>
+    <tr><td>ETF flags</td><td><code>ETF_real.csv</code>, 36 ETFs identified in the clean set</td><td>Universe filter</td><td>ETFs are excluded from the stock universe (no fundamentals) but are candidate <em>regime features</em>: HYG−LQD as a credit-spread proxy, TLT/SHY for curve, sector ETF dispersion — already clean and aligned (Recommended track).</td></tr>
+  </table>
+
+  <p><strong>Universe:</strong> the 277 stocks with both clean technicals and fundamentals (313 − 36 ETFs) — today's S&amp;P 500 / Nasdaq-100 large caps, per D3, with the survivorship bias accepted and signed. Cross-sections early in the window will be thinner than 277 (histories vary); Phase 2 profiles per-day coverage and sets a minimum cross-section size. Primary modeling table: <code>all_merged.parquet</code> (1.66M rows × 567 cols, ~474 MB) — comfortably laptop-scale; prefer polars or column-subset loading for iteration speed.</p>
+</section>
+
+<!-- ================= 03 IMPLEMENTATION ================= -->
+<section id="s3">
+  <div class="sec-num"><span class="badge">3</span>MANUAL</div>
+  <h2>Implementation manual</h2>
+  <p class="lead">A gated build order (D15). Phases 0–9 are the <span class="chip chip-req">Required</span> track — complete these and the project is finishable and interview-defensible. Each phase ends with a done-when bar; do not start the next phase before it. <span class="chip chip-rec">Recommended</span> and <span class="chip chip-opt">Optional</span> tracks follow. Cross-references (D#, OQ#) point to reasoning — the steps here are self-contained instructions.</p>
+
+  <h3>Phase 0 — Engineering scaffold <span class="chip chip-req">Required</span> <span class="xref">· D15</span></h3>
+  <div class="task"><div class="thead"><span class="tid">T0.1</span><span class="tname">Repository skeleton</span></div>
+    <p>Modules: <code>data/</code> (loaders enforcing visibility dates), <code>features/</code>, <code>clustering/</code>, <code>stats/</code>, <code>rigor/</code> (bootstrap, corrections), <code>report/</code>. One <code>config.yaml</code> holding every constant this document names (horizon 63, beta window 252, shrink weight 0.67, k ranges, distance percentile 95, block length 126, episode min-length 10, min-episodes 4, resamples 500, fold boundaries). Fixed seeds everywhere.</p></div>
+  <div class="task"><div class="thead"><span class="tid">T0.2</span><span class="tname">Results log</span></div>
+    <p>Every statistics run appends <code>(timestamp, config hash, git commit, phase, key outputs)</code> to a results table. No number enters the report without a row here.</p></div>
+  <div class="task"><div class="thead"><span class="tid">T0.3</span><span class="tname">Leakage unit tests</span></div>
+    <p>(a) For sampled (stock, day) rows, assert the max input date of every feature ≤ t. (b) Corrupt all prices after t with noise and assert features at t are bit-identical. (c) Assert every training window ends ≥ 63 trading days before its test fold starts (embargo test). (d) Assert no normalization statistic is computed from data after the window it is applied to. These run in CI on every commit.</p></div>
+  <div class="task"><div class="thead"><span class="tid">T0.4</span><span class="tname">Freeze the indicator spec — now, even though implementation waits</span> <span class="xref">· D12</span></div>
+    <p>One afternoon. Write <code>indicator_spec.md</code>: mechanical definitions of a leg, its origin, the numerical break threshold, the bar frequency (or the OQ2 alternative chosen), tie-breaking rules — every rule executable by code without judgment. Commit with timestamp. Do not touch it after exploration begins; a later genuine improvement demotes its results to exploration-grade.</p>
+    <div class="done">Done when: tests pass in CI; spec committed; config file is the single source of every constant.</div></div>
+
+  <h3>Phase 1 — Data layer finalization <span class="chip chip-req">Required</span> <span class="xref">· D3 D14</span></h3>
+  <div class="task"><div class="thead"><span class="tid">T1.1</span><span class="tname">Validation checklist (re-run after any data refresh)</span></div>
+    <ul class="clean">
+      <li>Row reconciliation: <code>all_merged</code> rows = <code>tech_daily</code> rows; <code>fundamentals.csv</code> ≈ tech_daily × 277/313.</li>
+      <li>No symbol's daily data ends more than ~5 trading days before the common end date (catches truncated exports).</li>
+      <li>Symbol-set consistency: clean fundamentals ⊆ clean tech ∖ ETFs; no orphans.</li>
+      <li>Blank trailing columns filtered; no duplicate column names; date formats YYYYMMDD throughout.</li>
+      <li>Macro grid truncated at today; assert every macro value's release date ≤ the grid date it appears on.</li>
+    </ul></div>
+  <div class="task"><div class="thead"><span class="tid">T1.2</span><span class="tname">Verify price adjustment</span> <span class="xref">· OQ5</span></div>
+    <p>Check known split dates for discontinuities: AAPL 2020-08-31 (4:1) and 2014-06-09 (7:1), NVDA 2021-07-20 (4:1) and 2024-06-10 (10:1). If prices are unadjusted, build back-adjustment factors before anything downstream; if split-adjusted but not dividend-adjusted, note that returns are price returns and the βr_m term is consistent as long as SPY is treated identically. Whatever the answer, it must be consistent across the full history — the indicator's level-break predicate (D14) requires it.</p></div>
+  <div class="task"><div class="thead"><span class="tid">T1.3</span><span class="tname">Universe table &amp; coverage profile</span></div>
+    <p>Materialize the 277-symbol universe with each symbol's valid date range. Profile cross-section size per day; set <code>min_cross_section</code> (default 100 names with valid label + financial state) below which a day is dropped from layer 1.</p>
+    <div class="done">Done when: checklist green; adjustment status documented in the repo; per-day coverage plot exists.</div></div>
+
+  <h3>Phase 2 — Label construction <span class="chip chip-req">Required</span> <span class="xref">· D2 D6</span></h3>
+  <div class="task"><div class="thead"><span class="tid">T2.1</span><span class="tname">Point-in-time betas</span></div>
+    <ol class="steps">
+      <li>For each (stock, day t): OLS of daily stock returns on SPY returns over the trailing 252 trading days ending at t−1; require ≥ 126 valid days, else β̂ = 1.</li>
+      <li>Winsorize β̂ cross-sectionally each day at the 1st/99th percentiles.</li>
+      <li>Shrink: β* = 0.67·β̂ + 0.33·1 (Blume; Vasicek variance-weighted shrinkage is the alternative).</li>
+      <li>Store β̂ (pre-shrink) alongside — it is the layer-1 control regressor.</li>
+    </ol></div>
+  <div class="task"><div class="thead"><span class="tid">T2.2</span><span class="tname">Beta-residualized rank label</span></div>
+    <ol class="steps">
+      <li>r_fwd(i,t) = adjusted-close return from t to t+63 trading days; r_m = same-window SPY return.</li>
+      <li>resid(i,t) = r_fwd − β*(i,t)·r_m.</li>
+      <li>label(i,t) = percentile rank of resid among all universe stocks with valid data that day, in [0,1].</li>
+      <li>Days with cross-section &lt; <code>min_cross_section</code>: no labels.</li>
+    </ol>
+    <div class="done">Done when: label exists for every eligible (stock, day); sanity check — cross-sectional mean ≈ 0.5 every day by construction; spot-check a few known episodes (e.g., defensive names ranking high in March 2020 residuals).</div></div>
+
+  <h3>Phase 3 — Regime clustering <span class="chip chip-req">Required</span> <span class="xref">· D8 D9 D11 D14</span></h3>
+  <div class="task"><div class="thead"><span class="tid">T3.1</span><span class="tname">Relative regime features (Drift A by construction)</span></div>
+    <p>All features relative, none absolute: SPY trailing 21d/63d returns; 21d realized vol; VIX level as percentile vs. its own trailing 2y; VIX term-structure slope; credit spread (HYG−LQd return spread or a FRED spread series) as level-vs-trailing-z and 21d change; yield-curve slope (10y−2y) and its change; breadth indicators from MKT as trailing z-scores. Trailing windows only — inherently point-in-time.</p></div>
+  <div class="task"><div class="thead"><span class="tid">T3.2</span><span class="tname">Fit, stabilize, freeze</span></div>
+    <ol class="steps">
+      <li>Standardize features using statistics from the initial training window only (2000-07→2011-12, OQ6); fit k-means for k ∈ {4,5,6}.</li>
+      <li>Stability: block-bootstrap (126d blocks) the training window ~200×, refit, match by centroids, compute adjusted Rand index; pick the k whose partition is most stable <em>and</em> whose clusters are nameable in one line each. Merge/drop unstable clusters.</li>
+      <li>Freeze: feature spec + scaler stats + centroids saved as the frozen regime model; applied forward unchanged (D8 condition 3).</li>
+      <li>Unclassified state: compute the 95th percentile of within-cluster distances on the training window; any later day beyond it → "unclassified" (D9). Track the firing rate by year.</li>
+      <li>Episode segmentation: contiguous same-label runs; runs &lt; 10 trading days → "transition" (excluded from episode counts). Tabulate episodes per regime — this table drives every "sufficient evidence" decision.</li>
+    </ol>
+    <div class="done">Done when: frozen model on disk; each regime named and described; episode table exists; unclassified rate plotted by year.</div></div>
+
+  <h3>Phase 4 — Financial-state clustering <span class="chip chip-req">Required</span> <span class="xref">· D11 D14 OQ3 OQ4</span></h3>
+  <div class="task"><div class="thead"><span class="tid">T4.1</span><span class="tname">Resolve OQ3 (staleness) and OQ4 (banks) — before fitting anything</span></div>
+    <p>Defaults if no better choice emerges: cluster on <strong>announcement-date snapshots</strong> (one observation per stock-quarter, at the announcement date), assign each trading day the state of the latest announcement, and carry <code>days_since_announcement</code> as a reported diagnostic; <strong>exclude the 7 banks</strong> from the financial-state axis (they remain in the universe and the label cross-section) and state why. Alternatives in §5.</p></div>
+  <div class="task"><div class="thead"><span class="tid">T4.2</span><span class="tname">Features, fit, freeze</span></div>
+    <ol class="steps">
+      <li>Features per stock-quarter: ROE, TTM net margin, LT_DE (leverage), Revenue_Growth, EPS_Growth. Winsorize at 1st/99th; z-score <em>within each announcement cross-section</em> (point-in-time by construction). If a sector mapping was acquired (OQ3), z-score within sector instead.</li>
+      <li>k-means k ∈ {3,4,5}; same block-bootstrap stability + nameability procedure as T3.2 ("profitable steady compounder," "high-leverage cyclical," "unprofitable growth"...).</li>
+      <li>Freeze on the initial training window; apply forward. Membership changes only on announcement dates — jumps are expected and documented.</li>
+    </ol>
+    <div class="done">Done when: frozen model; states named; per-state population counts by year; bank/staleness decisions recorded in the decision log.</div></div>
+
+  <h3>Phase 5 — Two-layer Fama-MacBeth <span class="chip chip-req">Required</span> <span class="xref">· D5 D6</span></h3>
+  <div class="task"><div class="thead"><span class="tid">T5.1</span><span class="tname">Layer 1 — one estimate set per day</span></div>
+    <p>For each eligible day t: regress label on financial-state dummies (× structure dummies once the indicator lands) plus β̂ control. Equivalent view for sanity: per-cell mean label minus grand mean. Output: per-day effect vector. Runtime: seconds for the whole history if vectorized.</p></div>
+  <div class="task"><div class="thead"><span class="tid">T5.2</span><span class="tname">Layer 2 — stability and the research question</span></div>
+    <p>For each effect series: (a) overall mean with Newey-West SE, 63 lags; (b) era slices (2000s / 2010s / 2020s) — consistency, not just the average (one lucky stretch must not carry the mean); (c) group days by the regime at t and compare mean effects across regimes — the cross-regime difference is the finding; (d) every regime-conditional number carries its episode count, and anything under the D6 threshold prints "insufficient data" instead of a number. Enforced in code, not by discipline.</p>
+    <div class="done">Done when: a single function produces, for any effect and conditioning, the estimate + NW CI + era slices + episode count + sufficiency verdict.</div></div>
+
+  <h3>Phase 6 — Progressive baselines B0→B3 <span class="chip chip-req">Required</span> <span class="xref">· D5 D7 D12</span></h3>
+  <div class="task"><div class="thead"><span class="tid">T6.1</span><span class="tname">Four runs of the whole procedure</span></div>
+    <p>These are experimental conditions, not regression coefficients (the "B" is baseline — a naming collision with betas worth one interview sentence). <strong>Renumbering note:</strong> the older plan's B2 bundled financials + structure; this guide splits it so the indicator's increment is isolated, per Option A:</p>
+    <table>
+      <tr><th>Run</th><th>Conditioning</th><th>The increment answers</th></tr>
+      <tr><td>B0</td><td>None — unconditional characteristic→return picture</td><td>—</td></tr>
+      <tr><td>B1</td><td>Regime only</td><td>B1−B0: does the regime axis matter at all? (If not, the spine is dead — learn this before building anything further.)</td></tr>
+      <tr><td>B2</td><td>Regime × financial state</td><td>B2−B1: do fundamentals carry conditioning power beyond regime? <em>Primary two-way results live here (D7).</em></td></tr>
+      <tr><td>B3</td><td>+ structure states (when the indicator lands)</td><td>B3−B2: does the indicator carry information beyond regime + fundamentals, and does it flip across regimes? B3 ≈ B2 ⇒ the indicator failed — an allowed result.</td></tr>
+    </table>
+    <p>Findings are stated as increments; without this, "my conditional model shows X" is unfalsifiable hand-waving.</p>
+    <div class="done">Done when: B0–B2 run end-to-end on exploration data with the Phase 5 machinery; increment tables render.</div></div>
+
+  <h3>Phase 7 — Validation protocol <span class="chip chip-req">Required</span> <span class="xref">· D8</span></h3>
+  <div class="task"><div class="thead"><span class="tid">T7.1</span><span class="tname">Expanding-window hybrid</span></div>
+    <ol class="steps">
+      <li>Initial training window 2000-07 → 2011-12; validation folds 2012 → 2019 (iterate freely); sealed folds 2020-01 → present (run once, at the end). Boundaries are OQ6 — commit them in the config before exploration.</li>
+      <li>Embargo: every training window is truncated 63 trading days before its test fold begins; the exploration period is likewise purged 63 trading days before the first sealed fold.</li>
+      <li>Frozen cluster models (Phases 3–4) applied unchanged to every fold; unclassified state active.</li>
+      <li>Aggregation across folds is by episode, never by day or year; early folds are expected to be noisy and are reported as such.</li>
+    </ol></div>
+  <div class="task"><div class="thead"><span class="tid">T7.2</span><span class="tname">Pre-registration &amp; confirmation protocol</span> <span class="xref">· D7, replication crisis</span></div>
+    <p>Before touching sealed folds, commit <code>hypotheses.md</code>: (a) the full count of every cell/contrast examined during exploration (the two-way family enumerated exhaustively; the three-way exploratory scan counted); (b) the graduating set — all two-way contrasts that survived exploration triage, plus ≤ 5 pre-registered three-way hypotheses — each with direction, minimum effect size (default ≥ 3 percentile points), and test (NW t, 5%); (c) the correction (default Benjamini-Hochberg FDR 10% across the graduating set; Bonferroni is the stricter alternative). A confirmation without pre-fixed counts and thresholds degrades into a second exploration. Anything significant only before correction is reported as a <em>hypothesis</em>, not a finding. Untestable regimes (absent from sealed folds) fall back to era-sliced consistency, explicitly labeled weaker.</p>
+    <div class="done">Done when: hypotheses.md committed; sealed folds still untouched; the run-once script exists and logs to the results table.</div></div>
+
+  <h3>Phase 8 — Rigor suite <span class="chip chip-req">Required</span> <span class="xref">· D10</span></h3>
+  <div class="task"><div class="thead"><span class="tid">T8.1</span><span class="tname">Joint pipeline block bootstrap</span></div>
+    <p>Implement per D10: 500 resamples × (block-resample 126d → refit clusters → Hungarian centroid matching → reassign → layers 1–2). Report effect CIs, assignment-instability rate, and match-failure rate. Parallelize across resamples; subsample or reduce resamples during development, full run only for final numbers.</p></div>
+  <div class="task"><div class="thead"><span class="tid">T8.2</span><span class="tname">Perturbation checks</span></div>
+    <p>Rerun headline conclusions varying one frozen constant at a time: k ± 1 (both clusterings), beta window 252→504, distance percentile 90/95/97.5, block length 63/126/252, episode min-length, and — when the indicator lands — break threshold 0/1/2% and alternate leg definitions. Pass = conclusions keep sign, regimes, and rough magnitude; a result living at one magic setting is curve-fit.</p>
+    <div class="done">Done when: full suite runs unattended in ≤ a few hours; a one-page robustness summary renders.</div></div>
+
+  <h3>Phase 9 — Write-up <span class="chip chip-req">Required</span></h3>
+  <div class="task"><div class="thead"><span class="tid">T9.1</span><span class="tname">The report</span></div>
+    <p>Question → method → B0–B3 increments → what confirmed on sealed folds vs. what remains a hypothesis → the honest catalogue of insufficient-data cells (a headline exhibit, not an appendix — it demonstrates effective-N understanding) → named clusters with descriptions → signed limitations (§8) → the counted-tests statement ("we examined N contrasts, graduated M, corrected, K survived").</p>
+    <div class="done">Done when: someone hostile can read it and every claim has an evidence trail in the results log.</div></div>
+
+  <h3>Recommended track <span class="chip chip-rec">Recommended</span></h3>
+  <div class="task"><div class="thead"><span class="tid">R1</span><span class="tname">Indicator implementation + B3</span> <span class="xref">· D12 OQ1 OQ2</span></div>
+    <p>Implement the frozen spec exactly; run over the full history and universe with zero per-stock discretion; encode states (intact/broken, leg number, distance from leg origin); add as the third axis; run B3; perturbation-check its constants; report the increment even if negative. Sequencing with the sealed folds per OQ1. Structure states must remain human-readable — interpretability is the selling point.</p></div>
+  <div class="task"><div class="thead"><span class="tid">R2</span><span class="tname">Continuous-interaction robustness check</span> <span class="xref">· D4</span></div>
+    <p>Fama-MacBeth with continuous interaction terms (e.g., leverage × regime indicator, or × continuous regime features) mirroring the headline discrete effects; discrete-only effects with zero continuous coefficient get flagged as boundary artifacts.</p></div>
+  <div class="task"><div class="thead"><span class="tid">R3</span><span class="tname">ETFs as regime features</span></div>
+    <p>HYG−LQD (credit), TLT/SHY (duration/curve), sector-ETF return dispersion — already clean and aligned; add to T3.1 and re-check cluster stability.</p></div>
+  <div class="task"><div class="thead"><span class="tid">R4</span><span class="tname">Restatement sensitivity</span> <span class="xref">· D14</span></div>
+    <p>Identify restated stock-quarters where detectable; rerun financial-state assignment excluding them; report movement (expected second-order).</p></div>
+  <div class="task"><div class="thead"><span class="tid">R5</span><span class="tname">Sector mapping</span> <span class="xref">· OQ3</span></div>
+    <p>Acquire a GICS-style sector mapping for the 277 names (public lists suffice); switch T4.2 to sector-relative z-scores; compare cluster composition — directly tests the "financial clustering rediscovers sectors" confound instead of merely stating it.</p></div>
+
+  <h3>Optional track <span class="chip chip-opt">Optional</span></h3>
+  <div class="task"><div class="thead"><span class="tid">O1</span><span class="tname">Similarity retrieval ("explain by showing")</span> <span class="xref">· D13</span></div>
+    <p>Simple distance over normalized interpretable features (within-window normalization mandatory); must carry the neighbor-pool admissibility rule (analogue's entire label period ended ≥ 63 trading days before t). No transformer needed.</p></div>
+  <div class="task"><div class="thead"><span class="tid">O2</span><span class="tname">Multiple horizons</span></div><p>Repeat with H = 21 / 126; interesting but multiplies the testing budget — count accordingly.</p></div>
+  <div class="task"><div class="thead"><span class="tid">O3</span><span class="tname">Partial pooling for three-way cells</span> <span class="xref">· D7</span></div><p>Hierarchical shrinkage of three-way cell effects toward two-way margins; principled middle ground between reporting nothing and over-claiming.</p></div>
+  <div class="task"><div class="thead"><span class="tid">O4</span><span class="tname">Learned-representation challenger</span></div><p>The old plan's encoder experiment, swapped into the identical pipeline. Stretch goal, uncertain payoff; unlikely to improve interview value relative to time cost.</p></div>
+
+  <h3>Won't do — deliberately, in writing</h3>
+  <ul class="clean">
+    <li>Reinforcement learning (D13 — non-stationarity violates its premise; catastrophic sample-inefficiency vs. tiny effective N).</li>
+    <li>Any live-trading / profitability claim (D1 — the project studies structure; tradability is out of scope by design).</li>
+    <li>Autoencoder discovery of the indicator (D12).</li>
+    <li>Purchasing delisted-inclusive data or reconstructing point-in-time index membership (D3 — considered, declined for scope; bias accepted and signed).</li>
+  </ul>
+</section>
+
+<!-- ================= 04 METRICS ================= -->
+<section id="s4">
+  <div class="sec-num"><span class="badge">4</span>METRICS</div>
+  <h2>What counts as good</h2>
+  <p class="lead">No accuracy, no AUC, no Sharpe. The yardstick matches the exploratory framing:</p>
+  <p><strong>Primary:</strong> whether adding conditions <em>robustly changes</em> the return picture — the size of the difference between conditional and unconditional effects, judged by the layer-2 machinery (mean, NW-corrected significance, consistency across eras, episode sufficiency), expressed as the B-increments: how much B1 adds over B0, B2 over B1, B3 over B2.</p>
+  <p><strong>Secondary (only where stocks genuinely need ranking, e.g., the indicator's stock-selection claim):</strong> rank IC (rank correlation between structure state and forward label) and quantile-portfolio return monotonicity — the language quants actually use. <strong>Presentational trap:</strong> quantile portfolios implicitly invite turnover/cost/capacity questions despite the no-tradability stance. Present quantile returns purely as an effect-size display with that caveat attached, and keep the one-sentence answer ready (§6).</p>
+  <p><strong>The honesty metric, reported alongside both:</strong> the counted-tests statement and the insufficient-data catalogue. "We examined N contrasts, graduated M under pre-registered thresholds, K survived correction on sealed data" is the sentence the entire replication-crisis literature says matters most.</p>
+</section>
+
+<!-- ================= 05 OPEN QUESTIONS ================= -->
+<section id="s5">
+  <div class="sec-num"><span class="badge">5</span>OPEN</div>
+  <h2>Open questions — decide on purpose, in writing</h2>
+  <p class="lead">Nothing here is silently chosen. Each has a default (what the manual assumes if undecided) and alternatives with their costs. Record the resolution in the decision log when made.</p>
+
+  <div class="oq"><div class="tag">OQ1 · Indicator × sealed folds: which sequencing?</div>
+    <p>The sealed folds can be spent once. If they are opened to confirm B0–B2 before the indicator lands, they can never adjudicate B3 — you've seen the returns.</p>
+    <ul class="clean">
+      <li><strong>Path A (default):</strong> hold confirmation until the indicator is in; pre-register all graduating hypotheses (with and without structure) and open the sealed folds once, at the end. Cost: confirmation waits on R1; if R1 slips, so does confirmation.</li>
+      <li><strong>Path B:</strong> confirm B0–B2 on schedule; the indicator's results this summer are exploration-grade, reported as "preliminary, pending out-of-sample confirmation." Cost: weaker indicator claim; benefit: the spine's confirmation is never hostage to R1.</li>
+      <li>The trap is doing neither — spending the holdout early and then quietly reporting indicator results as confirmed.</li>
+    </ul></div>
+
+  <div class="oq"><div class="tag">OQ2 · Indicator bar frequency</div>
+    <p>The spec must freeze "the bar frequency," singular — but daily/weekly/monthly all exist, and the informal claim is "especially good on weekly/monthly."</p>
+    <ul class="clean">
+      <li><strong>Freeze one frequency in advance (default: weekly)</strong> — cleanest; matches the freeze protocol.</li>
+      <li><strong>Freeze all three as three pre-registered variants</strong> — honest, but triples the structure-axis hypothesis count (worsening both the correction budget and the D7 cell collision) and each variant must be counted.</li>
+      <li><strong>Forbidden:</strong> run all three, keep the best-looking — exactly the D12 forbidden move.</li>
+    </ul></div>
+
+  <div class="oq"><div class="tag">OQ3 · Financial clustering input &amp; sector treatment</div>
+    <ul class="clean">
+      <li><strong>Default:</strong> announcement-date snapshots, cross-sectional z-scores, <code>days_since_announcement</code> as diagnostic; sector confound stated in write-up.</li>
+      <li><strong>Alternative A:</strong> acquire sector mapping (R5) and z-score within sector — dissolves the "rediscovering sectors" confound instead of stating it; cost: mapping acquisition + maintenance.</li>
+      <li><strong>Alternative B:</strong> cluster on the daily forward-filled grid with staleness features included — simpler joins, but the clustering is dominated by ~98%-constant values; weakest option.</li>
+    </ul></div>
+
+  <div class="oq"><div class="tag">OQ4 · Banks (7 symbols)</div>
+    <ul class="clean">
+      <li><strong>Default: exclude from the financial-state axis</strong> (remain in universe/label cross-section). Simple, honest, costs 7 of 277 names on one axis.</li>
+      <li><strong>Alternative A:</strong> bank-specific features (Net_Income-, EPS-, Net_Interest-based) — requires modifying the cleaning script to restore the dropped Net_Interest columns; adds a special-case pathway.</li>
+      <li><strong>Alternative B:</strong> sector-relative features (with OQ3-A) make bank ratios comparable in principle; margin ratios remain undefined where the numerator columns are structurally zero, so A-features are still needed underneath.</li>
+    </ul></div>
+
+  <div class="oq"><div class="tag">OQ5 · Price adjustment status</div>
+    <p>Unknown until T1.2 runs. Resolutions: already back-adjusted (proceed) · split-adjusted only (proceed; document dividend treatment; keep SPY consistent) · unadjusted (build adjustment factors before Phase 2 — blocking).</p></div>
+
+  <div class="oq"><div class="tag">OQ6 · Fold boundaries</div>
+    <p><strong>Default:</strong> initial train 2000-07→2011-12 · validation 2012→2019 · sealed 2020→present. <strong>Alternative:</strong> two separated sealed blocks (e.g., 2013–2015 and 2020→present) for era diversity in confirmation, at the cost of shrinking the validation folds. Either way: committed to config before exploration begins, embargoed at every boundary.</p></div>
+
+  <div class="oq"><div class="tag">OQ7 · Exploration triage threshold</div>
+    <p>Which exploration-phase bar graduates a two-way contrast into <code>hypotheses.md</code>? <strong>Default:</strong> NW t ≥ 2 and effect ≥ 3 percentile points and episode-sufficient. Looser bars graduate more (larger correction penalty at confirmation); stricter bars risk graduating nothing. Fix before exploration ends.</p></div>
+</section>
+
+<!-- ================= 06 INTERVIEW ================= -->
+<section id="s6">
+  <div class="sec-num"><span class="badge">6</span>INTERVIEW</div>
+  <h2>Interview readiness — the hostile-defense sheet</h2>
+  <p class="lead">An interview is a hostile thesis defense: the other side hunts for holes. Every answer below is already implemented above — these are retrieval cues, not spin.</p>
+
+  <div class="iq"><div class="quest">"Isn't this just conditional factor models?"</div>
+    <p>"Yes, deliberately — plus one novel state variable and an unusually honest treatment of effective sample size." Delivered without flinching. The framework is standard (Ferson–Harvey, Hamilton, the practitioner literature); what distinguishes the project is whether every choice survives hostile questioning. Don't sell novelty.</p></div>
+
+  <div class="iq"><div class="quest">"Is any of this tradable?"</div>
+    <p>"Out of scope, by design." The project measures whether conditional structure exists and is stable; a tradability claim would require costs, turnover, capacity, and portfolio construction the effective sample can't support — the exact overclaim the framing was chosen to avoid. Quantile returns shown anywhere are effect-size displays, not portfolios.</p></div>
+
+  <div class="iq"><div class="quest">"What about survivorship bias?"</div>
+    <p>The signed answer, not the checkbox: "The universe is today's large-cap constituents, so stress-regime and high-leverage cells are upward-biased — the casualties are missing — and the bias grows with lookback distance since early cross-sections are disproportionately future winners. The rank label handles market-level survivorship but not this within-cross-section distortion. Fixing it means CRSP/Sharadar/Norgate or point-in-time index membership; both were considered and declined for scope, and the affected cells are flagged in the report."</p></div>
+
+  <div class="iq"><div class="quest">"Why only ~200–277 large caps / why start in 2000?"</div>
+    <p>Universe: intersection of clean technicals and announcement-dated fundamentals; large caps double as the survivorship mitigation. Window: daily market internals begin 2000-06; the window still contains every stress episode the effective-N budget counts on (dot-com bust, GFC, 2011, 2018, COVID, 2022).</p></div>
+
+  <div class="iq"><div class="quest">"Your regime could change during the 3-month label window."</div>
+    <p>Conditioning is on the regime at formation date t — "what does the regime <em>now</em> say about what follows" — and regime persistence is part of the hypothesis being measured. Dependence across days is handled by NW errors and episode-level counting, not assumed away.</p></div>
+
+  <div class="iq"><div class="quest">"What happens when the model sees a market it's never seen?"</div>
+    <p>It says so: frozen clusters plus a pre-frozen distance threshold route novel days to an explicit "unclassified" state, and the unclassified rate over time is reported as a drift diagnostic — no silent nearest-centroid pretending.</p></div>
+
+  <div class="iq"><div class="quest">"Why discrete buckets and not a continuous model / gradient boosting?"</div>
+    <p>The research object is an interaction pinned down by ~4–6 independent episodes per rare regime; a continuous surface has nothing to hold onto, tests uncountably many hypotheses, and has no clean stability check. Discrete as primary because effective N demands it and interpretability is the deliverable; continuous interactions run as a robustness check — an effect that vanishes continuously was a bin-boundary artifact. Never claim continuous is impossible.</p></div>
+
+  <div class="iq"><div class="quest">"Why no deep learning? Why did you reject RL?"</div>
+    <p>No training runs exist in the core by design. RL: non-stationarity violates its stable-rules premise, and it is catastrophically sample-inefficient against a tiny effective N — two independent reasons. Autoencoder: a reconstruction objective has no incentive to learn a path-dependent predicate on this data volume; the theory is fed in directly instead.</p></div>
+
+  <div class="iq"><div class="quest">"How do I know your indicator isn't curve-fit hindsight?"</div>
+    <p>"It might be — that's why it's a hypothesis, not a premise." Spec frozen in writing before exploration; run mechanically over the full history with zero discretion; perturbation-checked at its arbitrary constants; graded on its increment over regime + fundamentals (B3−B2), which is allowed to be zero; and the residual contamination — years of charts that can't be un-seen — is named in the limitations, mitigated by breadth across never-charted names.</p></div>
+
+  <div class="iq"><div class="quest">"How many things did you test?"</div>
+    <p>Exact counts, pre-registered graduation thresholds, stated correction, and the insufficient-data catalogue — the direct application of the replication-crisis lesson (64–85% of published anomalies failing consistent replication is why this sentence exists).</p></div>
+
+  <div class="iq"><div class="quest">"And if you find nothing?"</div>
+    <p>"Then the finding is that nothing survived honest correction — which is a defensible research result here, and would just be a broken machine under the prediction framing. That asymmetry is why the framing was chosen."</p></div>
+</section>
+
+<!-- ================= 07 RUNTIME ================= -->
+<section id="s7">
+  <div class="sec-num"><span class="badge">7</span>RUNTIME</div>
+  <h2>Runtime &amp; effort budget</h2>
+  <p class="lead">Bottlenecked by thinking and data-wrangling, not machine time — a feature, but it also means "it's still running" is rarely a valid excuse.</p>
+  <table>
+    <tr><th>Component</th><th>Cost</th><th>Notes</th></tr>
+    <tr><td>Fama-MacBeth core, clustering, B-runs, rank IC</td><td>Seconds–minutes</td><td>Small-matrix linear algebra a few thousand times.</td></tr>
+    <tr><td>Indicator over all stocks/dates</td><td>Minutes vectorized</td><td>Tens of minutes as sloppy loops — a code-quality problem, not a compute problem.</td></tr>
+    <tr><td>Rigor suite (joint bootstrap, perturbations, permutation nulls)</td><td>Minutes–hours</td><td>Slow only by multiplication (×500–1000 wrappers); trivially parallel; subsample during development, full runs for final numbers only.</td></tr>
+    <tr><td>Point-in-time data engineering</td><td>Days</td><td>Where the project lives or dies; mostly already paid.</td></tr>
+    <tr><td>Exploration/iteration loop</td><td>Weeks</td><td>That <em>is</em> the research.</td></tr>
+  </table>
+  <p>No neural-network training exists in the core, so there are no long training runs. A genuinely long-running core computation signals un-vectorized code, not a big problem — at this data size there isn't one. Guard iteration speed: a 40-minute loop waited on 15×/day is the real cost.</p>
+</section>
+
+<!-- ================= 08 DELIVERABLES ================= -->
+<section id="s8">
+  <div class="sec-num"><span class="badge">8</span>DELIVER</div>
+  <h2>Deliverables &amp; signed limitations</h2>
+  <h3>Deliverables</h3>
+  <ul class="clean">
+    <li>Reproducible codebase: visibility-enforcing data layer, frozen cluster models, two-layer statistics, B0–B3, the rigor suite, leakage tests in CI, config + seeds + results log.</li>
+    <li>The report (T9.1), including the incremental-value tables, the confirmation outcome, and the insufficient-data catalogue.</li>
+    <li>Named, described clusters and a few illustrated conditional patterns.</li>
+    <li><code>indicator_spec.md</code> (timestamped), <code>hypotheses.md</code> (pre-registered), the decision log resolving OQ1–OQ7.</li>
+  </ul>
+  <h3>Limitations — signed, not just named</h3>
+  <ul class="clean">
+    <li><strong>Survivorship:</strong> current-constituent universe ⇒ stress-regime and high-leverage cells upward-biased; bias grows with lookback. Fix known and declined for scope (D3).</li>
+    <li><strong>Regime axis is inherently small-sample:</strong> a physical ceiling — clustering reduces dimensionality but cannot conjure independent episodes; conclusions there are small-N by nature.</li>
+    <li><strong>Restatements:</strong> visibility dates are announcement-anchored (settled), but some values may be later-revised figures rather than as-first-seen; second-order; sensitivity check optional (R4).</li>
+    <li><strong>Macro release dates are calculated approximations</strong>, not archival publication timestamps.</li>
+    <li><strong>Non-stationarity:</strong> half circumvented via relative features (Drift A), half measured and reported by era (Drift B); the irreducible remainder acknowledged.</li>
+    <li><strong>Indicator provenance:</strong> developed on charts that overlap the evaluation years; the freeze + perturbation + breadth protocol bounds but cannot erase this (D12).</li>
+    <li><strong>Generality:</strong> US large caps, 2000→present, one horizon; findings are claims about that world.</li>
+  </ul>
+  <div class="eg"><div class="tag">Why volunteer all this</div><p>An honest researcher states the premises under which a conclusion holds. That is not weakness — it is precisely what makes the other conclusions trustworthy, and it is the quality interviewers screen for.</p></div>
+</section>
+
+<footer>
+  Conditional Structure in Stock Returns · canonical implementation guide · v1.1<br>
+  Main idea → decisions (D1–D15) → data → manual (Required / Recommended / Optional) → open questions (OQ1–OQ7) → defense sheet<br>
+  Where this document conflicts with earlier notes, this document wins.
+</footer>
+
+</div>
+</body>
+</html>

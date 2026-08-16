@@ -143,6 +143,9 @@ def main():
     from datetime import datetime, timedelta
     min_date = datetime.strptime(min(all_dates), '%Y-%m-%d')
     max_date = datetime.strptime(max(all_dates), '%Y-%m-%d')
+    # Cap grid at today to avoid extending into future calculated release dates
+    # (e.g. monthly bond series with estimated release dates ~2 months ahead)
+    max_date = min(max_date, datetime.now())
     master_dates = []
     d = min_date
     while d <= max_date:

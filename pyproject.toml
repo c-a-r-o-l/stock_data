@@ -1,0 +1,9 @@
+[tool.pytest.ini_options]
+minversion = "7.0"
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = ["-v", "--tb=short", "--strict-markers"]
+markers = [
+    "slow: slow-running tests",
+    "leakage: point-in-time / look-ahead bias tests (T0.3)",
+]

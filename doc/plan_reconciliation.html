@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reconciliation memo — Plan 3 vs. breakdown vs. what's on disk</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Public+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Spline+Sans+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#E8E9E2;
+  --panel:#F6F6F1;
+  --panel-2:#EFEFE8;
+  --ink:#23271F;
+  --ink-2:#5B6052;
+  --ink-3:#83887A;
+  --line:#CDCFC1;
+  --line-soft:#DDDFD3;
+  --accent:#46527D;
+  --accent-tint:#E1E4EE;
+  --pass:#2E6B4F;   --pass-bg:#DEE9E1;
+  --fail:#9C3A26;   --fail-bg:#F0DFD7;
+  --part:#8A6A1B;   --part-bg:#EEE5C4;
+  --sil:#666B5E;    --sil-bg:#E0E2D8;
+  --mono:'Spline Sans Mono',ui-monospace,monospace;
+  --sans:'Public Sans',system-ui,sans-serif;
+  --disp:'Instrument Serif',Georgia,serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+body{
+  background:var(--paper);
+  color:var(--ink);
+  font-family:var(--sans);
+  font-size:16.5px;
+  line-height:1.62;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:920px;margin:0 auto;padding:0 28px}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:3px}
+
+/* ---------- header ---------- */
+.head{padding:72px 0 44px;border-bottom:1px solid var(--line);position:relative}
+.eyebrow{font-family:var(--mono);font-size:11.5px;font-weight:500;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-2);margin-bottom:20px}
+h1{font-family:var(--disp);font-weight:400;font-size:clamp(42px,6.4vw,64px);line-height:1.02;letter-spacing:-.01em;margin-bottom:12px}
+h1 em{font-style:italic;color:var(--accent)}
+.dek{font-size:19px;color:var(--ink-2);max-width:62ch}
+.dek b{color:var(--ink);font-weight:600}
+.bigstamp{
+  position:absolute;right:28px;top:64px;transform:rotate(-6deg);
+  font-family:var(--mono);font-size:12px;font-weight:600;letter-spacing:.22em;
+  text-transform:uppercase;color:var(--fail);
+  border:2.5px solid var(--fail);border-radius:6px;padding:8px 16px;
+  opacity:.85;
+}
+.bigstamp span{display:block;font-size:9.5px;letter-spacing:.14em;color:var(--fail);opacity:.8;font-weight:500}
+@media(max-width:760px){.bigstamp{display:none}}
+
+/* three docs on the desk */
+.docs{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px;margin:36px 0 0}
+.doc{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:18px 18px 16px}
+.doc .file{font-family:var(--mono);font-size:11.5px;font-weight:600;letter-spacing:.04em;color:var(--accent);margin-bottom:3px;word-break:break-all}
+.doc .who{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);margin-bottom:10px}
+.doc p{font-size:14px;color:var(--ink-2);line-height:1.55}
+.doc p b{color:var(--ink);font-weight:600}
+
+/* ---------- sections ---------- */
+.sec{padding:56px 0;border-bottom:1px solid var(--line)}
+.sec:last-of-type{border-bottom:none}
+.kick{font-family:var(--mono);font-size:11.5px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:10px}
+h2{font-family:var(--disp);font-weight:400;font-size:clamp(28px,4vw,38px);line-height:1.1;margin-bottom:10px}
+h2 em{font-style:italic}
+.intro{color:var(--ink-2);font-size:16.5px;max-width:66ch;margin-bottom:26px}
+.intro b{color:var(--ink);font-weight:600}
+p.body{margin:14px 0;max-width:70ch}
+p.body b{font-weight:600}
+
+/* ---------- stamps ---------- */
+.stamp{
+  display:inline-block;font-family:var(--mono);font-size:10.5px;font-weight:600;
+  letter-spacing:.14em;text-transform:uppercase;line-height:1;
+  padding:6px 10px 5px;border-radius:4px;white-space:nowrap;
+  border:1.5px solid currentColor;
+}
+.stamp.pass{color:var(--pass);background:var(--pass-bg)}
+.stamp.fail{color:var(--fail);background:var(--fail-bg)}
+.stamp.part{color:var(--part);background:var(--part-bg)}
+.stamp.sil{color:var(--sil);background:var(--sil-bg)}
+
+/* ---------- scorecard ledger ---------- */
+.ledger{border:1px solid var(--line);border-radius:10px;background:var(--panel);overflow:hidden}
+.lrow{
+  display:grid;grid-template-columns:210px 118px 1fr;gap:18px;
+  padding:16px 20px;border-bottom:1px solid var(--line-soft);align-items:start;
+}
+.lrow:last-child{border-bottom:none}
+.lrow .pos{font-family:var(--mono);font-size:12.5px;font-weight:600;color:var(--ink);line-height:1.5;padding-top:2px}
+.lrow .pos small{display:block;font-weight:400;color:var(--ink-3);font-size:11px;letter-spacing:.02em}
+.lrow .why{font-size:14px;color:var(--ink-2);line-height:1.55}
+.lrow .why b{color:var(--ink);font-weight:600}
+.lhead{
+  display:grid;grid-template-columns:210px 118px 1fr;gap:18px;padding:10px 20px;
+  background:var(--panel-2);border-bottom:1px solid var(--line);
+  font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);font-weight:600;
+}
+@media(max-width:720px){
+  .lhead{display:none}
+  .lrow{grid-template-columns:1fr;gap:8px}
+}
+
+/* ---------- finding cards ---------- */
+.finding{
+  background:var(--panel);border:1px solid var(--line);border-radius:10px;
+  padding:22px 24px;margin:16px 0;
+}
+.finding .fhead{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin-bottom:8px}
+.finding .fid{font-family:var(--mono);font-size:12px;font-weight:600;letter-spacing:.1em;color:var(--fail)}
+.finding.amber .fid{color:var(--part)}
+.finding h3{font-family:var(--disp);font-weight:400;font-size:23px;line-height:1.15}
+.finding p{font-size:15px;color:var(--ink-2);line-height:1.6;margin-top:8px}
+.finding p b{color:var(--ink);font-weight:600}
+.finding .fix{
+  margin-top:12px;padding:10px 14px;background:var(--panel-2);border-left:3px solid var(--pass);
+  border-radius:0 6px 6px 0;font-size:14px;color:var(--ink-2);
+}
+.finding .fix b{color:var(--pass);font-weight:600}
+code{font-family:var(--mono);font-size:.86em;background:var(--panel-2);border:1px solid var(--line-soft);padding:1px 6px;border-radius:4px;color:var(--ink)}
+.finding code{background:var(--paper)}
+
+/* minor notes strip */
+.minors{background:var(--panel);border:1px dashed var(--line);border-radius:10px;padding:18px 22px;margin-top:22px}
+.minors h4{font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);font-weight:600;margin-bottom:10px}
+.minors p{font-size:14px;color:var(--ink-2);margin:7px 0;line-height:1.55}
+.minors p b{color:var(--ink);font-weight:600}
+
+/* credit strip */
+.credit{background:var(--pass-bg);border:1px solid rgba(46,107,79,.3);border-radius:10px;padding:16px 20px;margin-bottom:22px;font-size:14.5px;color:var(--ink-2);line-height:1.6}
+.credit b{color:var(--pass);font-weight:600}
+
+/* severity ledger */
+.sev{font-family:var(--mono);font-size:13px;letter-spacing:2px;white-space:nowrap}
+.sev .on{color:var(--fail)}
+.sev .off{color:var(--line)}
+.drow{
+  display:grid;grid-template-columns:64px 92px 1fr;gap:16px;
+  padding:18px 20px;border-bottom:1px solid var(--line-soft);align-items:start;
+}
+.drow:last-child{border-bottom:none}
+.drow .did{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--ink);padding-top:2px}
+.drow .dbody h3{font-family:var(--sans);font-weight:600;font-size:15.5px;margin-bottom:4px}
+.drow .dbody p{font-size:14px;color:var(--ink-2);line-height:1.58}
+.drow .dbody p b{color:var(--ink);font-weight:600}
+.drow .dbody .fix{margin-top:8px;font-size:13.5px;color:var(--ink-2)}
+.drow .dbody .fix b{color:var(--pass)}
+@media(max-width:720px){
+  .drow{grid-template-columns:1fr;gap:6px}
+}
+
+/* next actions */
+.acts{counter-reset:act;display:flex;flex-direction:column;gap:10px}
+.act{
+  counter-increment:act;background:var(--panel);border:1px solid var(--line);
+  border-radius:8px;padding:14px 18px 14px 58px;position:relative;font-size:15px;color:var(--ink-2);line-height:1.55;
+}
+.act::before{
+  content:counter(act);position:absolute;left:18px;top:14px;
+  font-family:var(--disp);font-size:22px;color:var(--accent);
+}
+.act b{color:var(--ink);font-weight:600}
+
+/* agreement chips */
+.agree{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.agree span{
+  font-family:var(--mono);font-size:12px;background:var(--panel);
+  border:1px solid var(--line);border-radius:6px;padding:5px 11px;color:var(--ink-2);
+}
+
+footer{padding:34px 0 56px;font-family:var(--mono);font-size:11.5px;color:var(--ink-3);letter-spacing:.06em}
+</style>
+</head>
+<body>
+
+<header class="head">
+  <div class="wrap">
+    <div class="bigstamp">NOT YET RECONCILED<span>3 documents · 1 pipeline</span></div>
+    <p class="eyebrow">Reconciliation memo · 2026-07-09</p>
+    <h1>Two plans, one disk, <em>one</em> unresolved risk</h1>
+    <p class="dek">Plan 3 and the breakdown agree on more than the arguments suggested — the data discipline, the continuous representation, the window. Where they split, the split is on exactly the things that decide whether a backtest is real: <b>label geometry, training objective, purging, and the universe.</b> The inventory shows the plumbing quietly following the best of both plans — and confirming the one hazard neither plan has actually dealt with.</p>
+
+    <div class="docs">
+      <div class="doc">
+        <div class="file">Summer_Project_Plan_3.txt</div>
+        <div class="who">Collaborator · transformer-first</div>
+        <p>Strong instincts on representation and genuinely excellent macro-data discipline. <b>Silent on every question that decides whether the results are real</b> — and its central component has no stated loss function.</p>
+      </div>
+      <div class="doc">
+        <div class="file">project_breakdown.html</div>
+        <div class="who">Yours · rigor-first</div>
+        <p>Right on the architecture that matters (cross-sectional spine, purge twice, baselines first). <b>Missing one control</b> — factor regression — and carrying a few stale numbers of its own.</p>
+      </div>
+      <div class="doc">
+        <div class="file">DATA_INVENTORY.md</div>
+        <div class="who">Ground truth · what's built</div>
+        <p>Follows the release-date rule better than either plan specified. But it <b>confirms the universe is survivors-only</b>, the locked merge design isn't built, and gate 1's exit tests don't exist yet.</p>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- ============ 01 SCORECARD ============ -->
+<section class="sec" id="scorecard">
+  <div class="wrap">
+    <p class="kick">01 · The scorecard</p>
+    <h2>Plan 3's own ledger, <em>marked to market</em></h2>
+    <p class="intro">Plan 3 records ten positions blotter-style. Here is each position with a ruling. The pattern: <b>it wins the representation debates and loses the statistical ones</b> — mostly by never entering them.</p>
+
+    <div class="ledger">
+      <div class="lhead"><span>Position</span><span>Ruling</span><span>Reason</span></div>
+
+      <div class="lrow">
+        <div class="pos">Encoder over GPT decoder<small>representation, not generation</small></div>
+        <div><span class="stamp pass">Holds</span></div>
+        <p class="why">Correct — <b>if</b> an encoder exists at all. The breakdown demoted the encoder itself to a gate-6 challenger; this ruling only matters once gate 6 opens.</p>
+      </div>
+
+      <div class="lrow">
+        <div class="pos">Continuous values over tokens<small>no discretization</small></div>
+        <div><span class="stamp pass">Holds</span></div>
+        <p class="why">Both plans agree. Tokenization was an NLP habit; binning threw away precision for a decorative language analogy. Settled.</p>
+      </div>
+
+      <div class="lrow">
+        <div class="pos">252-day over 60-day window<small>~4 quarterly prints</small></div>
+        <div><span class="stamp pass">Holds</span></div>
+        <p class="why">Plan 3 <b>won this argument outright</b> — the current transformer spec carries the 252-day window. Sixty days sees one quarterly print; a year sees a fundamental trend.</p>
+      </div>
+
+      <div class="lrow">
+        <div class="pos">FAISS ∥ XGBoost, parallel<small>never retrieval → train</small></div>
+        <div><span class="stamp part">Partial</span></div>
+        <p class="why">Right against the strawman: fitting a model on one query's 50 neighbors is absurd. Wrong as an argument against <b>neighborhood features</b> — the two-stage design computes summary stats over the neighborhood for <em>every</em> training row, which is thousands of samples, not 50. The parallel design's real cost: retrieval contributes zero signal and FAISS becomes decoration.</p>
+      </div>
+
+      <div class="lrow">
+        <div class="pos">Transformer over LSTM<small>no forgetting</small></div>
+        <div><span class="stamp pass">Holds</span></div>
+        <p class="why">Correct, and low-stakes — this is a within-gate-6 debate about a component that hasn't earned entry yet.</p>
+      </div>
+
+      <div class="lrow">
+        <div class="pos">Raw ingredients over pre-digested signals<small>SMAs, not crossover flags</small></div>
+        <div><span class="stamp pass">Holds</span></div>
+        <p class="why">Matches the Vector A pruning: discretized state columns and fixed-formula composites (TTM = 2·STD − 1.5·ATR) are out; raw continuous indicators are in. Genuine convergence between the plans.</p>
+      </div>
+
+      <div class="lrow">
+        <div class="pos">Keep correlated features<small>"attention handles it"</small></div>
+        <div><span class="stamp fail">Fails</span></div>
+        <p class="why">Collinearity is a property of the <b>distance metric</b>, and in Plan 3's design distance runs over whatever the encoder happened to emphasize — unauditable. "Correlation is context" is a hope, not an argument. The working answer: cluster by economic meaning, engineer the spreads that carry signal (VIX term-structure slope, curve slope), down-weight only true duplicates.</p>
+      </div>
+
+      <div class="lrow">
+        <div class="pos">Release-date alignment<small>publication date, not period end</small></div>
+        <div><span class="stamp pass">Holds</span></div>
+        <p class="why">The best section of the plan, specified early and specified well — and it's the part that actually got built (<code>History_4_E_Alfred_Release</code>). Full credit.</p>
+      </div>
+
+      <div class="lrow">
+        <div class="pos">Econ events as metadata<small>never as features</small></div>
+        <div><span class="stamp part">Partial</span></div>
+        <p class="why">Fine for the retrieval story; wrong if it keeps regime state out of the feature set. Regime belongs <b>in features</b> as raw magnitudes (VIX structure, breadth, curve slope); event narration belongs in metadata. Do both — they're not in tension.</p>
+      </div>
+
+      <div class="lrow">
+        <div class="pos">Train from scratch, but 768-dim / 6 layers<small>over pretrained BERT</small></div>
+        <div><span class="stamp part">Partial</span></div>
+        <p class="why">Direction holds — Wikipedia weights can't read factor vectors. Size fails: 768-dim with a 6-layer encoder is roughly <b>40M parameters</b> aimed at a few hundred independent half-year periods per stock. The 768 is cargo-culted from BERT. If it exists at all: 64–128, sized to the problem.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 02 AGREEMENTS ============ -->
+<section class="sec" id="agree">
+  <div class="wrap">
+    <p class="kick">02 · Where the plans already agree</p>
+    <h2>The overlap is bigger than the fight</h2>
+    <p class="body">Worth saying plainly, because the disagreement gets the airtime: your collaborator's plan and yours independently arrive at the same answer on <b>forward-fill causality, release-date alignment, continuous representation, encoder-not-decoder, chronological ordering, and pruning redundant or rule-based features.</b> The 28-feature audit of <code>History_1_D</code> is real domain work — it's a legitimate input to the Vector A shortlist even though the shortlist serves a different (cross-sectional) design. And the normalization-per-feature-type table is a usable starting inventory, with two fixes noted below.</p>
+    <div class="agree">
+      <span>release-date alignment</span><span>forward-fill = causal</span><span>continuous, no tokens</span><span>encoder ≠ decoder</span><span>chronological split</span><span>prune rule-based composites</span><span>drop true duplicates</span><span>252-day window (adopted)</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 03 PLAN 3 FAILURES ============ -->
+<section class="sec" id="fails">
+  <div class="wrap">
+    <p class="kick">03 · Where Plan 3 breaks</p>
+    <h2>Ranked, worst first</h2>
+    <p class="intro">The first two are core-wrong — the plan as written can't be built into something whose results mean anything. The rest are serious but repairable.</p>
+
+    <div class="finding">
+      <div class="fhead"><span class="fid">F1</span><h3>The label isn't a function of the input</h3></div>
+      <p>The label is cross-sectional: top decile <b>among peers on day t</b>. Plan 3's embedding sees one stock's 252-day history and never sees the peers. Two stocks with identical windows can carry opposite labels depending on what the other 312 names did that day — from the model's seat, that's <b>irreducible label noise baked in by the architecture.</b> This is the structural mismatch that locked the cross-sectional (stock, date) spine; Plan 3 still stands on the rejected framing. Every downstream choice in the plan — the per-stock windows, the per-stock time-series z-scores, the absence of any cross-sectional standardization — inherits this.</p>
+    </div>
+
+    <div class="finding">
+      <div class="fhead"><span class="fid">F2</span><h3>The central component has no loss function</h3></div>
+      <p>Nowhere in Plan 3's ~8 pages does it say what the encoder is <b>trained on</b>. That's not a detail; it's the whole design. There are two candidates and both fail as written. (a) <b>Trained on the label</b> (a classification head): the embedding becomes label-shaped, so FAISS "similar regimes" partly means "similar predicted outcome" — the precedents shown to a PM are <em>the model agreeing with itself</em>, and the interpretability claim is circular. (b) <b>Self-supervised masking</b>: forward-fill duplication lets the model copy adjacent identical cells and score perfectly while learning nothing — it needs block or release-boundary masking, which the plan doesn't know it needs.</p>
+      <div class="fix"><b>Gate condition:</b> no written training objective that answers F1 and F2 → the encoder doesn't enter gate 6. This is the single most useful thing to ask the collaborator for.</div>
+    </div>
+
+    <div class="finding">
+      <div class="fhead"><span class="fid">F3</span><h3>Validation is one chronological split — and nothing else</h3></div>
+      <p>No purge or embargo: with a ~126-day label, windows near the 2018|2019 and 2021|2022 boundaries carry test-period outcomes into training. No effective-N: hundreds of thousands of daily windows overlapping 252 days collapse to roughly <b>~50 independent half-year periods per stock</b> on the usable data — every AUC computed the Plan 3 way is inflated by sample re-use, not signal. No deflated Sharpe, no multiple-testing discipline, and the backtest itself is a checkbox in the open-items list. This is the section where the plan dies in front of anyone who's sat on a desk.</p>
+    </div>
+
+    <div class="finding">
+      <div class="fhead"><span class="fid">F4</span><h3>Survivorship silence, aggravated by SYMBOL as a feature</h3></div>
+      <p>The plan never mentions universe construction, and its 28 features <b>include the ticker.</b> On a survivors-only dataset the cheapest signal available is "this symbol goes up" — the model can memorize the answer key, and the biased universe will reward it in-sample. Entity embeddings are a legitimate technique in general; here, with ~313 fixed survivors and a top-decile label, it's an invitation.</p>
+    </div>
+
+    <div class="finding amber">
+      <div class="fhead"><span class="fid">F5</span><h3>The alpha map is testimony, not evidence</h3></div>
+      <p>"Close &gt; Trigger &gt; Itrend confirms trend continuation (~100% reliability)" is precisely the kind of claim the entire validation apparatus exists to destroy. The four alpha sources are fine as <b>hypotheses to test</b> — α·3 (regime-gated stock factors) even matches your own working thesis about where the edge lives. As <b>assumptions to build on</b>, they're poison: nothing in the plan tests any of them.</p>
+    </div>
+
+    <div class="minors">
+      <h4>Minor notes — real, but not structural</h4>
+      <p><b>The label is defined two ways.</b> Part 1 says P(6-month return &gt; 50%); everywhere else says top decile. Those are very different targets — one is absolute, one is relative. The ambiguity is F1 in miniature.</p>
+      <p><b>"Time-series z-score" over an unspecified window.</b> If the mean/std are computed over the full series, that's look-ahead. Must be expanding or rolling as-of statistics — the plan doesn't say, which usually means full-sample.</p>
+      <p><b>"Forward-fill introduces no bias" is true for causality, false for consequences.</b> The duplication over-weights slow features in any distance metric and sabotages naive masking (F2b). No bias ≠ no cost.</p>
+      <p><b>2–6 hours on CPU</b> for a ~40M-parameter encoder over hundreds of thousands of 252-token windows is optimistic by roughly an order of magnitude. Harmless, but it signals the training loop was never budgeted.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 04 BREAKDOWN DINGS ============ -->
+<section class="sec" id="dings">
+  <div class="wrap">
+    <p class="kick">04 · Issues with the breakdown itself</p>
+    <h2>Your plan's own <em>exposures</em></h2>
+    <p class="intro">Smaller and fewer, but they exist — and one of them is the kind of gap an interviewer finds in the first ten minutes.</p>
+
+    <div class="finding">
+      <div class="fhead"><span class="fid">B1</span><h3>Factor controls are missing entirely</h3></div>
+      <p>Nowhere in gates 4–7 does the breakdown demand a factor regression of the long-short spread. <b>"Beats buy-and-hold" is not "alpha."</b> A top-minus-bottom decile spread can be fully explained by momentum, size, or value loadings — the claim only survives if the spread's intercept survives a Fama–French-style regression. This belongs in gate 4 (with costs) and again in gate 7 (with the deflated Sharpe).</p>
+    </div>
+
+    <div class="finding amber">
+      <div class="fhead"><span class="fid">B2</span><h3>Its own numbers are stale</h3></div>
+      <p>"200 stocks, ~2,520 days, ≈500k rows" versus the actual 313 clean symbols and a daily file that spans 1986→2026. Harmless until someone budgets a feature count or an effective-N off the wrong denominator — which is exactly what §02's "low tens of features" advice does.</p>
+    </div>
+
+    <div class="finding amber">
+      <div class="fhead"><span class="fid">B3</span><h3>It declares the horizon decided while it's still open</h3></div>
+      <p>§03 hard-codes ~126 days; the live decision list still has the exact horizon open. This isn't cosmetic: <b>the purge width, the neighbor admissibility rule, and effective-N all inherit from the horizon.</b> Pin it before the label pipeline exists, or every one of those becomes a parameterized rewrite.</p>
+    </div>
+
+    <div class="finding amber">
+      <div class="fhead"><span class="fid">B4</span><h3>It names survivorship as Necessary but offers no interim path</h3></div>
+      <p>Gate 1 requires a point-in-time universe. The TradeStation exports <b>cannot satisfy it</b> — they are today's tickers — and CRSP is still pending. The plan should say what's allowed meanwhile: build everything, stamp every result "survivor universe — treat as an upper bound," and design the data layer so CRSP drops in without code changes. Otherwise gate 1 is a wall instead of a gate.</p>
+    </div>
+
+    <div class="minors">
+      <h4>One tension worth writing down</h4>
+      <p>§02 says the statistical budget is "low tens, maybe ~100" features, while the current transformer spec carries ~320 features per token. Both can be right — <b>the 30–50 Vector A shortlist is the binding budget for the core system; the 320 is a gate-6-only concern</b> — but the breakdown never says this explicitly, and it should.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 05 GROUND TRUTH ============ -->
+<section class="sec" id="disk">
+  <div class="wrap">
+    <p class="kick">05 · Ground truth — the inventory vs. both plans</p>
+    <h2>How the disk has <em>deviated</em></h2>
+
+    <div class="credit"><b>Credit first, because it's earned:</b> the ALFRED vintage capture (54 true multi-revision timelines) exceeds what either plan specified · release dates are computed for all 140 series · 313 symbols are aligned across three frequencies · SPY/QQQ benchmarks are carried through every layer · dates are normalized end to end. The macro layer is the strongest part of the pipeline and it follows Plan 3's best idea faithfully.</div>
+
+    <div class="ledger">
+      <div class="drow">
+        <div class="did">D1</div>
+        <div class="sev"><span class="on">▮▮▮▮</span></div>
+        <div class="dbody">
+          <h3>The universe is survivors-only — now confirmed, not suspected</h3>
+          <p>313 fixed symbols, every file running to 2026, no delisted names anywhere in the tree. Violates the breakdown's gate 1 (Necessary); consistent with Plan 3 only because Plan 3 never looked. <b>Compounded:</b> fundamentals cover 276 of 313, and 30 raw symbols were all-zero and dropped — so fundamental coverage itself correlates with corporate health. Availability bias stacked on survivorship bias.</p>
+          <p class="fix"><b>Interim stance (per B4):</b> proceed, label every result an upper bound, isolate universe membership behind one file so CRSP swaps in cleanly.</p>
+        </div>
+      </div>
+
+      <div class="drow">
+        <div class="did">D2</div>
+        <div class="sev"><span class="on">▮▮▮</span><span class="off">▯</span></div>
+        <div class="dbody">
+          <h3>Point-in-time macro is approximate before 2016</h3>
+          <p>86 of 140 series use rule-of-thumb release lags across their entire history, and the 54 true-vintage series bunch their pre-2016 vintages at 2016-01-01 — so "what was known then" is partly reconstructed for most of the backtest window. This is a reasonable engineering compromise, <b>but it deviates from the letter of the release-date rule both plans swear by</b>, and it's currently undocumented as a limitation.</p>
+          <p class="fix"><b>Fix:</b> add a lag-buffer switch (+5–10 business days) to <code>4_merge_macro.py</code> and re-run headline results under it. If the results die under a small buffer, they were leakage wearing a costume.</p>
+        </div>
+      </div>
+
+      <div class="drow">
+        <div class="did">D3</div>
+        <div class="sev"><span class="on">▮▮▮</span><span class="off">▯</span></div>
+        <div class="dbody">
+          <h3>Cleaning deletes rows; both plans demand a complete daily grid</h3>
+          <p><code>1_clean_tech.py</code> drops rows on SPY_C=0, OHLC≤0, zero PV counts, and all-zero MACD. If those are warm-up rows at the start of each series, fine. <b>If any are mid-series, the daily calendar has holes</b>: forward returns computed across gaps, misaligned 252-day windows, and different calendars per frequency for the same stock. "Same shape every day" is a rule in both plans; row deletion is the quiet way to break it.</p>
+          <p class="fix"><b>Fix:</b> verify the drops are leading-edge only; if not, switch to keep-and-flag with a validity column.</p>
+        </div>
+      </div>
+
+      <div class="drow">
+        <div class="did">D4</div>
+        <div class="sev"><span class="on">▮▮</span><span class="off">▯▯</span></div>
+        <div class="dbody">
+          <h3>The locked merge design isn't built — a different one is</h3>
+          <p>The locked decision: per-stock wide <b>parquet</b>, columns suffixed <code>_D/_W/_M/_F</code>, four source date columns, no-lookahead assertions at the join. On disk: per-frequency stacked <b>CSVs</b> (<code>tech_daily.csv</code> is 498 MB), <code>merge_wide.py</code> demoted to "Legacy," and no assertions anywhere. The union step — the exact place forward-fill lookahead happens — hasn't happened, which also means the two flagged issues (bare <code>DATE</code> column, stray unnamed columns) are still open, not resolved.</p>
+        </div>
+      </div>
+
+      <div class="drow">
+        <div class="did">D5</div>
+        <div class="sev"><span class="on">▮▮</span><span class="off">▯▯</span></div>
+        <div class="dbody">
+          <h3>Gate 1's exit criteria don't exist in src/</h3>
+          <p>The breakdown's bar for advancing past gate 1: a leakage unit test passes, and every factor's constancy/variance is profiled. Neither script exists. The pipeline is at gate 0.9 — a lot of good plumbing, no proof it's watertight.</p>
+        </div>
+      </div>
+
+      <div class="drow">
+        <div class="did">D6</div>
+        <div class="sev"><span class="on">▮</span><span class="off">▯▯▯</span></div>
+        <div class="dbody">
+          <h3>Headline date ranges oversell the usable window</h3>
+          <p>tech_daily says 1986, monthly says 1970 — but MKT starts 1993, <code>market_merge_daily</code> starts 2000, and parts of the VIX term structure exist later still. <b>The joint window every feature covers is roughly 2000→2026</b>, and effective-N (span ÷ horizon) must be computed on the joint window, not the oldest file. Corollary: Plan 3's 1990–2018 train split is unbuildable with these features.</p>
+        </div>
+      </div>
+
+      <div class="drow">
+        <div class="did">D7</div>
+        <div class="sev"><span class="on">▮</span><span class="off">▯▯▯</span></div>
+        <div class="dbody">
+          <h3>The universe count drifts by document</h3>
+          <p>~275 in the working spec, 313 in the clean tech set, 276 with fundamentals. Three numbers, no canonical source. Write a <code>universe.csv</code> that names the membership and make every script read it — it's also the seam CRSP slots into later.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 06 NEXT ============ -->
+<section class="sec" id="next">
+  <div class="wrap">
+    <p class="kick">06 · What to do next</p>
+    <h2>Seven moves, in order</h2>
+    <div class="acts">
+      <div class="act"><b>Write the leakage test and the constancy profile.</b> Closes gate 1's exit bar and, as a side effect, settles D3 — the test will immediately reveal whether row-drops punched holes in the calendar.</div>
+      <div class="act"><b>Resolve D3 explicitly.</b> Verify the cleaning drops are warm-up-only; otherwise switch to keep-and-flag. Do this before the label pipeline exists, because forward returns are the first thing gaps corrupt.</div>
+      <div class="act"><b>Build the locked union.</b> Per-stock parquet, <code>_D/_W/_M/_F</code> suffixes, four source date columns, assertions at the join. Retire the ad-hoc merges; resolve the bare-DATE and unnamed-column flags while you're in there.</div>
+      <div class="act"><b>Freeze <code>universe.csv</code> and write the survivorship caveat into the README now.</b> One file fixes D7 and stakes out the honest framing for D1 before any result exists to oversell.</div>
+      <div class="act"><b>Add the macro lag-buffer switch</b> to <code>4_merge_macro.py</code> and make the sensitivity run a standard part of reporting (D2).</div>
+      <div class="act"><b>Amend the breakdown:</b> factor regression into gates 4 and 7 (B1), pin the label horizon (B3), refresh the stale counts (B2), and state the interim survivorship policy (B4).</div>
+      <div class="act"><b>For the collaborator:</b> one written page answering two questions — what is the encoder's loss function, and how does a per-stock window predict a peer-relative label. <b>No answers, no gate 6.</b> The 252-day window, the release-date discipline, and the feature audit are theirs and they're keepers; the burden of proof on the rest is also theirs.</div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">COMPILED 2026-07-09 · SOURCES: SUMMER_PROJECT_PLAN_3.TXT · PROJECT_BREAKDOWN.HTML · DATA_INVENTORY.MD</div>
+</footer>
+
+</body>
+</html>

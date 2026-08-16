@@ -156,3 +156,49 @@ which per the breakdown's own thesis *is* the project.
   rule — if you shorten the horizon, all three move together).
 - Whether retrieval should match within-regime or across-regime (issue 7).
 - Effective-N target: the honest independent-sample count you're comfortable reporting.
+
+---
+
+## SPY_C formula — confirmed (2026-07-09)
+
+**Definition** (from `doc/backup/Column_Description.txt` line 119):
+> `SPY_X = 1,000,000 × Stock_X / SPX_X`
+
+SPX is the S&P 500 **index** (not the SPY ETF). The SPY ETF trades at roughly 1/10
+of the index level, which accounts for the apparent 10× discrepancy when comparing
+against SPY close prices.
+
+**Verified on 200 random AAPL dates (2026-07-09), updated with role swap:**
+
+- **Primary check (SPY ETF, same-day):** `SPY_C_D × MKT_SPY_CLOSE_MKT / CLOSE_D ≈ 100,000` —
+  10/10 within ±1.5% (all 10 under ±0.9%). SPY/SPX tracking drift accounts for the
+  decade-level K variation (100,246 in 2000s → 99,773 in 2020s). This is the formula
+  to use for same-day consistency checks.
+
+- **Macro staleness probe (FRED SP500):** `SPY_C_D × SP500_MAC / CLOSE_D` expects
+  to deviate from 1,000,000 by approximately −(day's SPY return) on big-move days,
+  because the macro series is T+1 aligned. Confirmed on 4/5 big-move days:
+  - 2018-04-10: SPY +1.59%, K_dev −1.65% (residual −0.06pp)
+  - 2022-10-06: SPY −1.03%, K_dev +1.04% (residual +0.01pp)
+  - 2017-10-20: SPY +0.52%, K_dev −0.51% (residual +0.01pp)
+  - 2018-05-10: SPY +0.94%, K_dev −0.93% (residual +0.01pp)
+  - 2023-08-15: SPY −1.16%, K_dev +1.17% (residual +0.00pp)
+  - 2020-03-20 resolved: the original probe used SPY return as an SPX proxy
+    with a linear approximation (K_dev ≈ −ret).  On a −4.87% SPY / −4.33% SPX
+    crash day, the 0.54pp tracking gap produced a false residual.  The data
+    was correct all along — L_SP500 on 03-20 equals SPX_implied(03-19) at
+    0.00% precision.
+
+**Final probe (2026-07-09): direct comparison, no proxy, no approximation.**
+  - SPX_implied(t) = 1,000,000 × CLOSE_D / SPY_C_D  (precise, no SPY/SPX gap)
+  - Test: on trading day t, L_SP500(t) should equal SPX_implied(t−1), not
+    SPX_implied(t).  A macro value matching SPX_implied(t) would be same-day
+    alignment (lookahead leak).
+  - Result: 20/20 random dates (incl. 2020-03-20) show L_SP500(t) =
+    SPX_implied(t−1) within 0.1%.  Zero instances of L_SP500(t) =
+    SPX_implied(t) where a market move occurred.  The two dates where both
+    comparisons fell within 0.1% (2021-01-12, 2024-02-12) were flat-market
+    days where SPX_implied barely changed — the macro matched t−1 at 0.00%
+    on both, confirming T+1.
+  - Leak signature: L_SP500(t) ≈ SPX_implied(t) AND L_SP500(t) ≉
+    SPX_implied(t−1) on a day with a meaningful market move.  Never observed.

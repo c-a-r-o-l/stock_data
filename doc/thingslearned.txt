@@ -1,0 +1,36 @@
+This is a much richer pantry than I assumed — you have a lot of *fast, market-priced* macro here, which is exactly the good kind for regime features. Let me answer your two questions, the conceptual one first because it changes how you read the list.
+
+**"Is it actually a bad idea to include the slower ones?"**
+
+It's not slowness *per se* that's the problem — it's three things that happen to correlate with slowness. Worth separating them, because one of your slow series (NFCI) is actually one of the *best* things in the whole manifest.
+
+1. **Revision.** A regime label has to reflect what was knowable that day. GDP gets revised for years, so "was the economy contracting in Q1 2008?" has a different answer in April 2008 vs. today. Using the revised value leaks the future. But look at your manifest — `num_revisions` is 1 for almost everything (meaning single-vintage, first-release-only in your export). The revision problem is largely already handled by how you pulled the data. So this reason mostly doesn't apply to your set. The two NFCI subindices and ICSA show rev=2, minor.
+
+2. **Staleness / stepwise features.** A monthly series is flat for ~21 trading days then jumps. Feed it raw into daily clustering and it contributes a near-constant that steps once a month — it barely helps distinguish days *within* a month, which is where regime transitions actually happen (2008 and 2020 turned in days, not months). This is a real cost, but it's about *update frequency*, and it's survivable if the series carries slow-moving information you can't get faster.
+
+3. **Redundancy with faster proxies.** This is the actual reason to skip most slow macro: the information is *already in the fast series*. The market prices in the recession before GDP confirms it. Credit spreads widen before unemployment rises. So the monthly labor/output series are usually redundant with the daily credit/rate/vol series for *regime* purposes — the fast market data is a real-time vote on the same underlying state. You're not losing much by dropping them; you're dropping a laggy echo of what the spreads already told you.
+
+**The synthesis:** prefer fast, but the deciding question isn't "how fast" — it's *"does this series carry regime information that the fast market-priced series don't already contain?"* For almost all the monthly macro, the answer is no. For a couple of composites, the answer is yes, and those are worth including despite being weekly. NFCI is the standout: it's the Chicago Fed's *National Financial Conditions Index*, a curated composite of 100+ indicators, purpose-built to summarize financial stress, weekly, single-vintage. That is nearly the ideal regime feature and you should use it.
+
+**Which files to use — a concrete ~6-series shortlist:**
+
+Everything below is daily or weekly, single-revision, market-priced or a purpose-built composite. Each covers a *distinct* dimension; I'm deliberately picking one per concept to avoid the collinearity trap.
+
+- **Equity trend/vol** — `SP500` and `VIXCLS` (VIX). But you already get equity trend and realized vol from SPY in the market-internals half of T3.1, so from ALFRED you mainly want **VIXCLS** (spot VIX) and **VXVCLS** (3-month VIX) — the two together give you the **VIX term-structure slope** (VXV−VIX) the guide asked for, which inverts in panics. Two files, one powerful feature plus a level.
+- **Credit stress** — `BAMLH0A0HYM2` (high-yield OAS). This is *the* credit-risk regime variable, daily, and cleaner than the HYG−LQD ETF proxy the guide suggested as a fallback. Use this instead of the ETF spread. One file. (`BAA10Y` or `BAMLC0A0CM` are investment-grade alternatives/corroborators — pick HY as primary.)
+- **Yield-curve shape** — `T10Y2Y` (the precomputed 10y−2y spread — no need to build it from DGS10/DGS2 yourself). One file, use as level-z + change.
+- **Rates level** — `DGS10` (10y Treasury) as a z-score and change, to capture "rates rising/falling" as a regime dimension distinct from curve *shape*. One file. (Optionally `DFF` for the policy-rate stance, but DGS10 + T10Y2Y probably suffice.)
+- **Financial conditions composite** — `NFCI`. The one "slow" (weekly) series that earns its place, because it's a curated composite carrying stuff the raw spreads don't. One file. (`STLFSI4`, St. Louis Fed Financial Stress, is a near-substitute — don't use both, they're redundant.)
+
+That's **VIXCLS, VXVCLS, BAMLH0A0HYM2, T10Y2Y, DGS10, NFCI** — six ALFRED series → roughly 8 features (VIX percentile, term slope, HY spread z + change, curve level-z + change, 10y z + change, NFCI level/z). Combined with the ~4-6 market-internal features (SPY 21/63d return, 21d realized vol, breadth z-scores), you land at a ~12-14 column regime matrix. That's the right size for clustering against ~25 episodes.
+
+**Tempting-but-skip, and why:**
+- **FX (`DEX*`, `DTWEX*`)** — dollar strength is a regime signal, but for a *US-large-cap* study it's second-order and adds collinear noise. The broad dollar index `DTWEXBGS` is the one to consider if you want a single FX dimension later; not core.
+- **Oil (`DCOILWTICO`, Brent)** — matters for specific episodes (2008, 2022) but it's a sector story more than a market-regime story; risks the clustering finding "energy shock" as a regime that's really just an oil-price axis. Optional add, not core.
+- **Breakevens/TIPS (`T10YIE`, `DFII10`, `T5YIFR`)** — genuinely interesting for an *inflation-regime* dimension (would've helped 2022 stand apart). If you want one inflation feature, `T10YIE` (10y breakeven) is the pick. Reasonable optional 7th series; I'd start without it and add it if 2022 doesn't separate cleanly.
+- **Fed balance sheet (`WALCL`, `WRESBAL`, reserves, TGA)** — QE/QT is real regime info but these are trending, level-dominated series that are a nightmare to make stationary/relative, and they're weekly. High effort, high collinearity with the post-2008 era dummy you're trying *not* to create. Skip.
+- **All the monthly labor/output/housing** — the redundant laggy echoes. Skip for regime. (They might matter for *financial-state* features later, but that's fundamentals, different axis.)
+
+So your instinct to mourn the release-date work is premature in one sense — you're not using the *slow revised* series, true, but the release-date/vintage discipline you built is exactly why your fast series are trustworthy single-vintage values. That work is what makes VIXCLS-as-of-that-day mean the right thing. It wasn't wasted; it's load-bearing under the six series you *are* keeping.
+
+Want me to write the T3.1 Claude Code task around these six ALFRED series plus the market-internals features — building each as a relative/trailing transform, with the leakage assertion and warm-up report?

@@ -16,7 +16,7 @@ import shutil
 from pathlib import Path
 
 # ── Columns to drop ───────────────────────────────────────────────────────
-DROP_COLS = {"MRQ_Net_Interest", "TTM_Net_Interest"}
+DROP_COLS = set()  # keep all columns
 
 # ── Helpers ────────────────────────────────────────────────────────────────
 

@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Conditional Structure in Stock Returns · A Plain-Language Version for a Partner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#ECEFF2; --panel:#FFFFFF;
+    --ink:#1A2B3A; --soft:#55697A; --line:#D3DBE2;
+    --frame:#1D4E6B; --frame-tint:#E2EAF1;
+    --eg:#1C7A67; --eg-tint:#E3F1ED;
+    --pit:#B4670A; --pit-tint:#F6EDDD;
+    --display:"Newsreader","PingFang SC","Hiragino Sans GB","Microsoft YaHei",serif;
+    --body:"Inter","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    --mono:"JetBrains Mono","SF Mono",ui-monospace,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html{scroll-behavior:smooth;}
+  body{background:var(--bg);color:var(--ink);font-family:var(--body);line-height:1.72;-webkit-font-smoothing:antialiased;padding:0 22px;}
+  .wrap{max-width:820px;margin:0 auto;}
+
+  /* hero */
+  header{padding:88px 0 44px;}
+  .kicker{font-family:var(--mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--frame);margin-bottom:26px;}
+  h1{font-family:var(--display);font-weight:600;font-size:clamp(32px,5.4vw,52px);line-height:1.1;letter-spacing:-.01em;margin-bottom:18px;}
+  .sub{font-size:18px;color:var(--soft);max-width:600px;}
+
+  /* nested-conditions signature */
+  .signature{margin:40px 0 8px;}
+  .signature svg{width:100%;height:auto;display:block;}
+  .sig-cap{font-family:var(--mono);font-size:11px;color:var(--soft);text-align:center;margin-top:10px;letter-spacing:.04em;}
+
+  /* how-to-read guide */
+  .guide{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:26px 28px;margin:36px 0 8px;}
+  .guide h4{font-family:var(--display);font-weight:600;font-size:19px;margin-bottom:14px;}
+  .guide .row{display:flex;gap:12px;align-items:flex-start;padding:7px 0;font-size:14.5px;}
+  .guide .chip{flex:none;font-family:var(--mono);font-size:11px;padding:3px 9px;border-radius:6px;margin-top:2px;white-space:nowrap;}
+  .chip-f{background:var(--frame-tint);color:var(--frame);}
+  .chip-e{background:var(--eg-tint);color:var(--eg);}
+  .chip-p{background:var(--pit-tint);color:var(--pit);}
+
+  /* TOC */
+  nav.toc{margin:34px 0;padding:22px 26px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);}
+  nav.toc ol{list-style:none;columns:2;column-gap:36px;}
+  nav.toc li{padding:4px 0;font-size:14px;}
+  nav.toc a{color:var(--ink);text-decoration:none;}
+  nav.toc a:hover{color:var(--frame);}
+  nav.toc .n{font-family:var(--mono);color:var(--frame);font-size:12px;margin-right:8px;}
+  @media(max-width:600px){nav.toc ol{columns:1;}}
+
+  /* sections */
+  section{padding:52px 0;border-top:1px solid var(--line);}
+  .sec-num{font-family:var(--mono);font-size:12px;letter-spacing:.14em;color:var(--frame);display:inline-flex;align-items:center;gap:12px;margin-bottom:14px;}
+  .sec-num .badge{width:30px;height:30px;border-radius:8px;background:var(--frame);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:14px;font-family:var(--display);font-weight:600;}
+  h2{font-family:var(--display);font-weight:600;font-size:clamp(24px,3.6vw,32px);line-height:1.16;margin-bottom:20px;letter-spacing:-.01em;}
+  h3{font-family:var(--display);font-weight:600;font-size:20px;margin:30px 0 4px;}
+  p{margin:12px 0;}
+  .lead{font-size:16.5px;}
+  strong{font-weight:600;}
+  .q{font-size:19px;font-family:var(--display);color:var(--frame);border-left:3px solid var(--frame);padding:4px 0 4px 18px;margin:18px 0;font-style:italic;}
+  code,.k{font-family:var(--mono);font-size:.86em;background:#E0E6EC;padding:1px 6px;border-radius:4px;}
+
+  /* example box */
+  .eg{background:var(--eg-tint);border-radius:12px;padding:20px 22px;margin:18px 0;}
+  .eg .tag{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--eg);margin-bottom:9px;display:flex;align-items:center;gap:8px;}
+  .eg .tag::before{content:"◆";font-size:9px;}
+  .eg p{margin:6px 0;font-size:14.5px;}
+
+  /* pitfall box */
+  .pit{background:var(--pit-tint);border-radius:12px;padding:20px 22px;margin:18px 0;}
+  .pit .tag{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--pit);margin-bottom:9px;display:flex;align-items:center;gap:8px;}
+  .pit .tag::before{content:"▲";font-size:9px;}
+  .pit .then{font-size:13px;color:var(--pit);font-weight:600;margin-top:8px;}
+  .pit p{margin:6px 0;font-size:14.5px;}
+
+  ul.clean{list-style:none;margin:12px 0;}
+  ul.clean li{padding:6px 0 6px 20px;position:relative;font-size:15px;}
+  ul.clean li::before{content:"—";position:absolute;left:0;color:var(--frame);}
+
+  footer{padding:56px 0 90px;font-family:var(--mono);font-size:12px;color:var(--soft);letter-spacing:.03em;text-align:center;}
+
+  @media(prefers-reduced-motion:no-preference){
+    .fade{opacity:0;transform:translateY(8px);animation:f .7s ease forwards;}
+    .fade.d1{animation-delay:.15s;} .fade.d2{animation-delay:.3s;} .fade.d3{animation-delay:.45s;}
+    @keyframes f{to{opacity:1;transform:none;}}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="kicker fade">A plain-language version for a partner · No finance background required</div>
+    <h1 class="fade d1">"Conditional Structure"<br>in Stock Returns</h1>
+    <p class="sub fade d2">We are not building a machine that "predicts stock prices." We are studying a more modest question: <strong>under what kind of market environment, for companies in what kind of financial condition, showing what kind of price pattern, do stocks tend to do well — and is that regularity stable enough to be trusted?</strong></p>
+
+    <div class="signature fade d3">
+      <svg viewBox="0 0 800 260" xmlns="http://www.w3.org/2000/svg" font-family="'JetBrains Mono',monospace">
+        <rect x="20" y="30" width="470" height="200" rx="16" fill="none" stroke="#1D4E6B" stroke-width="1.6"/>
+        <text x="40" y="58" font-size="13" fill="#1D4E6B">① Market regime · shared market-wide</text>
+        <rect x="60" y="72" width="390" height="140" rx="13" fill="#E2EAF1" stroke="#1D4E6B" stroke-width="1.2"/>
+        <text x="80" y="98" font-size="13" fill="#1D4E6B">② Company financial state · differs per firm</text>
+        <rect x="100" y="112" width="310" height="82" rx="10" fill="#fff" stroke="#1C7A67" stroke-width="1.4"/>
+        <text x="120" y="138" font-size="13" fill="#1C7A67">③ Price structure · trend shape</text>
+        <text x="120" y="162" font-size="11" fill="#55697A">(includes your personal indicator)</text>
+        <line x1="490" y1="130" x2="560" y2="130" stroke="#1A2B3A" stroke-width="1.6" marker-end="url(#a)"/>
+        <defs><marker id="a" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#1A2B3A"/></marker></defs>
+        <rect x="570" y="102" width="210" height="56" rx="12" fill="#1A2B3A"/>
+        <text x="675" y="128" text-anchor="middle" font-size="13" fill="#fff">Return over the next period</text>
+        <text x="675" y="147" text-anchor="middle" font-size="11" fill="#C6D2DC">good / poor performance</text>
+      </svg>
+      <div class="sig-cap">Nested "conditions": market regime ⊃ financial state ⊃ price structure → returns</div>
+    </div>
+  </header>
+
+  <!-- how to read -->
+  <div class="guide">
+    <h4>How to read this document</h4>
+    <div class="row"><span class="chip chip-f">Main text</span><span>The formal description of the project itself — this is what goes on the CV and gets talked about in interviews. It may contain some jargon, but the two kinds of boxes below will translate it for you.</span></div>
+    <div class="row"><span class="chip chip-e">Analogy</span><span>An everyday-life example that translates the jargon above into plain language. If the main text doesn't make sense, jump straight to this box.</span></div>
+    <div class="row"><span class="chip chip-p">Early misconception</span><span>Places where we initially got it wrong during our discussions and later corrected ourselves. We keep them here because "knowing why not to do it that way" is itself part of the project's value.</span></div>
+  </div>
+
+  <!-- TOC -->
+  <nav class="toc">
+    <ol>
+      <li><a href="#s0"><span class="n">00</span>What this project is</a></li>
+      <li><a href="#s1"><span class="n">01</span>The core question</a></li>
+      <li><a href="#s2"><span class="n">02</span>Key concepts &amp; how they relate</a></li>
+      <li><a href="#s3"><span class="n">03</span>Data</a></li>
+      <li><a href="#s4"><span class="n">04</span>Method (in stages)</a></li>
+      <li><a href="#s5"><span class="n">05</span>Rigor &amp; guardrails</a></li>
+      <li><a href="#s6"><span class="n">06</span>What counts as "good"</a></li>
+      <li><a href="#s7"><span class="n">07</span>Scope &amp; timeline</a></li>
+      <li><a href="#s8"><span class="n">08</span>Known limitations</a></li>
+      <li><a href="#s9"><span class="n">09</span>Why it helps with applications</a></li>
+      <li><a href="#s10"><span class="n">10</span>Deliverables</a></li>
+    </ol>
+  </nav>
+
+  <!-- ============ 0 ============ -->
+  <section id="s0">
+    <div class="sec-num"><span class="badge">0</span>WHAT IT IS</div>
+    <h2>What this project is (and what it is not)</h2>
+    <p class="lead">This is an <strong>exploratory, interpretable</strong> piece of research. It does not answer "can returns be predicted?" It answers:</p>
+    <p class="q">Under which market regimes, for companies in which financial states, showing which price structures, do stocks tend to perform well — and is that relationship stable enough over time to be worth believing?</p>
+    <p>It is <strong>not</strong> a trading system, and it is <strong>not</strong> a claim that "I've found a way to make guaranteed money." This distinction is the single most important decision in the entire project, because it changes what "success" means: success is not how much a backtest earned, but whether a <strong>conditional regularity</strong> is stable, explainable, and able to pass one honest test.</p>
+    <div class="eg">
+      <div class="tag">Analogy</div>
+      <p>It's like doing <strong>nutrition research</strong> rather than selling diet pills. The pill seller says "take this and you'll definitely lose weight"; the researcher says "the data show that, among people who don't exercise much, cutting refined sugar is associated with weight loss — and this relationship held in three separate cohorts." The latter is more cautious and harder to knock down — and it's precisely the latter that interviewers trust more.</p>
+    </div>
+    <p>Why this framing is the most advantageous for quant recruiting: it can't be dismissed as "using a pile of fancy models to hide the fact that nothing was actually found"; it demonstrates the qualities researchers are genuinely valued for — honesty, willingness to falsify one's own ideas, and knowing where the traps in the data are; and it plays to a computer science student's strengths (clean code and rigorous statistics) rather than pretending to have industry inside knowledge.</p>
+    <div class="pit">
+      <div class="tag">Early misconception · later realized</div>
+      <p>The original vision was more like "build a prediction machine": price embeddings in a database + several models ensembled together to predict returns.</p>
+      <p class="then">Later realized: to top quant firms, a "prediction project stacked with trendy components" is actually a negative — they see hundreds of these every year, and their first instinct is to suspect there's nothing real inside. Repositioning it as "honest exploratory research" instantly raises the level of professionalism by a notch.</p>
+    </div>
+  </section>
+
+  <!-- ============ 1 ============ -->
+  <section id="s1">
+    <div class="sec-num"><span class="badge">1</span>THE QUESTION</div>
+    <h2>The core research question</h2>
+    <p class="lead">Split the world into three axes and study how they <strong>interact</strong>:</p>
+    <p class="q">Market regime × company financial state × price structure → returns</p>
+    <p>The central hypothesis is that these factors are <strong>"it depends"</strong> factors — they don't act independently of one another. The same kind of company (say, a high-quality growth stock) may perform wildly differently in different market regimes; the same price pattern may only be "meaningful" under a particular regime and financial state. The project's job is to measure just how real, and how large, this "it depends" effect actually is.</p>
+    <div class="eg">
+      <div class="tag">Analogy</div>
+      <p>"Is carrying an umbrella a good idea?" — there is no fixed answer; <strong>it depends on the weather</strong>. On a rainy day it's wise; on a sunny day it's a burden. Likewise, "is high corporate debt bad?" or "should I chase this trend?" — the answers all depend on the "market weather" and the "company's constitution." What we want to measure is whether the answer flips when the "weather" changes.</p>
+    </div>
+  </section>
+
+  <!-- ============ 2 ============ -->
+  <section id="s2">
+    <div class="sec-num"><span class="badge">2</span>CONCEPTS</div>
+    <h2>Key concepts, and how they relate</h2>
+    <p class="lead">This section defines every term clearly. Read it first — everything later refers back here.</p>
+
+    <h3>2.1　Setup (a "situation" / snapshot)</h3>
+    <p>A setup = the <strong>complete state</strong> of one stock on one day: its recent price-and-volume trajectory + the market regime at the time + the company's financial condition. It is the smallest unit we compare against each other in history. "Similar setups" means similar in all three respects — not merely "the charts look alike."</p>
+    <div class="eg">
+      <div class="tag">Analogy</div>
+      <p>Like taking a <strong>full medical snapshot</strong> of a patient: you don't look at just one symptom (the price trend), but also the season / epidemic environment (the market) and the person's underlying constitution (the financials). Two "similar situations" means the entire medical chart looks alike — not merely "both are coughing."</p>
+    </div>
+
+    <h3>2.2　Market regime cluster (the market's "seasons")</h3>
+    <p>A small number (typically 4–6) of market regimes <strong>automatically grouped</strong> from data — e.g. "calm growth," "panic / flight to safety," "fighting inflation." Obtained by clustering market-level data (index returns and volatility, the VIX fear index, interest-rate spreads, etc.). It is the <strong>outermost condition</strong>, and it is <strong>shared market-wide</strong> — on any given day, every stock lives in the same "season."</p>
+    <div class="eg">
+      <div class="tag">Analogy</div>
+      <p>Like the <strong>seasons of the weather</strong>. We don't decree four seasons out of thin air; we feed years of meteorological data in and let it sort itself into "a few weather patterns." The market has its "seasons" too — and everyone experiences the same season on the same day.</p>
+    </div>
+    <div class="pit">
+      <div class="tag">Early misconception · later realized</div>
+      <p>At one point the idea was to "let the system fully automatically decide how many clusters there are — that's the most objective."</p>
+      <p class="then">Later realized: the "automatic" choice merely hides the subjective decision inside "which mathematical criterion to use" — different criteria give very different counts. The sturdier approach is to let the algorithm <strong>suggest</strong> a range, then settle it by asking "are these clusters stable, and can they be explained?" (see 5.3).</p>
+    </div>
+
+    <h3>2.3　Company financial state cluster (the company's "constitution")</h3>
+    <p>A small number of automatically grouped company profiles — e.g. "profitable steady compounder," "high-leverage cyclical," "not-yet-profitable growth firm." Obtained by clustering company fundamentals (margins, growth, leverage, quality, etc.). It is the <strong>middle-layer condition</strong>, and it <strong>differs stock by stock</strong> — on the same day, different companies have different constitutions.</p>
+    <div class="eg">
+      <div class="tag">Analogy</div>
+      <p>Like sorting companies into <strong>body types</strong>: the "healthy saver" (good profits, low debt), the "weather-dependent borrower" (cyclical, highly leveraged), the "young cash-burner growing fast." On any given day, different companies belong to different types.</p>
+    </div>
+
+    <h3>2.4　Price structure / your personal indicator (the "structure" of the trend)</h3>
+    <p>The shape and internal structure of the recent price-and-volume trajectory. Key point: this project does <strong>not</strong> rely on generic "chart similarity." It uses a <strong>path-dependent</strong> structural indicator (your own): institutional accumulation proceeds <strong>leg by leg</strong>, and as long as the <strong>starting point of the previous leg has not been broken</strong>, the structure counts as intact. It is fundamentally different from a moving average — a moving average is a "memoryless" rolling mean, while this indicator <strong>remembers</strong> where each leg of the move began. It can run on daily / weekly / monthly bars (reportedly especially good on weekly / monthly). It enters the project as a <strong>pre-computed state variable</strong> (e.g. "structure intact / broken," "which leg," "distance from the leg's origin").</p>
+    <div class="eg">
+      <div class="tag">Analogy</div>
+      <p>Like <strong>tracking a trail of footprints</strong>. A moving average is like asking "where is this crowd standing, on average, lately" — it's forgetful; it only computes a recent average position. Your indicator is more like asking "is this animal's trail still unbroken?": it <strong>remembers</strong> the landmark each step set out from, and as long as the animal hasn't retreated behind the previous step's origin, the trail is still alive. Remembering <strong>specific landmarks</strong> is its biggest difference from a moving average.</p>
+    </div>
+    <div class="pit">
+      <div class="tag">Early misconception · later realized</div>
+      <p>At one point the idea was to have an AI model (an autoencoder) "discover" the structure this indicator captures on its own.</p>
+      <p class="then">Later realized: a rule that "depends on historical starting points" is something an AI trained by "reconstructing the chart" can <strong>almost never learn</strong>. The right approach is to <strong>feed the indicator you've already thought through directly in as an input</strong>, rather than hoping the model figures it out by itself.</p>
+    </div>
+
+    <h3>2.5　Conditional structure (the "interaction" of the three — this is the actual research object)</h3>
+    <p>The thing we are really studying: whether the returns of a given "(financial state × price structure) combination" <strong>change with the market regime</strong>. If they don't change, the regime axis carries no information; if they flip (e.g. value stocks do well in risk-off periods, growth stocks do well in expansions), then "conditional structure" genuinely exists — and you've proven it with data. That is the "finding" the project delivers.</p>
+    <div class="eg">
+      <div class="tag">Analogy</div>
+      <p>The formal version of the umbrella example: what we quantify is not "is carrying an umbrella good?" but <strong>"does the goodness of carrying an umbrella reverse between sunny and rainy days?"</strong> If an umbrella is bad on sunny days and good on rainy days, then the condition "weather" genuinely matters — and that is exactly the kind of thing we want to prove with data.</p>
+    </div>
+
+    <h3>2.6　Point-in-time (temporal consistency · no "peeking at the future")</h3>
+    <p>Every datum may only reflect what was "knowable on the day it is used." Macro data use <strong>first-release values</strong> (not later revisions); financial data are anchored to the <strong>announcement date</strong> (not the fiscal period end), using the <strong>originally published figures</strong>. Any piece of information is treated as "invisible" until the moment it was published. Without this rule, the whole study is contaminated by look-ahead.</p>
+    <div class="eg">
+      <div class="tag">Analogy</div>
+      <p>Like <strong>grading an exam using only what the student wrote in the room</strong> — you can't use an answer key that leaked afterwards to "help" judge them. Using earnings figures that hadn't been published yet is peeking at the future — even if the numbers themselves are true.</p>
+    </div>
+    <div class="pit">
+      <div class="tag">Early misconception · later realized</div>
+      <p>At one point the assumption was "my data source is clean, so there's no look-ahead problem."</p>
+      <p class="then">Later realized: look-ahead mostly comes from <strong>how you use the data, not from the data source itself</strong>. The real risks live in three places — (a) the <strong>visibility date</strong> of financial data (verified to be the announcement date — this one is fine); (b) companies <strong>restating their financials</strong> afterwards (data sources usually supply the "latest revised version," not the original figures seen at the time — listed as a known limitation); (c) <strong>full-sample leakage</strong> inside the analysis steps, e.g. normalizing 2015 data using statistics computed through 2024, which effectively lets 2015 "see" the future (prevented by the train/confirm separation in 5.5).</p>
+    </div>
+
+    <h3>2.7　Effective sample size (how many truly independent pieces of "evidence" there are)</h3>
+    <p>The hardest constraint in the whole project. <strong>Row counts lie</strong>: because forward windows overlap and the market regime is shared market-wide, the number of genuinely "mutually independent" observations is actually small. A regime that has appeared only ~4 times in history offers at most ~4 independent pieces of evidence about itself — no matter how many trading days it spans. What determines "how fine-grained we can go" is this number, not the volume of data.</p>
+    <div class="eg">
+      <div class="tag">Analogy</div>
+      <p>Like <strong>reviewing a restaurant</strong>: 1,000 reviews that all come from your own 3 visits are really only 3 independent opinions, not 1,000. History has seen only four or five genuine "recessions" — so on "what happens in recessions," we get at most four or five real chances to test, and no amount of extra data rows can conjure more.</p>
+    </div>
+  </section>
+
+  <!-- ============ 3 ============ -->
+  <section id="s3">
+    <div class="sec-num"><span class="badge">3</span>DATA</div>
+    <h2>Data</h2>
+    <ul class="clean">
+      <li>Stock universe: fixed, and <strong>including delisted companies</strong> (otherwise there is survivorship bias).</li>
+      <li>Price &amp; volume: daily bars, with weekly / monthly bars derived for the indicator (price/volume itself has no look-ahead problem).</li>
+      <li>Market-level: index returns and volatility, VIX, interest-rate and credit spreads, etc.</li>
+      <li>Financials: by announcement date, as originally published (data source verified to use announcement dates).</li>
+      <li>Macro: first-release values.</li>
+      <li>Label: the return over the next H periods (start with a single H, e.g. 3 months), expressed as a <strong>cross-sectional rank</strong> (ranked within the universe each day), which is naturally relative to the market.</li>
+    </ul>
+    <div class="eg">
+      <div class="tag">Analogy</div>
+      <p>"Including delisted companies" matters: studying only "companies that survived to today" is like <strong>surveying only people who passed the exam to draw conclusions about study methods</strong> — those who failed or dropped out were silently excluded, so the conclusions come out falsely optimistic. Stocks that went bankrupt and delisted must stay in the data.</p>
+    </div>
+    <div class="pit">
+      <div class="tag">Early misconception · later realized</div>
+      <p>At one point the idea was to label "good stocks" as the top 10% by total return over the next 3 months.</p>
+      <p class="then">Later realized: total return contains "beta" (the part that just rises with the market). In a bull market, the biggest gainers are often merely "the most sensitive stocks," so the model may just be <strong>betting on market direction</strong> rather than genuinely picking good companies. To avoid this, define the label via "excess return relative to the market," and state explicitly which definition was chosen.</p>
+    </div>
+  </section>
+
+  <!-- ============ 4 ============ -->
+  <section id="s4">
+    <div class="sec-num"><span class="badge">4</span>METHOD</div>
+    <h2>Method (broken into steps, each independently checkable)</h2>
+
+    <h3>Stage A — Derive the two sets of "classifications"</h3>
+    <p>Cluster market data to get the "regime categories"; cluster company fundamentals to get the "financial categories." Let the algorithm suggest how many, but don't let a single criterion make the call (see 5.3). <strong>Deliberately keep the number of categories small</strong> — a coarser classification is exactly the "controlled fuzziness" we want: it stops the later interactions from becoming too fragmented.</p>
+    <div class="eg">
+      <div class="tag">Analogy</div>
+      <p>Like dividing the weather coarsely into "four seasons" rather than 365 kinds of "daily weather." <strong>Coarser is actually more useful</strong>: with categories too fine, each one contains only a handful of days, and no reliable pattern can be extracted.</p>
+    </div>
+    <div class="pit">
+      <div class="tag">Early misconception · later realized</div>
+      <p>At one point the idea was to <strong>cluster "financials" and "macro" together</strong>, in one step.</p>
+      <p class="then">Later realized: that would destroy the research object itself. What we want to study is "how the effect of financials <strong>changes with</strong> the regime" — which requires "financials" and "regime" to be two axes that can <strong>take values independently and then be crossed</strong>. Once merged, "high leverage" is no longer a fixed coordinate that can be compared across regimes — the "change" we want to measure simply disappears. Hence the clusterings must be <strong>kept separate, and crossed later in the statistics</strong>.</p>
+    </div>
+
+    <h3>Stage B — Turn the price structure into state variables</h3>
+    <p>Encode your personal indicator into a small set of <strong>human-readable</strong> states (structure intact / broken, which leg, distance from the leg's origin), running on daily / weekly / monthly bars. Keep it human-readable, because "interpretable" is exactly this project's selling point.</p>
+    <div class="eg">
+      <div class="tag">Analogy</div>
+      <p>Like writing "the state of this animal's trail" as a few simple labels: "trail unbroken / interrupted," "which leg of the journey this is," "how far from the starting point." <strong>Better simple and understandable than a black-box number no one can explain.</strong></p>
+    </div>
+
+    <h3>Stage C — Two-layer statistics (the core of the analysis)</h3>
+    <p>Layer one: <strong>within each single day</strong>, estimate the effect of a given "(regime × financial state × structure) combination" on that day's returns. Layer two: then examine how these <strong>day-by-day results behave over time</strong> — what the average is, how stable it is, whether it's consistent. This is the classic <span class="k">Fama-MacBeth</span> approach — far more robust than "throwing all the data into one big regression" — and the second layer directly yields "stability," which is exactly the evidence we care about most.</p>
+    <div class="eg">
+      <div class="tag">Analogy</div>
+      <p>Like <strong>evaluating a teacher</strong>. Layer one: check whether each cohort of students improved. Layer two: look across many cohorts and ask whether the improvement was <strong>consistent throughout</strong>, or whether just one cohort happened to do well. A method that "works only in one particular year and fails in all the others" doesn't deserve trust — layer two is built to catch exactly that.</p>
+    </div>
+
+    <h3>Stage D — Progressive baselines</h3>
+    <p>First run B0 (no conditions at all) and B1 (market regime only), so the value of the full version B2 (regime + financials + structure) can be stated as "how much it adds," rather than asserted out of thin air.</p>
+    <div class="eg">
+      <div class="tag">Analogy</div>
+      <p>Like a <strong>seasoning experiment for a dish</strong>. B0: plain, no seasoning. B1: add one seasoning only (the market regime). B2: the full set. Tasting after each addition lets you <strong>prove</strong> the seasoning did the work — rather than just feeling good about it.</p>
+    </div>
+
+    <h3>Stage E — (Optional) similarity retrieval, for "explaining by showing"</h3>
+    <p>For intuitive presentation ("show me similar historical situations"), one can retrieve the most similar historical setups. <strong>Important: no complex AI model (transformer autoencoder) is needed</strong> — a simple "distance" over normalized, interpretable features is enough, and easier to understand. Treat complex models as a "stretch goal, only if time remains."</p>
+    <div class="eg">
+      <div class="tag">Analogy</div>
+      <p>Like "finding similar photos": to find look-alike photos, <strong>start by comparing simple features</strong> — no need to train a huge neural network right away. It saves time, and it's easy to explain why two things are "similar."</p>
+    </div>
+  </section>
+
+  <!-- ============ 5 ============ -->
+  <section id="s5">
+    <div class="sec-num"><span class="badge">5</span>RIGOR</div>
+    <h2>Rigor &amp; guardrails (what makes the project "hold up")</h2>
+
+    <h3>5.1　No peeking at the future, anywhere</h3>
+    <p>See 2.6. No revised values; everything is treated as invisible before its publication date.</p>
+
+    <h3>5.2　Within-window normalization</h3>
+    <p>Anywhere "pattern similarity" is involved, each window is normalized <strong>on its own</strong> — otherwise "similar" degenerates into "same price level / same era."</p>
+    <div class="eg">
+      <div class="tag">Analogy</div>
+      <p>To compare whether two people are "overweight," you can't compare raw kilograms directly (height matters too). To compare whether two price paths "look alike," each must be "standardized" first — otherwise all you get is "both are stocks trading around $100," not "the paths genuinely look alike."</p>
+    </div>
+
+    <h3>5.3　Classifications must be "stable," not judged by one criterion</h3>
+    <p>Run a <span class="k">bootstrap</span> on the clustering (reshuffle the data slightly and re-cluster), keeping only categories that <strong>remain stable after reshuffling</strong>; merge or drop the unstable ones. This limits "fragmented pseudo-patterns" at the source.</p>
+    <div class="eg">
+      <div class="tag">Analogy</div>
+      <p>Like <strong>redrawing borders on a map</strong>: if swapping in a slightly different batch of data still produces roughly the same "regions," the regions are real; if they scatter the moment you swap, the original partition was arbitrary and shouldn't be used to draw conclusions.</p>
+    </div>
+
+    <h3>5.4　Minimum sample threshold + counting "independent episodes"</h3>
+    <p>Before reporting any "regime A × state B × structure C → good," require enough <strong>independent</strong> observations (count regime episodes, not rows). Anything short of the threshold is marked "insufficient data" — no conclusion is drawn.</p>
+    <div class="eg">
+      <div class="tag">Analogy</div>
+      <p>Nobody believes "this method works" when only 2 people have tried it. Likewise, if "high-leverage stocks in inflationary periods" has occurred only twice in history, we honestly say "insufficient sample" rather than forcing a pattern into existence.</p>
+    </div>
+
+    <h3>5.5　"Exploration" and "confirmation" strictly separated</h3>
+    <p><strong>Exploration</strong> phase: classifications may be re-fit as new data arrive, used to "see what structure exists right now." <strong>Confirmation</strong> phase: any "across-time" conclusion must rest on classifications that were <strong>fixed on the training period and only applied afterwards</strong>, so that "regime 3" means the same thing in every year.</p>
+    <div class="eg">
+      <div class="tag">Analogy</div>
+      <p>Like <strong>house hunting</strong>: wandering around and forming impressions is "exploration"; but once it's decision time, you must fix your criteria first and then test them on a set of houses you have <strong>never seen</strong>. You can't change the criteria after seeing the answer — that's cheating.</p>
+    </div>
+
+    <h3>5.6　Beware of "testing too many times"</h3>
+    <p>Scan enough combinations and a few will look significant <strong>by pure luck</strong> (with 500 pure-noise tests at the 5% level, about 25 will come out "significant"). Report how many combinations were tested, and downgrade anything that is "significant only before correction" to a "hypothesis."</p>
+    <div class="eg">
+      <div class="tag">Analogy</div>
+      <p>Toss 500 coins and a few will land <strong>heads 8 times in a row</strong> — not because those coins are magic, but because you tossed enough of them. Test 500 "patterns" and a few will happen to shine. So you must account for "how many times you tried in total."</p>
+    </div>
+
+    <h3>5.7　Reserve a stretch of "never-seen" time as the final exam</h3>
+    <p>Hold out a contiguous stretch of time that is <strong>never touched</strong>, used only once at the end to confirm the handful of patterns selected during exploration. This is the only hard boundary between a "real discovery" and "overfitting."</p>
+    <div class="eg">
+      <div class="tag">Analogy</div>
+      <p>Like a <strong>sealed final exam paper</strong>: never peek at it while revising, and use it exactly once at the end — only then does it truly test whether you "learned the material" or "memorized the answers."</p>
+    </div>
+
+    <h3>5.8　Two kinds of "drift": why a 1990s pattern stops working by 2010</h3>
+    <p>Markets change and old patterns decay. But two completely different kinds of "change" must be distinguished and <strong>handled with different tools</strong>:</p>
+
+    <h3 style="font-size:17px;color:var(--frame);">Drift A — the "definition of the categories" changed</h3>
+    <p>Interest rates were 6% in the 1990s and near 0% in the 2010s. Classifying on <strong>absolute levels</strong> would place those two eras into different categories merely because "the numbers differ," even if both were essentially "tightening periods." <strong>Solution: classify on "relative features,"</strong> not absolute numbers — "high or low relative to its own history," "changes," "spreads and curve shape," etc. — so that "tightening" is comparable across eras.</p>
+    <div class="eg">
+      <div class="tag">Analogy</div>
+      <p>20°C is "warm" in Norway and "cool" in Singapore. <strong>Compare against the local normal, not the absolute temperature.</strong> Markets are the same: rather than asking "what is the rate," ask "is the rate high or low relative to what was normal at the time" — that way "hot / cold" lines up across eras. The core principle: <strong>choose features that are insensitive to "what has permanently changed" but sensitive to "what will recur."</strong> Much apparent "change" is manufactured by choosing the wrong coordinates.</p>
+    </div>
+
+    <h3 style="font-size:17px;color:var(--frame);">Drift B — the "relationship itself" changed</h3>
+    <p>Even with identical category definitions, a pattern like "value stocks do well in risk-off periods" may hold in the 1990s and reverse after 2008. That is a <strong>genuine economic change, not a data flaw</strong>, and cannot be "clustered away." The solution is not elimination but <strong>measurement and reporting</strong>: slice the eras apart (90s / 2000s / 2010s+) and check whether the same pattern holds in each segment.</p>
+    <div class="eg">
+      <div class="tag">Analogy</div>
+      <p>Like "a teaching method that worked in the 90s and doesn't anymore" — that's not a statistical error; <strong>the times genuinely changed</strong>. Insisting on a pattern that "holds in every era" is futile. The right move is to <strong>state honestly in which eras it worked and in which it broke</strong> — "this pattern held in the 90s and broke around 2008" is itself a valuable finding. Non-stationarity goes from "a problem to hide" to "a research result."</p>
+    </div>
+    <div class="pit">
+      <div class="tag">Early misconception · later realized</div>
+      <p>At one point the idea was to use reinforcement learning (RL) to "automatically adapt" to this kind of market change.</p>
+      <p class="then">Later realized: RL assumes "the rules of the game are stable," while the essence of market non-stationarity is <strong>precisely that the rules themselves are changing</strong> — which violates RL's fundamental premise. RL doesn't "adapt to" non-stationarity; it overfits the old data and then fails when things change, and it is harder to debug. So RL was <strong>deliberately removed</strong>; being able to say "I evaluated RL and judged it unsuitable" is itself a plus.</p>
+    </div>
+  </section>
+
+  <!-- ============ 6 ============ -->
+  <section id="s6">
+    <div class="sec-num"><span class="badge">6</span>METRICS</div>
+    <h2>What counts as "good"</h2>
+    <p class="lead">Because this is exploratory research, the yardstick is <strong>not "prediction accuracy"</strong> (no accuracy or AUC-type metrics).</p>
+    <p><strong>Primary:</strong> whether "adding the conditions" <strong>robustly changes</strong> the return picture. In other words, how much "the effect under a given regime" differs from "the unconditional effect," and whether that difference is credible under the second statistical layer (mean, significance, consistency across eras). Combined with the baselines, this becomes "how much B1 adds over B0, and how much B2 adds over B1."</p>
+    <div class="eg">
+      <div class="tag">Analogy</div>
+      <p>Evaluating a weather forecaster shouldn't just ask "right or wrong?"; it should ask <strong>whether the "rain probabilities" they assign line up with how often it actually rains</strong>. Likewise, what we measure is "how much sharper the picture became once conditioned" — not "how many guesses hit."</p>
+    </div>
+    <p><strong>Secondary (only where stocks genuinely need to be ranked, e.g. stock selection using your indicator):</strong> use rank IC (rank correlation) and whether the quantile-portfolio returns are monotonic — that is the language quants actually use, and it fits better than "right / wrong guesses."</p>
+  </section>
+
+  <!-- ============ 7 ============ -->
+  <section id="s7">
+    <div class="sec-num"><span class="badge">7</span>SCOPE</div>
+    <h2>Scope &amp; timeline (how to guarantee it finishes in one summer)</h2>
+    <p><strong>Minimum core (must be completed; on its own it's already a strong project):</strong> two stable classifications + the indicator as structure states + the two-layer statistics + progressive baselines + the full set of rigor guardrails + the conditional-difference metric, using a single horizon only.</p>
+    <p><strong>Optional extensions (only with spare capacity):</strong> similarity retrieval for visual explanation (simple methods first), multiple horizons, complex AI models (a stretch goal with uncertain payoff).</p>
+    <p><strong>Deliberately out of scope (write this down explicitly — it earns points):</strong> reinforcement learning (evaluated and rejected; rationale in 5.8); any claim of "live-trading profitability" (the project studies structure only, and makes no tradability claim).</p>
+    <div class="eg">
+      <div class="tag">Analogy</div>
+      <p>Like renovating a home: <strong>get the plumbing, wiring, and structure solid first</strong> (the minimum core), then talk chandeliers and smart-home gadgets (the extensions). A fully finished two-bedroom flat beats an unroofed mansion. <strong>"Knowing what not to do" demonstrates judgment just as much as "what was done."</strong></p>
+    </div>
+  </section>
+
+  <!-- ============ 8 ============ -->
+  <section id="s8">
+    <div class="sec-num"><span class="badge">8</span>LIMITS</div>
+    <h2>Known limitations (stating them is maturity, not weakness)</h2>
+    <ul class="clean">
+      <li>On the market-regime axis, truly independent samples are scarce — this is a <strong>physical ceiling</strong>; clustering reduces dimensionality but cannot conjure more independent information. Conclusions on the regime axis are inherently "small-sample."</li>
+      <li>Non-stationarity is handled in two halves: one half is <strong>circumvented via relative features</strong> (Drift A), the other is <strong>measured and reported across eras</strong> (Drift B); whatever remains irreducible is <strong>acknowledged honestly</strong>.</li>
+      <li><strong>Restatements</strong> of financial data: data sources mostly supply the "latest revised version," not the figures originally seen; this is usually a second-order effect, and if necessary a sensitivity check is run on the small set of restated samples.</li>
+      <li>The claim that your personal indicator "rides the move from start to finish" is exactly the kind most easily distorted by "reading the chart in hindsight"; the project treats it as <strong>a testable hypothesis</strong>, validated out-of-sample across many stocks, not as a given premise.</li>
+    </ul>
+    <div class="eg">
+      <div class="tag">Analogy</div>
+      <p>An honest researcher volunteers "this conclusion holds only under these premises." That's not weakness — <strong>it's precisely what makes people more willing to trust your other conclusions</strong>. Interviewers especially respond to this.</p>
+    </div>
+  </section>
+
+  <!-- ============ 9 ============ -->
+  <section id="s9">
+    <div class="sec-num"><span class="badge">9</span>WHY</div>
+    <h2>Why this project helps a quant application</h2>
+    <ul class="clean">
+      <li>Shows <strong>research taste</strong>: one sharp, falsifiable question, rather than a heap of models.</li>
+      <li>Shows the <strong>rigor</strong> top firms actually screen for: no look-ahead, evidence counted in independent samples, stability-tested classifications, multiple-testing protection, exploration/confirmation separation, a held-out final exam.</li>
+      <li><strong>Honesty</strong>: report incremental value over baselines, label hypotheses as hypotheses; even a partial "we found nothing" is a defensible result.</li>
+      <li>Plays to <strong>computer science strengths</strong>: reproducible code, clean data handling, rigorous statistics — precisely the most transferable core of a quant researcher's craft.</li>
+      <li><strong>Finishes</strong>: a completed small core beats an unfinished big system; and the deliberate "won't-dos" (RL, live-trading claims) demonstrate judgment about boundaries.</li>
+    </ul>
+    <div class="eg">
+      <div class="tag">Analogy</div>
+      <p>An interview is like a <strong>hostile thesis defense</strong>: the other side hunts specifically for holes. A project where "I never overclaim, and every sentence comes with evidence and stated premises" is far safer — and far classier — than one that "sounds impressive but collapses at the first question."</p>
+    </div>
+  </section>
+
+  <!-- ============ 10 ============ -->
+  <section id="s10">
+    <div class="sec-num"><span class="badge">10</span>DELIVER</div>
+    <h2>What gets delivered at the end</h2>
+    <ul class="clean">
+      <li>A reproducible codebase (a data layer that enforces "no look-ahead," the clusterings, the two-layer statistics, the baselines).</li>
+      <li>A short report: the question, the method, the conditional findings, the incremental value over baselines, what was confirmed out-of-sample vs. what remains a hypothesis, and the stated limitations.</li>
+      <li>A few interpretable cluster descriptions (AI can help with naming) and a few illustrated conditional patterns.</li>
+    </ul>
+  </section>
+
+  <footer>
+    Conditional Structure in Stock Returns · plain-language version · written for a partner<br>
+    Main text = the project itself　·　Analogy = plain-language translation　·　Early misconception = why we chose not to do it that way
+  </footer>
+
+</div>
+</body>
+</html>
